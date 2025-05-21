@@ -11,7 +11,13 @@ const speed = 20;
 //Também há uma main ao fim do código
 
 // A fazer (Samuel) : Inserir o JSDoc para cada função, para facilitar entendimento e incrementação
+//Exemplo de JSDoc:
 
+/**
+ * Inicializa a cena, câmera, controles e outros componentes necessários.
+ * Configura texturas, materiais, event listeners e mira.
+ * @returns {void}
+ */
 function init() {
     stats = new Stats();
     renderer = initRenderer("rgb(70, 150, 240)");
@@ -28,6 +34,10 @@ function init() {
     setupCrosshair();
 }
 
+/**
+ * Cria uma câmera perspectiva com as dimensões da janela e adiciona à cena.
+ * @returns {THREE.PerspectiveCamera} A câmera criada.
+ */
 function createCamera() {
     const cam = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     cam.position.set(-5, 2, -5);
