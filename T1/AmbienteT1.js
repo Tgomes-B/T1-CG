@@ -33,7 +33,7 @@ scene.add(ground);
 // Geometria das areas
 const boxGeometry = new THREE.BoxGeometry(120, 120, 0.5);
 
-// Cores das areas
+// Cores das areas - Ainda vou buscar um jeito melhor de fazer isso
 const areaMaterial = [];
 areaMaterial[0] = new THREE.MeshLambertMaterial({
     color:'rgb(155, 249, 134)'
@@ -49,45 +49,58 @@ areaMaterial[3] = new THREE.MeshLambertMaterial({
 });
 
 // Cria as Areas e posiciona uma ao lado da outra
-let areas, area4; 
-let areasCSG = [];
+let molde, area4; 
+let areas = [];
 let postZ = -155;
 let cubeCSG, cubeMesh, auxCSG, objectCSG;
-cubeMesh = new THREE.Mesh(new THREE.BoxGeometry(30, 30, 2)) // cubo que vai cortar as areas
-cubeMesh.position.set(0, 5, 0) // posição do cubo que vai cortar a area
+cubeMesh = new THREE.Mesh(new THREE.BoxGeometry(30, 20, 2)) // cubo que vai cortar as areas (x, y, z)
+cubeMesh.position.set(0, 0, 0) // posição do cubo que vai cortar as areas
 
 
-areas = new THREE.Mesh(boxGeometry, areaMaterial[0]); // areas não é mais um vetor
-areas.rotation.x = -0.5 * Math.PI;
-areas.position.set(45, 5, 0); // a posição precisa ser atualizada
+molde = new THREE.Mesh(boxGeometry, areaMaterial[0]);
+molde.position.set(45, 0, 0);
+updateObject(molde); // atualiza a posição do objeto
 cubeCSG = CSG.fromMesh(cubeMesh); // passa o cubo para CSG
+auxCSG = CSG.fromMesh(molde);
+objectCSG = cortaArea(auxCSG, cubeCSG);
 
 for (let i=0; i<3; i++){
-    auxCSG = CSG.fromMesh(areas);
-    objectCSG = cortaArea(auxCSG, cubeCSG);
-    areasCSG[i] = CSG.toMesh(objectCSG, new THREE.Matrix4()); // areasCSG precisa ser renomeado
-    areasCSG[i].position.set(130, 5, postZ);
-    areasCSG[i].rotation.x = -0.5 * Math.PI;
+    areas[i] = CSG.toMesh(objectCSG, new THREE.Matrix4()); 
+    areas[i].position.set(130, 5, postZ);
+    areas[i].rotation.x = -0.5 * Math.PI;
+    areas[i].material = areaMaterial[i];
     postZ+=155;
+}
+
+// cria a Area 4
+const boxAzulGeometry = new THREE.BoxGeometry(120, 310, 0.5);
+area4 = new THREE.Mesh(boxAzulGeometry, areaMaterial[3]); 
+area4.position.set(-45, 0, 0);
+updateObject(area4); // atualiza a posição do objeto
+auxCSG = CSG.fromMesh(area4);  // cópia da area 4 em CSG
+objectCSG = cortaArea(auxCSG, cubeCSG); // corta a area 4
+area4 = CSG.toMesh(objectCSG, new THREE.Matrix4());
+area4.rotation.x = -0.5 * Math.PI;
+area4.material = areaMaterial[3];
+area4.position.set(-130, 5, 0);
+
+
+function updateObject(mesh)
+{
+   mesh.matrixAutoUpdate = false;
+   mesh.updateMatrix();
 }
 
 function cortaArea(areaInteira, boxAuxiliar){
     let csgObject;
     csgObject = areaInteira.subtract(boxAuxiliar) // Subtrai parte da area
-    console.log("deu certo")
     return csgObject;
 }
 
-// cria a Area 4
-const boxAzulGeometry = new THREE.BoxGeometry(120, 310, 0.5);
-area4 = new THREE.Mesh(boxAzulGeometry, areaMaterial[3]);
-area4.position.set(-130, 5, 0);
-area4.rotation.x = -0.5 * Math.PI;   
-
-
 // Adiciona as areas a cena
-areasCSG.forEach(area => scene.add(area));
+areas.forEach(area => scene.add(area));
 scene.add(area4);
+//scene.add(cubeMesh);
 
 // a rampa ainda será removida
 const rampGeometry = new THREE.PlaneGeometry(11, 10);
@@ -179,7 +192,7 @@ function movementControls(key, value) {
 
 function moveAnimate(delta) {
     raycaster.ray.origin.copy(controls.getObject().position);
-    const isIntersectingGround = raycaster.intersectObjects([ground, areasCSG[0], areasCSG[1], areasCSG[2], area4]).length > 0;
+    const isIntersectingGround = raycaster.intersectObjects([ground, areas[0], areas[1], areas[2], area4]).length > 0;
     const isIntersectingRamp = raycaster.intersectObject(ramp).length > 0;
 
     if (moveForward) {
