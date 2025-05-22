@@ -5,6 +5,8 @@ import {initRenderer,
         initDefaultBasicLight,
         onWindowResize} from "../libs/util/util.js";
 
+import { CSG } from '../libs/other/CSGMesh.js'  // Constructive Solid Geometry(CSG), para fazer as Areas
+
 var stats = new Stats();          // To show FPS information
 var renderer = initRenderer("rgb(70, 150, 240)");    // View function in util/utils
 
@@ -47,24 +49,45 @@ areaMaterial[3] = new THREE.MeshLambertMaterial({
 });
 
 // Cria as Areas e posiciona uma ao lado da outra
-const areas = [];
+let areas, area4; 
+let areasCSG = [];
 let postZ = -155;
+let cubeCSG, cubeMesh, auxCSG, objectCSG;
+cubeMesh = new THREE.Mesh(new THREE.BoxGeometry(30, 30, 2)) // cubo que vai cortar as areas
+cubeMesh.position.set(0, 5, 0) // posição do cubo que vai cortar a area
+
+
+areas = new THREE.Mesh(boxGeometry, areaMaterial[0]); // areas não é mais um vetor
+areas.rotation.x = -0.5 * Math.PI;
+areas.position.set(45, 5, 0); // a posição precisa ser atualizada
+cubeCSG = CSG.fromMesh(cubeMesh); // passa o cubo para CSG
+
 for (let i=0; i<3; i++){
-    areas.push(new THREE.Mesh(boxGeometry, areaMaterial[i]));
-    areas[i].rotation.x = -0.5 * Math.PI;
-    areas[i].position.set(130, 5, postZ);
+    auxCSG = CSG.fromMesh(areas);
+    objectCSG = cortaArea(auxCSG, cubeCSG);
+    areasCSG[i] = CSG.toMesh(objectCSG, new THREE.Matrix4()); // areasCSG precisa ser renomeado
+    areasCSG[i].position.set(130, 5, postZ);
+    areasCSG[i].rotation.x = -0.5 * Math.PI;
     postZ+=155;
 }
+
+function cortaArea(areaInteira, boxAuxiliar){
+    let csgObject;
+    csgObject = areaInteira.subtract(boxAuxiliar) // Subtrai parte da area
+    console.log("deu certo")
+    return csgObject;
+}
+
 // cria a Area 4
 const boxAzulGeometry = new THREE.BoxGeometry(120, 310, 0.5);
-areas.push(new THREE.Mesh(boxAzulGeometry, areaMaterial[3]));
-areas[3].position.set(-130, 5, 0);
-areas[3].rotation.x = -0.5 * Math.PI;   
+area4 = new THREE.Mesh(boxAzulGeometry, areaMaterial[3]);
+area4.position.set(-130, 5, 0);
+area4.rotation.x = -0.5 * Math.PI;   
 
 
 // Adiciona as areas a cena
-areas.forEach(area => scene.add(area));
-
+areasCSG.forEach(area => scene.add(area));
+scene.add(area4);
 
 // a rampa ainda será removida
 const rampGeometry = new THREE.PlaneGeometry(11, 10);
@@ -135,7 +158,6 @@ function movementControls(key, value) {
     switch (key) {
         case 87: // W
             moveForward = value;
-            console.log("ta tudo errado")
             break;
         case 83: // S
             moveBackward = value;
@@ -157,7 +179,7 @@ function movementControls(key, value) {
 
 function moveAnimate(delta) {
     raycaster.ray.origin.copy(controls.getObject().position);
-    const isIntersectingGround = raycaster.intersectObjects([ground, areas[0], areas[1], areas[2], areas[3]]).length > 0;
+    const isIntersectingGround = raycaster.intersectObjects([ground, areasCSG[0], areasCSG[1], areasCSG[2], area4]).length > 0;
     const isIntersectingRamp = raycaster.intersectObject(ramp).length > 0;
 
     if (moveForward) {
