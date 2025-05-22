@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
 import { initRenderer, initDefaultBasicLight, onWindowResize } from "../libs/util/util.js";
+import { updateProjectiles } from './tiro.js';
+
 
 let stats, renderer, scene, camera, controls, clock;
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, moveUp = false, moveDown = false;
@@ -141,6 +143,7 @@ function createGun() {
     const gunGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 32);
     const gunMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
     const gun = new THREE.Mesh(gunGeometry, gunMaterial);
+    gun.name = "gun";
     gun.position.set(0.5, 0.2, -0.5);
     gun.rotation.x = -Math.PI / 2;
     gun.rotation.y = Math.PI / 2;
@@ -200,18 +203,23 @@ function moveAnimate(delta) {
 
 function render() {
     stats.update();
+    const delta = clock.getDelta();
+
     if (controls.isLocked) {
-        moveAnimate(clock.getDelta());
-        // Atualizar posição e rotação da arma
+        moveAnimate(delta);
+        updateProjectiles(delta);  
+
         const gun = controls.getObject().children[0];
         if (gun) {
             gun.position.set(0, -0.5, -1);
             gun.rotation.x = Math.PI / 2;
         }
     }
+
     renderer.render(scene, camera);
     requestAnimationFrame(render);
 }
+
 
 function main() {
     init();
@@ -219,3 +227,4 @@ function main() {
 }
 
 main();
+export { camera, scene ,controls};
