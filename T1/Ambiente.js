@@ -31,8 +31,8 @@ ground.rotation.x = -0.5 * Math.PI;
 scene.add(ground);
 
 // Geometria das areas
-const areaGeometry = new THREE.BoxGeometry(120, 120, 0.5);
-const areaAzulGeometry = new THREE.BoxGeometry(120, 310, 0.5);
+const areaGeometry = new THREE.BoxGeometry(120, 120, 10);
+const areaAzulGeometry = new THREE.BoxGeometry(120, 310, 10);
 
 // Cores das areas - Ainda vou buscar um jeito melhor de fazer isso
 const areaMaterial = [];
@@ -54,7 +54,13 @@ let molde;
 let areas = [];
 let posZ = -155;
 let boxCSG, boxMesh, auxCSG, objectCSG;
-boxMesh = new THREE.Mesh(new THREE.BoxGeometry(30, 20, 2)) // cubo que vai cortar as areas (x, y, z)
+
+const rampGeometry = new THREE.PlaneGeometry(31.622, 20);
+const rampMaterial = new THREE.MeshLambertMaterial({
+});
+const ramp = new THREE.Mesh(rampGeometry, rampMaterial);
+
+boxMesh = new THREE.Mesh(new THREE.BoxGeometry(30, 20, 10)) // cubo que vai cortar as areas (x, y, z),
 boxMesh.position.set(0, 0, 0) // posição do cubo que vai cortar as areas
 boxCSG = CSG.fromMesh(boxMesh); // passa o cubo para CSG
 
@@ -88,7 +94,7 @@ for(let i=0; i<=3; i++){
 
 function criaEscada(posX, posZ){
     let degrau = [];
-    const alt = 5/8;
+    const alt = 10/8;
     const comp = 30/8;
     const degrauGeometry = new THREE.BoxGeometry(comp, alt, 20);
     const degrauMaterial = new THREE.MeshLambertMaterial({
@@ -99,11 +105,17 @@ function criaEscada(posX, posZ){
         degrau.position.set(i*comp + comp/2 + posX, i*alt + alt/2 , posZ)
         scene.add(degrau);
     }
+    
+    ramp.rotation.x = 1.5 * Math.PI;
+    ramp.rotation.y = -Math.PI / 12;
+    ramp.position.set(130, alt*4, posZ);
+    scene.add(ramp);
+    
 }
 
 // Adiciona as areas a cena
 areas.forEach(area => scene.add(area));
-//scene.add(cubeMesh)
+//scene.add(boxMesh)
 
 
 
@@ -120,18 +132,8 @@ function cortaArea(areaInteira, boxAuxiliar){
 }
 
 
-// a rampa ainda será removida
-const rampGeometry = new THREE.PlaneGeometry(30, 20);
-const rampMaterial = new THREE.MeshLambertMaterial({
-});
-const ramp = new THREE.Mesh(rampGeometry, rampMaterial);
-ramp.rotation.x = 1.5 * Math.PI;
-ramp.rotation.y = -Math.PI / 6;
-ramp.position.set(28.5, 0, 0);
-scene.add(ramp);
-
 // Paredes do Ambiente
-const WallGeometry = new THREE.PlaneGeometry(500, 5);
+const WallGeometry = new THREE.PlaneGeometry(500, 50);
 const wallMaterial = new THREE.MeshBasicMaterial({
     color:'rgba(255, 140, 0, 0.65)'
 });
@@ -141,15 +143,15 @@ for (let i = 0; i <= 3; i++) {
     walls.push(new THREE.Mesh(WallGeometry, wallMaterial));
 }
 
-walls[0].position.set(0, 2.5, -250);
+walls[0].position.set(0, 25, -250);
 
-walls[1].position.set(0, 2.5, 250);
+walls[1].position.set(0, 25, 250);
 walls[1].rotation.y = Math.PI;
 
-walls[2].position.set(-250, 2.5, 0);
+walls[2].position.set(-250, 25, 0);
 walls[2].rotation.y = Math.PI / 2;
 
-walls[3].position.set(250, 2.5, 0);
+walls[3].position.set(250, 25, 0);
 walls[3].rotation.y = Math.PI / -2;
 walls.forEach(wall => scene.add(wall));
 
