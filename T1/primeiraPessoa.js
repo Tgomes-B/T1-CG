@@ -208,6 +208,7 @@ function render() {
     if (controls.isLocked) {
         moveAnimate(delta);
         updateProjectiles(delta);  
+        //updateProjectiles(); // Adiciona o fade-out dos projéteis
 
         const gun = controls.getObject().children[0];
         if (gun) {
