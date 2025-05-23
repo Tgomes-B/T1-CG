@@ -64,27 +64,57 @@ function setupShooting() {
 }
 
 
+const MAX_DISTANCE = 100; // ajuste conforme necessário
 /**
  * Atualiza a posição de todos os projéteis ativos na cena.
  * Deve ser chamada a cada frame.
  * @param {number} delta - Intervalo de tempo desde o último frame.
  */
 export function updateProjectiles(delta) {
-    projectiles.forEach((projectile) => {
-        
-        projectile.position.add(projectile.userData.velocity.clone().multiplyScalar(delta));
-    });
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+        const projectile = projectiles[i];
+        const velocity = projectile.userData.velocity.clone().multiplyScalar(delta);
+
+        // Raycaster para detectar colisão no caminho do projétil
+        const raycaster = new THREE.Raycaster(
+            projectile.position,
+            velocity.clone().normalize(),
+            0,
+            velocity.length()
+        );
+
+        const intersects = raycaster.intersectObjects(scene.children, true);
+
+        // Checa distância máxima
+        if (!projectile.userData.startPos) {
+            projectile.userData.startPos = projectile.position.clone();
+        }
+        const distance = projectile.position.distanceTo(projectile.userData.startPos);
+
+        if ((intersects.length > 0 || distance > 750) && !projectile.userData.fading) {
+            // Marca como em fade-out para não aplicar múltiplas vezes
+            projectile.userData.fading = true;
+            fadeOut(projectile, 500, () => {
+                // Remover do array após fade-out
+                const idx = projectiles.indexOf(projectile);
+                if (idx !== -1) projectiles.splice(idx, 1);
+            });
+            continue;
+        }
+
+        // Se não colidiu, move normalmente
+        projectile.position.add(velocity);
+    }
 }
 
 export function animateProjectiles() {
     projectiles.forEach((projectile) => {
         console.log("caiu");
-        fadeOut(projectile, 500); // Aplica fade-out a cada projétil
+        fadeOut(projectile, 1); // Aplica fade-out a cada projétil
     });
 }
 
-export function fadeOut(object, duration) {
-    console.log("Iniciando fade-out");
+export function fadeOut(object, duration, onComplete) {
     if (!object.material || !object.material.transparent) {
         console.warn("O material do objeto precisa ter 'transparent: true'.");
         return;
@@ -95,12 +125,14 @@ export function fadeOut(object, duration) {
 
     function animateFadeOut() {
         if (object.material.opacity > 0) {
-            object.material.opacity -= fadeSpeed * 0.016; // 0.016 ≈ 1 frame a 60 FPS
+            object.material.opacity -= fadeSpeed * 0.5;
             requestAnimationFrame(animateFadeOut);
         } else {
-            object.material.opacity = 0; // Garante que a opacidade seja 0
-            scene.remove(object); // Remove o objeto da cena (opcional)
+            object.material.opacity = 0;
+            scene.remove(object);
+            if (onComplete) onComplete();
         }
     }
+    
     animateFadeOut();
 }
