@@ -24,10 +24,12 @@ let lastShotTime = 0;
 
 function setupShooting() {
     document.addEventListener('mousedown', (event) => {
-        if (event.button !== 0) return; // Apenas botão esquerdo
-
+        if (event.button !== 0) 
+            return; // Apenas botão esquerdo
         const currentTime = performance.now(); // Tempo atual em milissegundos
-        if (currentTime - lastShotTime < 500) return; // Verifica se passaram 0.5 segundos
+        if (currentTime - lastShotTime < 500) {
+            return; // Verifica se passaram 0.5 segundos
+        }
 
         lastShotTime = currentTime;
 
@@ -38,7 +40,15 @@ function setupShooting() {
         }
 
         // Cria o projétil
-        const projectile = new THREE.Mesh(ballGeometry, ballMaterial);
+        const projectile = new THREE.Mesh(
+            ballGeometry,
+            new THREE.MeshBasicMaterial({ 
+                color: 0xff0000,
+                visible: true,
+                transparent: true,
+                opacity: 1,
+            })
+        )
 
         // Define posição inicial: ponta do cilindro da arma
         const gunTip = new THREE.Vector3(0, 0.5, 0);
@@ -83,7 +93,10 @@ export function updateProjectiles(delta) {
             velocity.length()
         );
 
-        const intersects = raycaster.intersectObjects(scene.children, true);
+        const intersects = raycaster.intersectObjects(
+            scene.children.filter(obj => obj.name !== "gun" && obj !== controls.getObject()),
+            true
+        );
 
         // Checa distância máxima
         if (!projectile.userData.startPos) {
@@ -94,7 +107,7 @@ export function updateProjectiles(delta) {
         if ((intersects.length > 0 || distance > 750) && !projectile.userData.fading) {
             // Marca como em fade-out para não aplicar múltiplas vezes
             projectile.userData.fading = true;
-            fadeOut(projectile, 500, () => {
+            fadeOut(projectile, 250, () => {
                 // Remover do array após fade-out
                 const idx = projectiles.indexOf(projectile);
                 if (idx !== -1) projectiles.splice(idx, 1);
@@ -106,13 +119,12 @@ export function updateProjectiles(delta) {
         projectile.position.add(velocity);
     }
 }
-
-export function animateProjectiles() {
-    projectiles.forEach((projectile) => {
-        console.log("caiu");
-        fadeOut(projectile, 1); // Aplica fade-out a cada projétil
-    });
-}
+/**
+ * Aplica um efeito de fade-out no objeto.
+ * @param {THREE.Object3D} object - O objeto a ser desvanecido.
+ * @param {number} duration - Duração do fade-out em milissegundos.
+ * @param {function} onComplete - Função a ser chamada após o fade-out.
+ */
 
 export function fadeOut(object, duration, onComplete) {
     if (!object.material || !object.material.transparent) {
@@ -125,7 +137,7 @@ export function fadeOut(object, duration, onComplete) {
 
     function animateFadeOut() {
         if (object.material.opacity > 0) {
-            object.material.opacity -= fadeSpeed * 0.5;
+            object.material.opacity -= fadeSpeed * 1;
             requestAnimationFrame(animateFadeOut);
         } else {
             object.material.opacity = 0;
@@ -133,6 +145,6 @@ export function fadeOut(object, duration, onComplete) {
             if (onComplete) onComplete();
         }
     }
-    
+
     animateFadeOut();
 }
