@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
+import { camera, scene, controls } from './primeiraPessoa.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
 import {
     initRenderer,
@@ -11,15 +12,6 @@ import {
         
         var stats = new Stats();          // To show FPS information
         var renderer = initRenderer("rgb(70, 150, 240)");    // View function in util/utils
-        
-        const scene = new THREE.Scene();
-        const frustum = new THREE.Frustum();
-        const cameraViewProjectionMatrix = new THREE.Matrix4();
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.updateMatrixWorld();
-        cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-        frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
-        const controls = new PointerLockControls(camera, renderer.domElement);
 
         //Calculo do angulo da camera
         controls.getObject().position.set(10, 2, 1); 
@@ -32,12 +24,8 @@ import {
 
 window.camera = camera; //deixo a camera global pra testes 
 
-
-window.camera = camera; //deixo a camera global pra testes
-
 const raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0).normalize(), 0, 2);
 initDefaultBasicLight(scene); // Create a basic light to illuminate the scene
-
 
 //criando o chão
 const planeGeometry = new THREE.PlaneGeometry(500, 500, 5);
@@ -131,7 +119,7 @@ function criaEscada(posX, posZ, comp) {
     ramp.rotation.x = 1.5 * Math.PI;
     ramp.rotation.y = -Math.PI / 10;
     ramp.position.set(126, 3.75, posZ);
-    //ramp.visible = false;
+    ramp.visible = false;
     scene.add(ramp);
 }
 
@@ -263,48 +251,4 @@ function moveAnimate(delta) {
 // Listen window size changes
 window.addEventListener('resize', function () { onWindowResize(camera, renderer) }, false);
 
-const clock = new THREE.Clock();
-render();
-function render() {
-    stats.update();
-    // Atualiza o frustum da câmera
-    camera.updateMatrixWorld();
-    cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
 
-    // Atualiza o frustum da câmera
-    camera.updateMatrixWorld();
-    cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    frustum.setFromProjectionMatrix(cameraViewProjectionMatrix); 
-
-
-    if (controls.isLocked) {
-        moveAnimate(clock.getDelta());
-    }
-    
-    //A fazer (Thales) adicionar logica pra as areas que iram renderizar
-    // Exemplo de lógica para verificar se as áreas estão visíveis
-    // talvez alterar a visibilidade do que está fora do frustum
-    // Exemplo: areas.forEach(area => area.visible = frustum.intersectsObject(area));
-    areas.forEach(area => {
-        if (frustum.intersectsObject(area)) {
-            // Coloque aqui qualquer lógica que só deve rodar para áreas visíveis
-            // Exemplo: area.material.color.set('rgb(0,255,0)');
-        }
-    });
-
-
-    //A fazer (Thales) adicionar logica pra as areas que iram renderizar
-    // Exemplo de lógica para verificar se as áreas estão visíveis
-    // talvez alterar a visibilidade do que está fora do frustum
-    // Exemplo: areas.forEach(area => area.visible = frustum.intersectsObject(area));
-    areas.forEach(area => {
-        if (frustum.intersectsObject(area)) {
-            // Coloque aqui qualquer lógica que só deve rodar para áreas visíveis
-            // Exemplo: area.material.color.set('rgb(0,255,0)');
-        }
-    });
-
-    renderer.render(scene, camera);
-    requestAnimationFrame(render);
-}

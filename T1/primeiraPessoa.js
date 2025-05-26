@@ -5,6 +5,9 @@ import { initRenderer, initDefaultBasicLight, onWindowResize } from "../libs/uti
 import { updateProjectiles } from './tiro.js';
 
 
+let frustum = new THREE.Frustum();
+let areas = [];                
+let cameraViewProjectionMatrix = new THREE.Matrix4();
 let stats, renderer, scene, camera, controls, clock;
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, moveUp = false, moveDown = false;
 const speed = 20;
@@ -29,15 +32,11 @@ function init() {
 
     clock = new THREE.Clock();
     initDefaultBasicLight(scene);
-    setupTexturesAndMaterials();
     setupEventListeners();
     setupCrosshair();
+    createGun();
 }
 
-/**
- * Cria uma câmera perspectiva com as dimensões da janela e adiciona à cena.
- * @returns {THREE.PerspectiveCamera} A câmera criada.
- */
 /**
  * Cria uma câmera perspectiva com as dimensões da janela e adiciona à cena.
  * Utiliza THREE.PerspectiveCamera.
@@ -79,26 +78,6 @@ function setupControls() {
     scene.add(controls.getObject());
 }
 
-/**
- * Carrega texturas e materiais para o chão, rampa e paredes.
- * Cria os objetos principais da cena (chão, rampa, paredes, arma).
- * @returns {void}
- */
-function setupTexturesAndMaterials() {
-    const loader = new THREE.TextureLoader();
-    const groundTexture = configureTexture(loader.load('../assets/textures/wood.png'), 8, 8);
-    const rampTexture = configureTexture(loader.load('../assets/textures/wood.png'), 2, 1);
-    const whiteWallTexture = configureTexture(loader.load('../assets/textures/stonewall.jpg'), 10, 1);
-    const whiteWallTexture2 = configureTexture(loader.load('../assets/textures/stonewall.jpg'), 5, 1);
-    const planeMaterial = new THREE.MeshLambertMaterial({ map: groundTexture });
-    const wallMaterial = new THREE.MeshBasicMaterial({ map: whiteWallTexture });
-    const wallMaterial2 = new THREE.MeshBasicMaterial({ map: whiteWallTexture2 });
-
-    createGround(planeMaterial);
-    createRamp(rampTexture);
-    createWalls(wallMaterial, wallMaterial2);
-    createGun();
-}
 
 /**
  * Configura uma textura para uso em materiais, ajustando repetição e espaço de cor.
@@ -113,70 +92,6 @@ function configureTexture(texture, repeatX, repeatY) {
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(repeatX, repeatY);
     return texture;
-}
-
-/**
- * Cria o chão da cena utilizando um plano e uma caixa, ambos com o material fornecido.
- * @param {THREE.Material} material - Material a ser aplicado no chão.
- * @returns {void}
- */
-function createGround(material) {
-    const planeGeometry = new THREE.PlaneGeometry(50, 50, 5);
-    const ground = new THREE.Mesh(planeGeometry, material);
-    ground.position.set(0, 0, 0);
-    ground.rotation.x = -0.5 * Math.PI;
-    scene.add(ground);
-
-    const boxGeometry = new THREE.BoxGeometry(50, 50, 0.5);
-    const ground2 = new THREE.Mesh(boxGeometry, material);
-    ground2.position.set(58, 5, 0);
-    ground2.rotation.x = -0.5 * Math.PI;
-    scene.add(ground2);
-}
-
-/**
- * Cria uma rampa na cena utilizando uma textura fornecida.
- * @param {THREE.Texture} texture - Textura a ser aplicada na rampa.
- * @returns {void}
- */
-function createRamp(texture) {
-    const rampGeometry = new THREE.PlaneGeometry(11, 10);
-    const rampMaterial = new THREE.MeshLambertMaterial({ map: texture });
-    const ramp = new THREE.Mesh(rampGeometry, rampMaterial);
-    ramp.rotation.x = 1.5 * Math.PI;
-    ramp.rotation.y = -Math.PI / 6;
-    ramp.position.set(28.5, 2, 0);
-    scene.add(ramp);
-}
-
-/**
- * Cria as paredes da cena, utilizando dois materiais diferentes para paredes grandes e pequenas.
- * @param {THREE.Material} material - Material das paredes grandes.
- * @param {THREE.Material} material2 - Material das paredes pequenas.
- * @returns {void}
- */
-function createWalls(material, material2) {
-    const WallGeometry = new THREE.PlaneGeometry(50, 5);
-    const smallWallGeometry = new THREE.PlaneGeometry(20, 5);
-    const walls = [
-        new THREE.Mesh(WallGeometry, material),
-        new THREE.Mesh(WallGeometry, material),
-        new THREE.Mesh(WallGeometry, material),
-        new THREE.Mesh(smallWallGeometry, material2),
-        new THREE.Mesh(smallWallGeometry, material2)
-    ];
-
-    walls[0].position.set(0, 2.5, -25);
-    walls[1].position.set(0, 2.5, 25);
-    walls[1].rotation.y = Math.PI;
-    walls[2].position.set(-25, 2.5, 0);
-    walls[2].rotation.y = Math.PI / 2;
-    walls[3].position.set(25, 2.5, 15);
-    walls[3].rotation.y = Math.PI / -2;
-    walls[4].position.set(25, 2.5, -15);
-    walls[4].rotation.y = Math.PI / -2;
-
-    walls.forEach(wall => scene.add(wall));
 }
 
 /**
@@ -285,8 +200,18 @@ function render() {
 
     if (controls.isLocked) {
         moveAnimate(delta);
-        updateProjectiles(delta);  
-        //updateProjectiles(); // Adiciona o fade-out dos projéteis
+        updateProjectiles(delta);
+
+        // Lógica do frustum de Ambiente.js
+        camera.updateMatrixWorld(); // Agora a câmera já está inicializada
+        cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+        frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
+
+        areas.forEach(area => {
+            if (frustum.intersectsObject(area)) {
+                // Lógica para áreas visíveis
+            }
+        });
 
         const gun = controls.getObject().children[0];
         if (gun) {
@@ -308,6 +233,21 @@ function render() {
 function main() {
     init();
     render();
+}
+
+// Começa colocar colisão nas paredes
+function setupCollision() {
+    const walls = scene.children.filter(obj => obj instanceof THREE.Mesh && obj.geometry.type === 'PlaneGeometry');
+    walls.forEach(wall => {
+        wall.userData.isCollidable = true;
+        wall.userData.collisionBox = new THREE.Box3().setFromObject(wall);
+    });
+    const ground = scene.children.find(obj => obj.name === 'ground');
+    if (ground) {
+        ground.userData.isCollidable = true;
+        ground.userData.collisionBox = new THREE.Box3().setFromObject(ground);
+    }
+
 }
 
 main();
