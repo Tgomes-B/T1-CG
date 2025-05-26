@@ -12,12 +12,10 @@ const speed = 20;
 //Versão baseada no exemplo do Rodrigo, agora dividindo as declarações em métodos
 //Também há uma main ao fim do código
 
-// A fazer (Samuel) : Inserir o JSDoc para cada função, para facilitar entendimento e incrementação
-//Exemplo de JSDoc:
-
 /**
  * Inicializa a cena, câmera, controles e outros componentes necessários.
  * Configura texturas, materiais, event listeners e mira.
+ * Deve ser chamada uma única vez no início da aplicação.
  * @returns {void}
  */
 function init() {
@@ -40,6 +38,11 @@ function init() {
  * Cria uma câmera perspectiva com as dimensões da janela e adiciona à cena.
  * @returns {THREE.PerspectiveCamera} A câmera criada.
  */
+/**
+ * Cria uma câmera perspectiva com as dimensões da janela e adiciona à cena.
+ * Utiliza THREE.PerspectiveCamera.
+ * @returns {THREE.PerspectiveCamera} A câmera criada.
+ */
 function createCamera() {
     const cam = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     cam.position.set(-5, 2, -5);
@@ -48,6 +51,11 @@ function createCamera() {
     return cam;
 }
 
+/**
+ * Configura os controles de primeira pessoa usando PointerLockControls.
+ * Adiciona listeners para travar/destravar o mouse e manipula a exibição dos elementos de UI.
+ * @returns {void}
+ */
 function setupControls() {
     const blocker = document.getElementById('blocker');
     const instructions = document.getElementById('instructions');
@@ -57,16 +65,25 @@ function setupControls() {
     controls.addEventListener('lock', () => {
         instructions.style.display = 'none';
         blocker.style.display = 'none';
+        const crosshair = document.getElementById('crosshair');
+        if (crosshair) crosshair.style.display = 'block';
     });
 
     controls.addEventListener('unlock', () => {
         blocker.style.display = 'block';
         instructions.style.display = '';
+        const crosshair = document.getElementById('crosshair');
+        if (crosshair) crosshair.style.display = 'none';
     });
 
     scene.add(controls.getObject());
 }
 
+/**
+ * Carrega texturas e materiais para o chão, rampa e paredes.
+ * Cria os objetos principais da cena (chão, rampa, paredes, arma).
+ * @returns {void}
+ */
 function setupTexturesAndMaterials() {
     const loader = new THREE.TextureLoader();
     const groundTexture = configureTexture(loader.load('../assets/textures/wood.png'), 8, 8);
@@ -83,6 +100,13 @@ function setupTexturesAndMaterials() {
     createGun();
 }
 
+/**
+ * Configura uma textura para uso em materiais, ajustando repetição e espaço de cor.
+ * @param {THREE.Texture} texture - Textura a ser configurada.
+ * @param {number} repeatX - Número de repetições no eixo X.
+ * @param {number} repeatY - Número de repetições no eixo Y.
+ * @returns {THREE.Texture} Textura configurada.
+ */
 function configureTexture(texture, repeatX, repeatY) {
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.wrapS = THREE.MirroredRepeatWrapping;
@@ -91,6 +115,11 @@ function configureTexture(texture, repeatX, repeatY) {
     return texture;
 }
 
+/**
+ * Cria o chão da cena utilizando um plano e uma caixa, ambos com o material fornecido.
+ * @param {THREE.Material} material - Material a ser aplicado no chão.
+ * @returns {void}
+ */
 function createGround(material) {
     const planeGeometry = new THREE.PlaneGeometry(50, 50, 5);
     const ground = new THREE.Mesh(planeGeometry, material);
@@ -105,6 +134,11 @@ function createGround(material) {
     scene.add(ground2);
 }
 
+/**
+ * Cria uma rampa na cena utilizando uma textura fornecida.
+ * @param {THREE.Texture} texture - Textura a ser aplicada na rampa.
+ * @returns {void}
+ */
 function createRamp(texture) {
     const rampGeometry = new THREE.PlaneGeometry(11, 10);
     const rampMaterial = new THREE.MeshLambertMaterial({ map: texture });
@@ -115,6 +149,12 @@ function createRamp(texture) {
     scene.add(ramp);
 }
 
+/**
+ * Cria as paredes da cena, utilizando dois materiais diferentes para paredes grandes e pequenas.
+ * @param {THREE.Material} material - Material das paredes grandes.
+ * @param {THREE.Material} material2 - Material das paredes pequenas.
+ * @returns {void}
+ */
 function createWalls(material, material2) {
     const WallGeometry = new THREE.PlaneGeometry(50, 5);
     const smallWallGeometry = new THREE.PlaneGeometry(20, 5);
@@ -139,6 +179,10 @@ function createWalls(material, material2) {
     walls.forEach(wall => scene.add(wall));
 }
 
+/**
+ * Cria e adiciona uma "arma" (cilindro) ao objeto de controle do jogador.
+ * @returns {void}
+ */
 function createGun() {
     const gunGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 32);
     const gunMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
@@ -151,24 +195,40 @@ function createGun() {
 }
 
 
-//A fazer (Samuel): configurar para que o Crosshair só apareça após inicialização
 
+/**
+ * Cria e posiciona o crosshair (mira) no centro da tela usando um elemento HTML.
+ * Só deve ser chamado após a inicialização da cena.
+ * @returns {void}
+ */
 function setupCrosshair() {
-    const crosshair = document.createElement('div');
-    crosshair.style.position = 'fixed';
-    crosshair.style.width = '20px';
-    crosshair.style.height = '20px';
-    crosshair.style.background = 'url(../assets/textures/crosshair.png)';
-    crosshair.style.backgroundSize = 'contain';
-    crosshair.style.backgroundRepeat = 'no-repeat';
-    crosshair.style.top = '50%';
-    crosshair.style.left = '50%';
-    crosshair.style.transform = 'translate(-50%, -50%)';
-    crosshair.style.pointerEvents = 'none';
-    crosshair.style.zIndex = '1000';
-    document.body.appendChild(crosshair);
+    let crosshair = document.getElementById('crosshair');
+    if (!crosshair) {
+        crosshair = document.createElement('div');
+        crosshair.id = 'crosshair';
+        crosshair.style.position = 'fixed';
+        crosshair.style.width = '20px';
+        crosshair.style.height = '20px';
+        crosshair.style.background = 'url(../assets/textures/crosshair.png)';
+        crosshair.style.backgroundSize = 'contain';
+        crosshair.style.backgroundRepeat = 'no-repeat';
+        crosshair.style.top = '50%';
+        crosshair.style.left = '50%';
+        crosshair.style.transform = 'translate(-50%, -50%)';
+        crosshair.style.pointerEvents = 'none';
+        crosshair.style.zIndex = '1000';
+        crosshair.style.display = 'none'; // começa invisível
+        document.body.appendChild(crosshair);
+    } else {
+        crosshair.style.display = 'none';
+    }
 }
 
+/**
+ * Adiciona listeners para eventos de teclado e resize da janela.
+ * Responsável pelo controle de movimento e ajuste da câmera.
+ * @returns {void}
+ */
 function setupEventListeners() {
     window.addEventListener('keydown', (event) => movementControls(event.keyCode, true));
     window.addEventListener('keyup', (event) => movementControls(event.keyCode, false));
@@ -177,6 +237,12 @@ function setupEventListeners() {
     }, false);
 }
 
+/**
+ * Atualiza variáveis de movimento com base nas teclas pressionadas/soltas.
+ * @param {number} key - Código da tecla pressionada.
+ * @param {boolean} value - true se pressionada, false se solta.
+ * @returns {void}
+ */
 function movementControls(key, value) {
     switch (key) {
         case 87: moveForward = value; break; // W
@@ -188,6 +254,12 @@ function movementControls(key, value) {
     }
 }
 
+/**
+ * Move o jogador de acordo com as teclas pressionadas.
+ * Utiliza o PointerLockControls para movimentação e raycasting para checar o chão.
+ * @param {number} delta - Tempo decorrido desde o último frame.
+ * @returns {void}
+ */
 function moveAnimate(delta) {
     const raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0).normalize(), 0, 2);
     raycaster.ray.origin.copy(controls.getObject().position);
@@ -201,6 +273,12 @@ function moveAnimate(delta) {
     if (moveDown && !isIntersectingGround) camera.position.y -= speed * delta;
 }
 
+/**
+ * Loop principal de renderização da cena.
+ * Atualiza animações, controles, projéteis e renderiza a cena.
+ * Deve ser chamada recursivamente via requestAnimationFrame.
+ * @returns {void}
+ */
 function render() {
     stats.update();
     const delta = clock.getDelta();
@@ -208,6 +286,7 @@ function render() {
     if (controls.isLocked) {
         moveAnimate(delta);
         updateProjectiles(delta);  
+        //updateProjectiles(); // Adiciona o fade-out dos projéteis
 
         const gun = controls.getObject().children[0];
         if (gun) {
@@ -221,6 +300,11 @@ function render() {
 }
 
 
+/**
+ * Função principal de inicialização da aplicação.
+ * Chama as funções de setup e inicia o loop de renderização.
+ * @returns {void}
+ */
 function main() {
     init();
     render();

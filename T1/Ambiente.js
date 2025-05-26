@@ -7,29 +7,30 @@ import {
     onWindowResize
 } from "../libs/util/util.js";
 
-import { CSG } from '../libs/other/CSGMesh.js'  // Constructive Solid Geometry(CSG), para fazer as Areas
+        import { CSG } from '../libs/other/CSGMesh.js'  // Constructive Solid Geometry(CSG), para fazer as Areas
+        
+        var stats = new Stats();          // To show FPS information
+        var renderer = initRenderer("rgb(70, 150, 240)");    // View function in util/utils
+        
+        const scene = new THREE.Scene();
+        const frustum = new THREE.Frustum();
+        const cameraViewProjectionMatrix = new THREE.Matrix4();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.updateMatrixWorld();
+        cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+        frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
+        const controls = new PointerLockControls(camera, renderer.domElement);
 
-var stats = new Stats();          // To show FPS information
-var renderer = initRenderer("rgb(70, 150, 240)");    // View function in util/utils
+        //Calculo do angulo da camera
+        controls.getObject().position.set(10, 2, 1); 
+        const lookAtTarget = new THREE.Vector3(0.5, 2, 1);
+        const direction = new THREE.Vector3().subVectors(lookAtTarget, controls.getObject().position).normalize();
+        const angleY = Math.atan2(direction.x, direction.z);
+        controls.getObject().rotation.y = angleY;
+        scene.add(controls.getObject());
+                scene.add(camera);
 
-
-const scene = new THREE.Scene();
-const frustum = new THREE.Frustum();
-const cameraViewProjectionMatrix = new THREE.Matrix4();
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.updateMatrixWorld();
-cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
-const controls = new PointerLockControls(camera, renderer.domElement);
-
-//Calculo do angulo da camera
-controls.getObject().position.set(10, 2, 1);
-const lookAtTarget = new THREE.Vector3(0.5, 2, 1);
-const direction = new THREE.Vector3().subVectors(lookAtTarget, controls.getObject().position).normalize();
-const angleY = Math.atan2(direction.x, direction.z);
-controls.getObject().rotation.y = angleY;
-scene.add(controls.getObject());
-scene.add(camera);
+window.camera = camera; //deixo a camera global pra testes 
 
 
 window.camera = camera; //deixo a camera global pra testes
@@ -271,11 +272,28 @@ function render() {
     cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
 
+    // Atualiza o frustum da câmera
+    camera.updateMatrixWorld();
+    cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    frustum.setFromProjectionMatrix(cameraViewProjectionMatrix); 
+
+
     if (controls.isLocked) {
         moveAnimate(clock.getDelta());
     }
-
     
+    //A fazer (Thales) adicionar logica pra as areas que iram renderizar
+    // Exemplo de lógica para verificar se as áreas estão visíveis
+    // talvez alterar a visibilidade do que está fora do frustum
+    // Exemplo: areas.forEach(area => area.visible = frustum.intersectsObject(area));
+    areas.forEach(area => {
+        if (frustum.intersectsObject(area)) {
+            // Coloque aqui qualquer lógica que só deve rodar para áreas visíveis
+            // Exemplo: area.material.color.set('rgb(0,255,0)');
+        }
+    });
+
+
     //A fazer (Thales) adicionar logica pra as areas que iram renderizar
     // Exemplo de lógica para verificar se as áreas estão visíveis
     // talvez alterar a visibilidade do que está fora do frustum
