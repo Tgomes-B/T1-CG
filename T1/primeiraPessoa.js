@@ -65,11 +65,15 @@ function setupControls() {
     controls.addEventListener('lock', () => {
         instructions.style.display = 'none';
         blocker.style.display = 'none';
+        const crosshair = document.getElementById('crosshair');
+        if (crosshair) crosshair.style.display = 'block';
     });
 
     controls.addEventListener('unlock', () => {
         blocker.style.display = 'block';
         instructions.style.display = '';
+        const crosshair = document.getElementById('crosshair');
+        if (crosshair) crosshair.style.display = 'none';
     });
 
     scene.add(controls.getObject());
@@ -191,7 +195,6 @@ function createGun() {
 }
 
 
-//A fazer (Samuel): configurar para que o Crosshair só apareça após inicialização
 
 /**
  * Cria e posiciona o crosshair (mira) no centro da tela usando um elemento HTML.
@@ -199,19 +202,26 @@ function createGun() {
  * @returns {void}
  */
 function setupCrosshair() {
-    const crosshair = document.createElement('div');
-    crosshair.style.position = 'fixed';
-    crosshair.style.width = '20px';
-    crosshair.style.height = '20px';
-    crosshair.style.background = 'url(../assets/textures/crosshair.png)';
-    crosshair.style.backgroundSize = 'contain';
-    crosshair.style.backgroundRepeat = 'no-repeat';
-    crosshair.style.top = '50%';
-    crosshair.style.left = '50%';
-    crosshair.style.transform = 'translate(-50%, -50%)';
-    crosshair.style.pointerEvents = 'none';
-    crosshair.style.zIndex = '1000';
-    document.body.appendChild(crosshair);
+    let crosshair = document.getElementById('crosshair');
+    if (!crosshair) {
+        crosshair = document.createElement('div');
+        crosshair.id = 'crosshair';
+        crosshair.style.position = 'fixed';
+        crosshair.style.width = '20px';
+        crosshair.style.height = '20px';
+        crosshair.style.background = 'url(../assets/textures/crosshair.png)';
+        crosshair.style.backgroundSize = 'contain';
+        crosshair.style.backgroundRepeat = 'no-repeat';
+        crosshair.style.top = '50%';
+        crosshair.style.left = '50%';
+        crosshair.style.transform = 'translate(-50%, -50%)';
+        crosshair.style.pointerEvents = 'none';
+        crosshair.style.zIndex = '1000';
+        crosshair.style.display = 'none'; // começa invisível
+        document.body.appendChild(crosshair);
+    } else {
+        crosshair.style.display = 'none';
+    }
 }
 
 /**
