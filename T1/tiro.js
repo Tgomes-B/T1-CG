@@ -1,36 +1,31 @@
 import * as THREE from 'three';
-import { camera, scene, controls } from './primeiraPessoa.js';
 
-// Configurações
+let camera, scene, controls;
 const projectileSpeed = 100;
 const projectiles = [];
 const ballMaterial = new THREE.MeshBasicMaterial({ 
     color: 0xff0000,
-     visible: true,
-     transparent: true,
-     opacity: 1,
-    });
+    visible: true,
+    transparent: true,
+    opacity: 1,
+});
 const ballGeometry = new THREE.SphereGeometry(0.1, 16, 16);
 
-// Inicialização
-setupShooting();
+let lastShotTime = 0;
 
-let lastShotTime = 0; 
 /**
  * Configura o evento de disparo com o mouse.
  * Dispara projétil da ponta da arma (objeto "gun") na direção correta.
  * @returns {void}
  */
-
-function setupShooting() {
+export function setupShooting(_camera, _scene, _controls) {
+    camera = _camera;
+    scene = _scene;
+    controls = _controls;
     document.addEventListener('mousedown', (event) => {
-        if (event.button !== 0) 
-            return; // Apenas botão esquerdo
-        const currentTime = performance.now(); // Tempo atual em milissegundos
-        if (currentTime - lastShotTime < 500) {
-            return; // Verifica se passaram 0.5 segundos
-        }
-
+        if (event.button !== 0) return;
+        const currentTime = performance.now();
+        if (currentTime - lastShotTime < 500) return;
         lastShotTime = currentTime;
 
         const gun = controls.getObject().getObjectByName("gun");
@@ -48,18 +43,14 @@ function setupShooting() {
                 transparent: true,
                 opacity: 1,
             })
-        )
+        );
 
-        // Define posição inicial: ponta do cilindro da arma
-        const gunTip = new THREE.Vector3(0, 0.5, 0);
-        gun.localToWorld(gunTip);
-        projectile.position.copy(gunTip);
+        // Posição inicial: centro da câmera (crosshair)
+        projectile.position.copy(camera.getWorldPosition(new THREE.Vector3()));
 
-        // Calcula direção (usando eixo Z local rotacionado da arma)
-        const dir = new THREE.Vector3(0.015, -0.5, 0);  // eixo Z local = frente visual
-        gun.localToWorld(dir);
-        dir.sub(gunTip).normalize();
-
+        // Direção: para onde a câmera está olhando (crosshair)
+        const dir = new THREE.Vector3();
+        camera.getWorldDirection(dir);
         // Define velocidade
         projectile.userData.velocity = dir.multiplyScalar(projectileSpeed);
 
@@ -73,8 +64,48 @@ function setupShooting() {
     });
 }
 
+/**
+ * (Alternativa) Função para disparo, não usada diretamente.
+ * @param {MouseEvent} event 
+ */
+function onMouseDown(event) {
+    if (event.button !== 0) return;
+    const currentTime = performance.now();
+    if (currentTime - lastShotTime < 500) return;
+    lastShotTime = currentTime;
+
+    const gun = controls.getObject().getObjectByName("gun");
+    if (!gun) {
+        console.warn("Arma não encontrada!");
+        return;
+    }
+
+    const projectile = new THREE.Mesh(
+        ballGeometry,
+        new THREE.MeshBasicMaterial({ 
+            color: 0xff0000,
+            visible: true,
+            transparent: true,
+            opacity: 1,
+        })
+    );
+
+    const gunTip = new THREE.Vector3(0, 0.5, 0);
+    gun.localToWorld(gunTip);
+    projectile.position.copy(gunTip);
+
+    const dir = new THREE.Vector3(0.015, -0.5, 0);
+    gun.localToWorld(dir);
+    dir.sub(gunTip).normalize();
+
+    projectile.userData.velocity = dir.multiplyScalar(projectileSpeed);
+
+    scene.add(projectile);
+    projectiles.push(projectile);
+}
 
 const MAX_DISTANCE = 100; // ajuste conforme necessário
+
 /**
  * Atualiza a posição de todos os projéteis ativos na cena.
  * Deve ser chamada a cada frame.
@@ -119,13 +150,13 @@ export function updateProjectiles(delta) {
         projectile.position.add(velocity);
     }
 }
+
 /**
  * Aplica um efeito de fade-out no objeto.
  * @param {THREE.Object3D} object - O objeto a ser desvanecido.
  * @param {number} duration - Duração do fade-out em milissegundos.
  * @param {function} onComplete - Função a ser chamada após o fade-out.
  */
-
 export function fadeOut(object, duration, onComplete) {
     if (!object.material || !object.material.transparent) {
         console.warn("O material do objeto precisa ter 'transparent: true'.");

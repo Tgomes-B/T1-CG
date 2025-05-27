@@ -1,254 +1,239 @@
 import * as THREE from 'three';
-import Stats from '../build/jsm/libs/stats.module.js';
-import { camera, scene, controls } from './primeiraPessoa.js';
-import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
-import {
-    initRenderer,
-    initDefaultBasicLight,
-    onWindowResize
-} from "../libs/util/util.js";
+import { CSG } from '../libs/other/CSGMesh.js';
+import GUI from '../libs/util/dat.gui.module.js';
+import { setupCollision } from './colisao.js';
 
-        import { CSG } from '../libs/other/CSGMesh.js'  // Constructive Solid Geometry(CSG), para fazer as Areas
+/**
+ * Cria áreas, rampas e chão do ambiente.
+ * Adiciona todos os objetos à cena recebida.
+ * @param {THREE.Scene} scene - A cena onde os objetos serão adicionados.
+ * @returns {Object} Retorna um objeto com as áreas, rampa e chão criados.
+ */
+export function criaAreasRampas(scene) {
+    // Criação do chão
+    const planeGeometry = new THREE.PlaneGeometry(500, 500, 5);
+    const planeMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(249, 223, 184)' });
+    const ground = new THREE.Mesh(planeGeometry, planeMaterial);
+    ground.position.set(0, 0, 0);
+    ground.rotation.x = -0.5 * Math.PI;
+    ground.name = "ground";
+    scene.add(ground);
+
+    // Criação das áreas
+    const areaGeometry = new THREE.BoxGeometry(120, 120, 10);
+    const areaAzulGeometry = new THREE.BoxGeometry(120, 310, 10);
+    const areaMaterial = [
+        new THREE.MeshLambertMaterial({ color: 'rgb(155, 249, 134)' }),
+        new THREE.MeshLambertMaterial({ color: 'rgb(210, 202, 55)' }),
+        new THREE.MeshLambertMaterial({ color: 'rgb(255, 100, 100)' }),
+        new THREE.MeshLambertMaterial({ color: 'rgb(100, 123, 255)' })
+    ];
+
+    let molde, areas = [], posZ = -155, comp = 30 / 8, ramp;
+    let boxMesh = new THREE.Mesh(new THREE.BoxGeometry(30, 20, 10));
+    boxMesh.position.set(0, 0, 0);
+    let boxCSG = CSG.fromMesh(boxMesh);
+
+    const rampGeometry = new THREE.PlaneGeometry(38, 20);
+    const rampMaterial = new THREE.MeshLambertMaterial({});
+
+    // Atualiza a matriz do objeto para operações CSG
+    function updateObject(mesh) {
+        mesh.matrixAutoUpdate = false;
+        mesh.updateMatrix();
+    }
+    // Realiza a subtração CSG para cortar as áreas
+    function cortaArea(areaInteira, boxAuxiliar) {
+        return areaInteira.subtract(boxAuxiliar);
+    }
+    // Cria uma escada composta por degraus e uma rampa
+    function criaEscada(posX, posZ, comp) {
+        let degrau;
+        const alt = 10 / 8;
+        const degrauGeometry = new THREE.BoxGeometry(30 / 8, alt, 20);
+        const degrauMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(96, 52, 255)' });
+        for (let i = 0; i < 8; i++) {
+            degrau = new THREE.Mesh(degrauGeometry, degrauMaterial);
+            degrau.position.set(i * comp + comp / 2 + posX, i * alt + alt / 2, posZ);
+            scene.add(degrau);
+        }
+        ramp = new THREE.Mesh(rampGeometry, rampMaterial);
+        ramp.rotation.x = 1.5 * Math.PI;
+        ramp.rotation.y = -Math.PI / 10;
+        ramp.position.set(126, 3.75, posZ);
+        //ramp.visible = false;
+        ramp.name = 'ramp';
+        scene.add(ramp);
+    }
+
+    // Criação das áreas com corte CSG e posicionamento das escadas
+    for (let i = 0; i <= 3; i++) {
+        if (i < 3) {
+            molde = new THREE.Mesh(areaGeometry, areaMaterial[i]);
+            molde.position.set(45, 0, 0);
+        } else {
+            molde = new THREE.Mesh(areaAzulGeometry, areaMaterial[i]);
+            molde.position.set(-45, 0, 0);
+        }
+        updateObject(molde);
+        let auxCSG = CSG.fromMesh(molde);
+        let objectCSG = cortaArea(auxCSG, boxCSG);
+        areas[i] = CSG.toMesh(objectCSG, new THREE.Matrix4());
+        //areas[i].name = 'area' + i;
+        if (i == 3) {
+            areas[i].position.set(-130, 5, 0);
+            comp = -1 * comp;
+            posZ = 0;
+            criaEscada(-115, posZ, comp);
         
-        var stats = new Stats();          // To show FPS information
-        var renderer = initRenderer("rgb(70, 150, 240)");    // View function in util/utils
-
-        //Calculo do angulo da camera
-        controls.getObject().position.set(10, 2, 1); 
-        const lookAtTarget = new THREE.Vector3(0.5, 2, 1);
-        const direction = new THREE.Vector3().subVectors(lookAtTarget, controls.getObject().position).normalize();
-        const angleY = Math.atan2(direction.x, direction.z);
-        controls.getObject().rotation.y = angleY;
-        scene.add(controls.getObject());
-                scene.add(camera);
-
-window.camera = camera; //deixo a camera global pra testes 
-
-const raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0).normalize(), 0, 2);
-initDefaultBasicLight(scene); // Create a basic light to illuminate the scene
-
-//criando o chão
-const planeGeometry = new THREE.PlaneGeometry(500, 500, 5);
-const planeMaterial = new THREE.MeshLambertMaterial({
-    color: 'rgb(249, 223, 184)'
-});
-const ground = new THREE.Mesh(planeGeometry, planeMaterial);
-ground.position.set(0, 0, 0);
-ground.rotation.x = -0.5 * Math.PI;
-scene.add(ground);
-
-// Geometria das areas
-const areaGeometry = new THREE.BoxGeometry(120, 120, 10);
-const areaAzulGeometry = new THREE.BoxGeometry(120, 310, 10);
-
-// Cores das areas - Ainda vou buscar um jeito melhor de fazer isso
-const areaMaterial = [];
-areaMaterial[0] = new THREE.MeshLambertMaterial({
-    color: 'rgb(155, 249, 134)'
-});
-areaMaterial[1] = new THREE.MeshLambertMaterial({
-    color: 'rgb(210, 202, 55)'
-});
-areaMaterial[2] = new THREE.MeshLambertMaterial({
-    color: 'rgb(255, 100, 100)'
-});
-areaMaterial[3] = new THREE.MeshLambertMaterial({
-    color: 'rgb(100, 123, 255)'
-});
-
-// Cria o cubo que corta as areas
-let molde;
-let areas = [];
-let posZ = -155;
-let boxCSG, boxMesh, auxCSG, objectCSG;
-let comp = 30 / 8;
-
-const rampGeometry = new THREE.PlaneGeometry(38, 20);
-const rampMaterial = new THREE.MeshLambertMaterial({
-});
-let ramp;
-
-boxMesh = new THREE.Mesh(new THREE.BoxGeometry(30, 20, 10)) // cubo que vai cortar as areas (x, y, z),
-boxMesh.position.set(0, 0, 0) // posição do cubo que vai cortar as areas
-boxCSG = CSG.fromMesh(boxMesh); // passa o cubo para CSG
-
-// cria e corta as areas
-for (let i = 0; i <= 3; i++) {
-    if (i < 3) {
-        molde = new THREE.Mesh(areaGeometry, areaMaterial[i]);
-        molde.position.set(45, 0, 0);
+            // Desativa colisão da área3 (com rampa)
+            //areas[i].userData.isCollidable = false;
+            
+            //tentativa de colisão com partições da area
+            // Colisor lateral esquerda
+            const lateralEsq = new THREE.Mesh(
+                new THREE.BoxGeometry(10, 120, 10),
+                new THREE.MeshBasicMaterial({ visible: false })
+            );
+            lateralEsq.position.set(-130 - 55, 5, 0);
+            lateralEsq.name = 'area3_lateralEsq';
+            lateralEsq.userData.isCollidable = true; 
+            scene.add(lateralEsq);
+        
+            // Colisor lateral direita
+            const lateralDir = new THREE.Mesh(
+                new THREE.BoxGeometry(10, 120, 10),
+                new THREE.MeshBasicMaterial({ visible: false })
+            );
+            lateralDir.position.set(-130 + 55, 5, 0);
+            lateralDir.name = 'area3_lateralDir';
+            lateralDir.userData.isCollidable = true; 
+            scene.add(lateralDir);
+        } else if (i < 3) {
+            areas[i].position.set(130, 5, posZ);
+            criaEscada(115, posZ, comp);
+        }
+        areas[i].rotation.x = -0.5 * Math.PI;
+        areas[i].material = areaMaterial[i];
+        posZ += 155;
+        scene.add(areas[i]);
     }
-    else if (i == 3) {
-        molde = new THREE.Mesh(areaAzulGeometry, areaMaterial[i]);
-        molde.position.set(-45, 0, 0);
-    }
-    updateObject(molde); // atualiza a posição do objeto
-    auxCSG = CSG.fromMesh(molde); // passa o molde para CSG
-    objectCSG = cortaArea(auxCSG, boxCSG);
-    areas[i] = CSG.toMesh(objectCSG, new THREE.Matrix4());
-    if (i == 3) {
-        areas[i].position.set(-130, 5, 0);
-        comp = -1 * comp;
-        posZ = 0;
-        criaEscada(-115, posZ, comp);
-    }
-    else if (i < 3) {
-        areas[i].position.set(130, 5, posZ);
-        criaEscada(115, posZ, comp);
-    }
-    areas[i].rotation.x = -0.5 * Math.PI;
-    areas[i].material = areaMaterial[i];
-    posZ += 155;
+
+    return { areas, ramp, ground };
 }
 
-
-function criaEscada(posX, posZ, comp) {
-    let degrau = [];
-    const alt = 10 / 8;
-
-    const degrauGeometry = new THREE.BoxGeometry(30 / 8, alt, 20);
-    const degrauMaterial = new THREE.MeshLambertMaterial({
-        color: 'rgb(96, 52, 255)'
-    });
-    for (let i = 0; i < 8; i++) {
-        degrau = new THREE.Mesh(degrauGeometry, degrauMaterial);
-        degrau.position.set(i * comp + comp / 2 + posX, i * alt + alt / 2, posZ);
-        scene.add(degrau);
+/**
+ * Cria as paredes do ambiente e adiciona à cena.
+ * @param {THREE.Scene} scene - A cena onde as paredes serão adicionadas.
+ * @returns {Array} Array com as paredes criadas.
+ */
+export function criaParedes(scene) {
+    const WallGeometry = new THREE.PlaneGeometry(500, 50);
+    const wallMaterial = new THREE.MeshBasicMaterial({ color: 'rgba(255, 140, 0, 0.65)' });
+    const walls = [];
+    for (let i = 0; i <= 3; i++) {
+        walls.push(new THREE.Mesh(WallGeometry, wallMaterial));
+        walls[i].name = 'wall' + i;
     }
-    ramp = new THREE.Mesh(rampGeometry, rampMaterial);
-    ramp.rotation.x = 1.5 * Math.PI;
-    ramp.rotation.y = -Math.PI / 10;
-    ramp.position.set(126, 3.75, posZ);
-    ramp.visible = false;
-    scene.add(ramp);
+    walls[0].position.set(0, 25, -250);
+    walls[1].position.set(0, 25, 250); walls[1].rotation.y = Math.PI;
+    walls[2].position.set(-250, 25, 0); walls[2].rotation.y = Math.PI / 2;
+    walls[3].position.set(250, 25, 0); walls[3].rotation.y = Math.PI / -2;
+    walls.forEach(wall => scene.add(wall));
+    return walls;
 }
 
-// Adiciona as areas a cena
-areas.forEach(area => scene.add(area));
-//scene.add(boxMesh)
+/**
+ * Configura a iluminação da cena, adicionando luz ambiente, direcional e spotlight.
+ * Também adiciona helpers e interface GUI para controle das luzes.
+ * @param {THREE.Scene} scene - A cena a ser iluminada.
+ * @returns {THREE.SpotLightHelper} O helper da spotlight para atualização no render loop.
+ */
+export function setupLighting(scene) {
+    // Luz ambiente
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+    scene.add(ambientLight);
 
+    // Luz direcional
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    directionalLight.position.set(100, 100, 50);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 2048;
+    directionalLight.shadow.mapSize.height = 2048;
+    directionalLight.shadow.camera.near = 0.5;
+    directionalLight.shadow.camera.far = 500;
+    directionalLight.shadow.camera.left = -250;
+    directionalLight.shadow.camera.right = 250;
+    directionalLight.shadow.camera.top = 250;
+    directionalLight.shadow.camera.bottom = -250;
+    scene.add(directionalLight);
 
+    // Spotlight
+    const spotlight = new THREE.SpotLight(0xffffff, 1);
+    spotlight.position.set(0, 30, 0);
+    spotlight.angle = Math.PI / 6;
+    spotlight.penumbra = 0.2;
+    spotlight.decay = 1.5;
+    spotlight.distance = 150;
+    spotlight.castShadow = true;
+    spotlight.shadow.mapSize.width = 1024;
+    spotlight.shadow.mapSize.height = 1024;
+    spotlight.shadow.camera.near = 0.5;
+    spotlight.shadow.camera.far = 200;
+    scene.add(spotlight);
 
-function updateObject(mesh) {
-    mesh.matrixAutoUpdate = false;
-    mesh.updateMatrix();
+    // Helper visual para spotlight
+    const spotLightHelper = new THREE.SpotLightHelper(spotlight);
+    scene.add(spotLightHelper);
+
+    // Interface gráfica para controle das luzes
+    function buildLightingInterface() {
+        const lightModes = {
+            ANTIGA: 'Antiga (Spotlight)',
+            NOVA: 'Nova (Direcional)'
+        };
+        const lightControls = {
+            modo: lightModes.NOVA,
+            intensidadeSpot: spotlight.intensity,
+            intensidadeDirecional: directionalLight.intensity,
+            mostrarHelpers: true
+        };
+        function setModoIluminacao(modo) {
+            if (modo === lightModes.ANTIGA) {
+                spotlight.visible = true;
+                directionalLight.visible = false;
+            } else if (modo === lightModes.NOVA) {
+                spotlight.visible = false;
+                directionalLight.visible = true;
+            }
+        }
+        function setHelpers(ativo) {
+            spotLightHelper.visible = ativo;
+            scene.children.forEach(child => {
+                if (child instanceof THREE.PointLightHelper) {
+                    child.visible = ativo;
+                }
+            });
+        }
+        const gui = new GUI();
+        const pasta = gui.addFolder('Configuração de Iluminação');
+        pasta.open();
+        pasta.add(lightControls, 'modo', [lightModes.ANTIGA, lightModes.NOVA])
+            .name('Modo de Iluminação')
+            .onChange(modo => setModoIluminacao(modo));
+        pasta.add(lightControls, 'intensidadeSpot', 0, 2)
+            .name('Intensidade Spotlight')
+            .onChange(val => { spotlight.intensity = val; });
+        pasta.add(lightControls, 'intensidadeDirecional', 0, 2)
+            .name('Intensidade Direcional')
+            .onChange(val => { directionalLight.intensity = val; });
+        pasta.add(lightControls, 'mostrarHelpers')
+            .name('Mostrar Helpers')
+            .onChange(val => setHelpers(val));
+        setModoIluminacao(lightControls.modo);
+        setHelpers(lightControls.mostrarHelpers);
+    }
+    buildLightingInterface();
+
+    return spotLightHelper;
 }
-
-function cortaArea(areaInteira, boxAuxiliar) {
-    let csgObject;
-    csgObject = areaInteira.subtract(boxAuxiliar) // Subtrai parte da area
-    return csgObject;
-}
-
-
-// Paredes do Ambiente
-const WallGeometry = new THREE.PlaneGeometry(500, 50);
-const wallMaterial = new THREE.MeshBasicMaterial({
-    color: 'rgba(255, 140, 0, 0.65)'
-});
-
-const walls = [];
-for (let i = 0; i <= 3; i++) {
-    walls.push(new THREE.Mesh(WallGeometry, wallMaterial));
-}
-
-walls[0].position.set(0, 25, -250);
-
-walls[1].position.set(0, 25, 250);
-walls[1].rotation.y = Math.PI;
-
-walls[2].position.set(-250, 25, 0);
-walls[2].rotation.y = Math.PI / 2;
-
-walls[3].position.set(250, 25, 0);
-walls[3].rotation.y = Math.PI / -2;
-walls.forEach(wall => scene.add(wall));
-
-
-const blocker = document.getElementById('blocker');
-const instructions = document.getElementById('instructions');
-
-instructions.addEventListener('click', function () {
-    controls.lock();
-}, false);
-
-controls.addEventListener('lock', function () {
-    instructions.style.display = 'none';
-    blocker.style.display = 'none';
-});
-
-controls.addEventListener('unlock', function () {
-    blocker.style.display = 'block';
-    instructions.style.display = '';
-});
-
-scene.add(controls.getObject());
-
-const speed = 100;
-let moveForward = false;
-let moveBackward = false;
-let moveLeft = false;
-let moveRight = false;
-let moveUp = false;
-let moveDown = false;
-
-window.addEventListener('keydown', (event) => movementControls(event.keyCode, true));
-window.addEventListener('keyup', (event) => movementControls(event.keyCode, false));
-
-function movementControls(key, value) {
-    switch (key) {
-        case 87: // W
-            moveForward = value;
-            break;
-        case 83: // S
-            moveBackward = value;
-            break;
-        case 65: // A
-            moveLeft = value;
-            break;
-        case 68: // D
-            moveRight = value;
-            break;
-        case 32:
-            moveUp = value;
-            break;
-        case 16:
-            moveDown = value;
-            break;
-    }
-}
-
-function moveAnimate(delta) {
-    raycaster.ray.origin.copy(controls.getObject().position);
-    const isIntersectingGround = raycaster.intersectObjects([ground, areas[0], areas[1], areas[2], areas[3]]).length > 0;
-    const isIntersectingRamp = raycaster.intersectObject(ramp).length > 0;
-
-    if (moveForward) {
-        controls.moveForward(speed * delta);
-    }
-    else if (moveBackward) {
-        controls.moveForward(speed * -1 * delta);
-    }
-
-    if (moveRight) {
-        controls.moveRight(speed * delta);
-    }
-    else if (moveLeft) {
-        controls.moveRight(speed * -1 * delta);
-    }
-
-    if (moveUp && camera.position.y <= 100) {
-        camera.position.y += speed * delta;
-    }
-    else if (moveDown && !isIntersectingGround && !isIntersectingRamp) {
-        camera.position.y -= speed * delta;
-    }
-    else if (isIntersectingRamp) {
-        camera.position.y += speed / 2 * delta;
-    }
-}
-
-// Listen window size changes
-window.addEventListener('resize', function () { onWindowResize(camera, renderer) }, false);
-
-
