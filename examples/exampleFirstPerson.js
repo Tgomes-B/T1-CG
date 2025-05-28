@@ -134,8 +134,9 @@ let moveRight = false;
 let moveUp = false;
 let moveDown = false;
 
-window.addEventListener('keydown', (event) => movementControls(event.keyCode, true));
-window.addEventListener('keyup', (event) => movementControls(event.keyCode, false));
+// Reconhece o teclado e chama a função movementControls
+window.addEventListener('keydown', (event) => movementControls(event.keyCode, true)); // Botão pressionado
+window.addEventListener('keyup', (event) => movementControls(event.keyCode, false)); // Botão solto
 
 function movementControls(key, value) {
     switch (key) {
@@ -152,7 +153,7 @@ function movementControls(key, value) {
             moveRight = value;
             break;
         case 32:
-            moveUp = value;
+            moveUp = false;
             break;
         case 16:
             moveDown = value;
@@ -170,6 +171,9 @@ function moveAnimate(delta) {
     }
     else if (moveBackward) {
         controls.moveForward(speed * -1 * delta);
+    }
+    if(!isIntersectingGround && !isIntersectingRamp) {
+       camera.position.y -= speed * delta / 2;
     }
 
     if (moveRight) {
