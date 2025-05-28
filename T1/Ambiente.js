@@ -29,7 +29,7 @@ export function criaAreasRampas(scene) {
         new THREE.MeshLambertMaterial({ color: 'rgb(100, 123, 255)' })
     ];
 
-    let molde, areas = [], posZ = -155, comp = 30 / 8, ramp;
+    let molde, areas = [], posZ = -155, comp = 30 / 8, ramp, rotY = -Math.PI / 10;
     let boxMesh = new THREE.Mesh(new THREE.BoxGeometry(30, 20, 10));
     boxMesh.position.set(0, 0, 0);
     let boxCSG = CSG.fromMesh(boxMesh);
@@ -47,9 +47,9 @@ export function criaAreasRampas(scene) {
         return areaInteira.subtract(boxAuxiliar);
     }
     // Cria uma escada composta por degraus e uma rampa
-    function criaEscada(posX, posZ, comp) {
+    function criaEscada(posX, posZ, comp, rampX) {
         let degrau;
-        const alt = 10 / 8;
+        const alt = 10 / 8; // Altura de cada degrau
         const degrauGeometry = new THREE.BoxGeometry(30 / 8, alt, 20);
         const degrauMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(96, 52, 255)' });
         for (let i = 0; i < 8; i++) {
@@ -59,8 +59,8 @@ export function criaAreasRampas(scene) {
         }
         ramp = new THREE.Mesh(rampGeometry, rampMaterial);
         ramp.rotation.x = 1.5 * Math.PI;
-        ramp.rotation.y = -Math.PI / 10;
-        ramp.position.set(126, 3.75, posZ);
+        ramp.rotation.y = rotY;
+        ramp.position.set(rampX, 3.75, posZ);
         //ramp.visible = false;
         ramp.name = 'ramp';
         scene.add(ramp);
@@ -84,7 +84,8 @@ export function criaAreasRampas(scene) {
             areas[i].position.set(-130, 5, 0);
             comp = -1 * comp;
             posZ = 0;
-            criaEscada(-115, posZ, comp);
+            rotY = rotY * -1;
+            criaEscada(-115, posZ, comp, -126);//posição X da escada , posição Z da escada, comprimento dos degraus, posição X da rampa
         
             // Desativa colisão da área3 (com rampa)
             //areas[i].userData.isCollidable = false;
@@ -111,7 +112,7 @@ export function criaAreasRampas(scene) {
             scene.add(lateralDir);
         } else if (i < 3) {
             areas[i].position.set(130, 5, posZ);
-            criaEscada(115, posZ, comp);
+            criaEscada(115, posZ, comp, 126); //posição X da escada , posição Z da escada, comprimento dos degraus, posição X da rampa
         }
         areas[i].rotation.x = -0.5 * Math.PI;
         areas[i].material = areaMaterial[i];
