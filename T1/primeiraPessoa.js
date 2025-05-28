@@ -66,6 +66,7 @@ function createCamera() {
     const cam = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     cam.position.set(-5, 2, -5);
     cam.lookAt(new THREE.Vector3(0, 2, 0));
+    cam.name = "camera";
     scene.add(cam);
     return cam;
 }
@@ -212,7 +213,7 @@ moveAnimate(delta) {
 
     // --- Colisão com paredes e áreas ---
     const collidables = scene.children.filter(
-        obj => obj.userData && obj.userData.isCollidable && !(obj.name && obj.name.startsWith('ramp'))
+        obj => obj.userData && obj.userData.isCollidable && obj.name !== "camera" && !(obj.name && obj.name.startsWith('ramp'))
     );
     for (const obj of collidables) {
         if (playerBox.intersectsBox(obj.userData.collisionBox)) {

@@ -124,10 +124,8 @@ export function updateProjectiles(delta) {
             velocity.length()
         );
 
-        const intersects = raycaster.intersectObjects(
-            scene.children.filter(obj => obj.name !== "gun" && obj !== controls.getObject()),
-            true
-        );
+        const collidables = scene.children.filter(obj => obj.userData?.isCollidable);
+        const intersects = raycaster.intersectObjects(collidables, true);
 
         // Checa distância máxima
         if (!projectile.userData.startPos) {
@@ -135,11 +133,16 @@ export function updateProjectiles(delta) {
         }
         const distance = projectile.position.distanceTo(projectile.userData.startPos);
 
+        // Condição para fade-out (colisão ou distância máxima)
         if ((intersects.length > 0 || distance > 750) && !projectile.userData.fading) {
-            // Marca como em fade-out para não aplicar múltiplas vezes
             projectile.userData.fading = true;
+            // console.log(
+            //     intersects.length > 0
+            //         ? `Colisão detectada com: ${intersects[0].object.name || intersects[0].object.uuid}`
+            //         : "Distância máxima atingida, removendo projétil"
+            // );
+
             fadeOut(projectile, 250, () => {
-                // Remover do array após fade-out
                 const idx = projectiles.indexOf(projectile);
                 if (idx !== -1) projectiles.splice(idx, 1);
             });
@@ -165,10 +168,11 @@ export function fadeOut(object, duration, onComplete) {
 
     const startOpacity = object.material.opacity;
     const fadeSpeed = startOpacity / duration;
+    object.userData.velocity.set(0, 0, 0); // Para o movimento do projétil
 
     function animateFadeOut() {
         if (object.material.opacity > 0) {
-            object.material.opacity -= fadeSpeed * 1;
+            object.material.opacity -= fadeSpeed * 16.67; // Aproximadamente 60 FPS
             requestAnimationFrame(animateFadeOut);
         } else {
             object.material.opacity = 0;
@@ -176,6 +180,5 @@ export function fadeOut(object, duration, onComplete) {
             if (onComplete) onComplete();
         }
     }
-
     animateFadeOut();
 }
