@@ -11,7 +11,7 @@ import { setupCollision } from './colisao.js';
  */
 export function criaAreasRampas(scene) {
     // Criação do chão
-    const planeGeometry = new THREE.PlaneGeometry(500, 500, 5);
+    const planeGeometry = new THREE.PlaneGeometry(500, 500);
     const planeMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(249, 223, 184)' });
     const ground = new THREE.Mesh(planeGeometry, planeMaterial);
     ground.position.set(0, 0, 0);
@@ -20,8 +20,8 @@ export function criaAreasRampas(scene) {
     scene.add(ground);
 
     // Criação das áreas
-    const areaGeometry = new THREE.BoxGeometry(120, 120, 10);
-    const areaAzulGeometry = new THREE.BoxGeometry(120, 310, 10);
+    const areaGeometry = new THREE.BoxGeometry(120, 10, 120);
+    const areaAzulGeometry = new THREE.BoxGeometry(120, 10, 310);
     const areaMaterial = [
         new THREE.MeshLambertMaterial({ color: 'rgb(155, 249, 134)' }),
         new THREE.MeshLambertMaterial({ color: 'rgb(210, 202, 55)' }),
@@ -29,12 +29,12 @@ export function criaAreasRampas(scene) {
         new THREE.MeshLambertMaterial({ color: 'rgb(100, 123, 255)' })
     ];
 
-    let molde, areas = [], posZ = -155, comp = 30 / 8, ramp, rotY = -Math.PI / 10;
-    let boxMesh = new THREE.Mesh(new THREE.BoxGeometry(30, 20, 10));
+    let molde, areas = [], posZ = -155, comp = 30 / 8, ramp, rotY = -0.102 * Math.PI;
+    let boxMesh = new THREE.Mesh(new THREE.BoxGeometry(30, 10, 20));
     boxMesh.position.set(0, 0, 0);
     let boxCSG = CSG.fromMesh(boxMesh);
 
-    const rampGeometry = new THREE.PlaneGeometry(38, 20);
+    const rampGeometry = new THREE.PlaneGeometry(31.62, 20);
     const rampMaterial = new THREE.MeshLambertMaterial({});
 
     // Atualiza a matriz do objeto para operações CSG
@@ -56,11 +56,12 @@ export function criaAreasRampas(scene) {
             degrau = new THREE.Mesh(degrauGeometry, degrauMaterial);
             degrau.position.set(i * comp + comp / 2 + posX, i * alt + alt / 2, posZ);
             scene.add(degrau);
+            //degrau.visible = false
         }
         ramp = new THREE.Mesh(rampGeometry, rampMaterial);
         ramp.rotation.x = 1.5 * Math.PI;
         ramp.rotation.y = rotY;
-        ramp.position.set(rampX, 3.75, posZ);
+        ramp.position.set(rampX, 5, posZ);
         //ramp.visible = false;
         ramp.name = 'ramp';
         scene.add(ramp);
@@ -156,14 +157,14 @@ export function criaAreasRampas(scene) {
             areas[i].position.set(-130, 5, 0);
             comp = -1 * comp;
             posZ = 0;
-            rotY = rotY * -1;
-            criaEscada(-115, posZ, comp, -126);//posição X da escada , posição Z da escada, comprimento dos degraus, posição X da rampa
+            rotY = rotY*-1;
+            criaEscada(-115, posZ, comp, -130);//posição X da escada , posição Z da escada, comprimento dos degraus, posição X da rampa
 
         } else if (i < 3) {
             areas[i].position.set(130, 5, posZ);
-            criaEscada(115, posZ, comp, 126); //posição X da escada , posição Z da escada, comprimento dos degraus, posição X da rampa
+            criaEscada(115, posZ, comp, 130); //posição X da escada , posição Z da escada, comprimento dos degraus, posição X da rampa
         }
-        areas[i].rotation.x = -0.5 * Math.PI;
+        
         areas[i].material = areaMaterial[i];
         posZ += 155;
         scene.add(areas[i]);
