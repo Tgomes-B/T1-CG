@@ -68,12 +68,84 @@ export function criaAreasRampas(scene) {
 
     // Criação das áreas com corte CSG e posicionamento das escadas
     for (let i = 0; i <= 3; i++) {
+        let areaX, areaY, areaZ;
+                
         if (i < 3) {
             molde = new THREE.Mesh(areaGeometry, areaMaterial[i]);
             molde.position.set(45, 0, 0);
+            areaX = 130;
+            areaY = 5;
+            areaZ = posZ;
+            // Divide o topo da área em 3 cubos: esquerda, centro (buraco/rampa), direita
+            const topoAltura = 10; // altura do topo (fino)
+            const topoY = areaY + 60; // topo da área (meio da altura)
+
+            // Cubo esquerda do topo
+            const topoEsq = new THREE.Mesh(
+                new THREE.BoxGeometry(50, topoAltura, 120),
+                new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 , visible: false})
+            );
+            topoEsq.rotateY(Math.PI / 2);
+            topoEsq.position.set(areaX + 45, topoY - 60, areaZ+35); // ajuste Z conforme necessário
+            topoEsq.userData.isCollidable = true;
+            scene.add(topoEsq);
+
+            // Cubo direita do topo
+            const topoDir = new THREE.Mesh(
+                new THREE.BoxGeometry(50, topoAltura, 120),
+                new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 , visible: false})
+            );
+            topoDir.rotateY(Math.PI / 2);
+            topoDir.position.set(areaX + 45, topoY - 60, areaZ - 35);
+            topoDir.userData.isCollidable = true;
+            scene.add(topoDir);
+
+            // Cubo atrás da rampa (fundo do topo)
+            const topoFundo = new THREE.Mesh(
+                new THREE.BoxGeometry(90, topoAltura, 20),
+                new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 , visible: false})
+            );
+            topoFundo.position.set(areaX + 60, topoY - 60, areaZ);
+            topoFundo.userData.isCollidable = true;
+            scene.add(topoFundo);
         } else {
             molde = new THREE.Mesh(areaAzulGeometry, areaMaterial[i]);
             molde.position.set(-45, 0, 0);
+            areaX = -130;
+            areaY = 5;
+            areaZ = 0;
+            const topoAlturaAzul = 10;
+            const topoYAzul = areaY + 155; // metade da altura da área azul (310/2)
+            const topoProfundidadeAzul = 120;
+
+            // Cubo esquerda do topo da área azul
+            const topoAzulEsq = new THREE.Mesh(
+                new THREE.BoxGeometry(145, topoAlturaAzul, topoProfundidadeAzul),
+                new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5,visible: false  })
+            );
+            topoAzulEsq.rotateY(Math.PI / 2);
+            topoAzulEsq.position.set(areaX -45, topoYAzul-155, areaZ+82.5);
+            topoAzulEsq.userData.isCollidable = true;
+            scene.add(topoAzulEsq);
+
+            // Cubo direita do topo da área azul
+            const topoAzulDir = new THREE.Mesh(
+                new THREE.BoxGeometry(145, topoAlturaAzul, topoProfundidadeAzul),
+                new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5,visible: false  })
+            );
+            topoAzulDir.rotateY(Math.PI / 2);
+            topoAzulDir.position.set(areaX -45, topoYAzul-155, areaZ-82.5);
+            topoAzulDir.userData.isCollidable = true;
+            scene.add(topoAzulDir);
+
+            // Cubo fundo do topo da área azul (atrás da rampa)
+            const topoAzulFundo = new THREE.Mesh(
+                new THREE.BoxGeometry(90, topoAlturaAzul, 20),
+                new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5,visible: false })
+            );
+            topoAzulFundo.position.set(areaX -60, topoYAzul-155, areaZ);
+            topoAzulFundo.userData.isCollidable = true;
+            scene.add(topoAzulFundo);
         }
         updateObject(molde);
         let auxCSG = CSG.fromMesh(molde);
@@ -86,30 +158,7 @@ export function criaAreasRampas(scene) {
             posZ = 0;
             rotY = rotY * -1;
             criaEscada(-115, posZ, comp, -126);//posição X da escada , posição Z da escada, comprimento dos degraus, posição X da rampa
-        
-            // Desativa colisão da área3 (com rampa)
-            //areas[i].userData.isCollidable = false;
-            
-            //tentativa de colisão com partições da area
-            // Colisor lateral esquerda
-            const lateralEsq = new THREE.Mesh(
-                new THREE.BoxGeometry(10, 120, 10),
-                new THREE.MeshBasicMaterial({ visible: false })
-            );
-            lateralEsq.position.set(-130 - 55, 5, 0);
-            lateralEsq.name = 'area3_lateralEsq';
-            lateralEsq.userData.isCollidable = true; 
-            scene.add(lateralEsq);
-        
-            // Colisor lateral direita
-            const lateralDir = new THREE.Mesh(
-                new THREE.BoxGeometry(10, 120, 10),
-                new THREE.MeshBasicMaterial({ visible: false })
-            );
-            lateralDir.position.set(-130 + 55, 5, 0);
-            lateralDir.name = 'area3_lateralDir';
-            lateralDir.userData.isCollidable = true; 
-            scene.add(lateralDir);
+
         } else if (i < 3) {
             areas[i].position.set(130, 5, posZ);
             criaEscada(115, posZ, comp, 126); //posição X da escada , posição Z da escada, comprimento dos degraus, posição X da rampa

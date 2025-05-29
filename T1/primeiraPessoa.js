@@ -216,7 +216,8 @@ moveAnimate(delta) {
         obj => obj.userData && obj.userData.isCollidable && obj.name !== "camera" && !(obj.name && obj.name.startsWith('ramp'))
     );
     for (const obj of collidables) {
-        if (playerBox.intersectsBox(obj.userData.collisionBox)) {
+        // Só testa colisão se collisionBox existir (evita erro de undefined)
+        if (obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)) {
             controls.getObject().position.copy(prevPosition);
             return; // Sai da função se colidir
         }
