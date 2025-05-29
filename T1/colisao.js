@@ -19,3 +19,4 @@ export function setupCollision(scene) {
         // scene.add(helper);
     });
 }
+

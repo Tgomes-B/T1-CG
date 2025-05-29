@@ -179,17 +179,36 @@ export function criaAreasRampas(scene) {
  * @returns {Array} Array com as paredes criadas.
  */
 export function criaParedes(scene) {
-    const WallGeometry = new THREE.PlaneGeometry(500, 50);
+    // Paredes com volume (BoxGeometry) para colisão 3D
+    const wallThickness = 5;
+    const wallHeight = 50;
+    const wallLength = 500;
     const wallMaterial = new THREE.MeshBasicMaterial({ color: 'rgba(255, 140, 0, 0.65)' });
     const walls = [];
-    for (let i = 0; i <= 3; i++) {
-        walls.push(new THREE.Mesh(WallGeometry, wallMaterial));
-        walls[i].name = 'wall' + i;
-    }
-    walls[0].position.set(0, 25, -250);
-    walls[1].position.set(0, 25, 250); walls[1].rotation.y = Math.PI;
-    walls[2].position.set(-250, 25, 0); walls[2].rotation.y = Math.PI / 2;
-    walls[3].position.set(250, 25, 0); walls[3].rotation.y = Math.PI / -2;
+    // Norte (topo)
+    const wallN = new THREE.Mesh(new THREE.BoxGeometry(wallLength, wallHeight, wallThickness), wallMaterial);
+    wallN.position.set(0, wallHeight/2, -250);
+    wallN.name = 'wall0';
+    wallN.userData.isCollidable = true;
+    walls.push(wallN);
+    // Sul (baixo)
+    const wallS = new THREE.Mesh(new THREE.BoxGeometry(wallLength, wallHeight, wallThickness), wallMaterial);
+    wallS.position.set(0, wallHeight/2, 250);
+    wallS.name = 'wall1';
+    wallS.userData.isCollidable = true;
+    walls.push(wallS);
+    // Oeste (esquerda)
+    const wallW = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, wallHeight, wallLength), wallMaterial);
+    wallW.position.set(-250, wallHeight/2, 0);
+    wallW.name = 'wall2';
+    wallW.userData.isCollidable = true;
+    walls.push(wallW);
+    // Leste (direita)
+    const wallE = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, wallHeight, wallLength), wallMaterial);
+    wallE.position.set(250, wallHeight/2, 0);
+    wallE.name = 'wall3';
+    wallE.userData.isCollidable = true;
+    walls.push(wallE);
     walls.forEach(wall => scene.add(wall));
     return walls;
 }

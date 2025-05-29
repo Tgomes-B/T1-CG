@@ -32,7 +32,7 @@ function init() {
     // Ambiente
     ({ areas, ramp, ground } = criaAreasRampas(scene));
     walls = criaParedes(scene);
-    setupCollision(scene);
+    setupCollision(scene); // Garante que as paredes estão com bounding box
     spotLightHelper = setupLighting(scene);
 
     initDefaultBasicLight(scene);
@@ -117,11 +117,11 @@ function setupCrosshair() {
  * @returns {void}
  */
 function createGun() {
-    const gunGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 32);
+    const gunGeometry = new THREE.CylinderGeometry(0.1,0.1,2,32);
     const gunMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
     const gun = new THREE.Mesh(gunGeometry, gunMaterial);
     gun.name = "gun";
-    gun.position.set(-0.1,-0.4, -1);
+    gun.position.set(0.02,-0.3,-0.5);
     gun.rotation.x = -Math.PI / 2;
     controls.getObject().add(gun);
     camera.add(gun);
@@ -189,48 +189,90 @@ export function
 moveAnimate(delta) {
     const prevPosition = controls.getObject().position.clone();
 
-    // Movimento do player
-    if (moveForward) controls.moveForward(speed * delta);
-    if (moveBackward) controls.moveForward(-speed * delta);
-    if (moveRight) controls.moveRight(speed * delta);
-    if (moveLeft) controls.moveRight(-speed * delta);
-    if (moveUp) controls.getObject().position.y += speed * delta;
-    if (moveDown) controls.getObject().position.y -= speed * delta;
-
-    // Caixa de colisão do player
+    // --- Movimento do player com colisão sliding ---
+    const playerObj = controls.getObject();
     const alturaPlayer = 2; // altura realista do player
-    const playerBox = new THREE.Box3().setFromCenterAndSize(
-        controls.getObject().position.clone(),
+    let moved = false;
+    // Calcula vetor de movimento FPS padrão
+    const forward = controls.getDirection(new THREE.Vector3()).setY(0).normalize();
+    const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+    const moveVec = new THREE.Vector3();
+    if (moveForward) moveVec.add(forward);
+    if (moveBackward) moveVec.add(forward.clone().negate());
+    if (moveRight) moveVec.add(right);
+    if (moveLeft) moveVec.add(right.clone().negate());
+    if (moveVec.lengthSq() > 0) moveVec.normalize();
+
+
+    // Salva posição original
+    const originalPos = playerObj.position.clone();
+    // Testa movimento completo (X e Z)
+    let tryPos = originalPos.clone().add(moveVec.clone().multiplyScalar(speed * delta));
+    playerObj.position.copy(tryPos);
+    let playerBox = new THREE.Box3().setFromCenterAndSize(
+        playerObj.position.clone(),
         new THREE.Vector3(0.3, alturaPlayer, 0.3)
     );
+    const collidables = scene.children.filter(
+        obj => obj.userData && obj.userData.isCollidable && obj.name !== "camera" && !(obj.name && obj.name.startsWith('ramp'))
+    );
+    let collided = collidables.some(obj => obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox));
+    if (!collided) {
+        moved = true;
+    } else {
+        // Testa apenas X
+        tryPos = originalPos.clone();
+        tryPos.x += moveVec.x * speed * delta;
+        playerObj.position.copy(tryPos);
+        playerBox = new THREE.Box3().setFromCenterAndSize(
+            playerObj.position.clone(),
+            new THREE.Vector3(0.3, alturaPlayer, 0.3)
+        );
+        collided = collidables.some(obj => obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox));
+        if (!collided) {
+            moved = true;
+        } else {
+            // Testa apenas Z
+            tryPos = originalPos.clone();
+            tryPos.z += moveVec.z * speed * delta;
+            playerObj.position.copy(tryPos);
+            playerBox = new THREE.Box3().setFromCenterAndSize(
+                playerObj.position.clone(),
+                new THREE.Vector3(0.3, alturaPlayer, 0.3)
+            );
+            collided = collidables.some(obj => obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox));
+            if (!collided) {
+                moved = true;
+            } else {
+                // Não pode mover nem X nem Z
+                playerObj.position.copy(originalPos);
+            }
+        }
+    }
+    // Movimento vertical (Y) - não interfere com colisão horizontal
+    if (moveUp) playerObj.position.y += speed * delta;
+    if (moveDown) playerObj.position.y -= speed * delta;
 
-    // Visualização da caixa do player (opcional)
+    // Caixa de colisão do player para visualização
+    playerBox = new THREE.Box3().setFromCenterAndSize(
+        playerObj.position.clone(),
+        new THREE.Vector3(0.3, alturaPlayer, 0.3)
+    );
     if (!window.playerHelper) {
         window.playerHelper = new THREE.Box3Helper(playerBox, 0x00ff00);
         scene.add(window.playerHelper);
     }
     window.playerHelper.box.copy(playerBox);
 
-    // --- Colisão com paredes e áreas ---
-    const collidables = scene.children.filter(
-        obj => obj.userData && obj.userData.isCollidable && obj.name !== "camera" && !(obj.name && obj.name.startsWith('ramp'))
-    );
-    for (const obj of collidables) {
-        // Só testa colisão se collisionBox existir (evita erro de undefined)
-        if (obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)) {
-            controls.getObject().position.copy(prevPosition);
-            return; // Sai da função se colidir
-        }
-    }
     // Calcula a direção para frente
     const direction = new THREE.Vector3();
     controls.getDirection(direction);
     direction.y = 0;
     direction.normalize();
-   
+
     // Ray para o chão (origem: centro do player)
     const downRayChao = new THREE.Raycaster(
-        controls.getObject().position.clone(),
+        playerObj.position.clone(),
         new THREE.Vector3(0, -1, 0),
         0,
         alturaPlayer * 2
@@ -239,11 +281,10 @@ moveAnimate(delta) {
     const chaoIntersects = downRayChao.intersectObjects(groundMeshes, false);
 
     // Ray para rampas (origem: à frente do player)
-    
     controls.getDirection(direction);
     direction.y = 0;
     direction.normalize();
-    const rayOriginRampa = controls.getObject().position.clone().add(direction.multiplyScalar(1.5));
+    const rayOriginRampa = playerObj.position.clone().add(direction.multiplyScalar(1.5));
     const downRayRampa = new THREE.Raycaster(
         rayOriginRampa,
         new THREE.Vector3(0, -1, 0),
@@ -262,13 +303,13 @@ moveAnimate(delta) {
     }
 
     if (surfaceY !== null) {
-        const playerFeet = controls.getObject().position.y - (alturaPlayer / 2);
+        const playerFeet = playerObj.position.y - (alturaPlayer / 2);
         const diff = surfaceY - playerFeet;
         // Só ajusta se estiver levemente acima ou até 0.3 abaixo da superfície
         if (diff > -0.5 && diff < 1.5) {
-            controls.getObject().position.y = surfaceY + (alturaPlayer / 2);
+            playerObj.position.y = surfaceY + (alturaPlayer / 2);
         }
-    } 
+    }
 }
 
 /**
