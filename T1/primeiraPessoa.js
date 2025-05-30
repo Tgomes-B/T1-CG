@@ -54,8 +54,8 @@ function configureTexture(texture, repeatX, repeatY) {
 
 function createCamera() {
     const cam = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    cam.position.set(-5, 2, -5);
-    cam.lookAt(new THREE.Vector3(0, 2, 0));
+    cam.position.set(-5, 7, -5);
+    cam.lookAt(new THREE.Vector3(0, 7, 0));
     cam.name = "camera";
     scene.add(cam);
     return cam;
@@ -145,7 +145,7 @@ function movementControls(key, value) {
 // FUNÇÃO DE MOVIMENTO SIMPLIFICADA E CORRIGIDA
 export function moveAnimate(delta) {
     const playerObj = controls.getObject();
-    const alturaPlayer = 2;
+    const alturaPlayer = 7;
     
     // Sistema de movimento
     const forward = controls.getDirection(new THREE.Vector3()).setY(0).normalize();
@@ -268,6 +268,11 @@ export function moveAnimate(delta) {
     
     const surfaceIntersects = downRayChao.intersectObjects(walkableSurfaces, false);
     
+    if(playerObj.position.y > alturaPlayer){
+        controls.getObject().position.y -= speed / 2 * delta;
+        console.log("deu certo")
+    }
+
     let surfaceY = null;
     if (surfaceIntersects.length > 0) {
         surfaceY = surfaceIntersects[0].point.y;
