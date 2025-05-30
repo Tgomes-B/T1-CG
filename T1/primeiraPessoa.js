@@ -21,11 +21,17 @@ function init() {
     stats = new Stats();
     renderer = initRenderer("rgb(70, 150, 240)");
     scene = new THREE.Scene();
-    window.scene = scene; // <-- adicione esta linha
+    window.scene = scene; 
     camera = createCamera();
 
     controls = new PointerLockControls(camera, renderer.domElement);
     setupControls();
+
+    controls.getObject().position.set(10, 2, 1); 
+    const lookAtTarget = new THREE.Vector3(0.5, 2, 1);
+    const direction = new THREE.Vector3().subVectors(lookAtTarget, controls.getObject().position).normalize();
+    const angleY = Math.atan2(direction.x, direction.z);
+    controls.getObject().rotation.y = angleY;
 
     clock = new THREE.Clock();
 
@@ -39,7 +45,7 @@ function init() {
     setupEventListeners();
     setupCrosshair();
     createGun();
-    setupShooting(camera, scene, controls); // Inicializa o sistema de tiro
+    setupShooting(camera, scene, controls); 
 }
 
 /**
@@ -105,7 +111,7 @@ function setupCrosshair() {
         crosshair.style.transform = 'translate(-50%, -50%)';
         crosshair.style.pointerEvents = 'none';
         crosshair.style.zIndex = '1000';
-        crosshair.style.display = 'none'; // começa invisível
+        crosshair.style.display = 'none'; 
         document.body.appendChild(crosshair);
     } else {
         crosshair.style.display = 'none';
@@ -121,7 +127,7 @@ function createGun() {
     const gunMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
     const gun = new THREE.Mesh(gunGeometry, gunMaterial);
     gun.name = "gun";
-    gun.position.set(-0.1,-0.4, -1);
+    gun.position.set(0.01,-0.4, -1);
     gun.rotation.x = -Math.PI / 2;
     controls.getObject().add(gun);
     camera.add(gun);
@@ -185,50 +191,68 @@ function movementControls(key, value) {
  * Se houver colisão, retorna à posição anterior.
  * @param {number} delta - Tempo decorrido desde o último frame.
  */
-export function 
-moveAnimate(delta) {
+export function moveAnimate(delta) {
     const prevPosition = controls.getObject().position.clone();
 
-    // Movimento do player
     if (moveForward) controls.moveForward(speed * delta);
     if (moveBackward) controls.moveForward(-speed * delta);
     if (moveRight) controls.moveRight(speed * delta);
     if (moveLeft) controls.moveRight(-speed * delta);
-    if (moveUp) controls.getObject().position.y += speed * delta;
-    if (moveDown) controls.getObject().position.y -= speed * delta;
 
-    // Caixa de colisão do player
-    const alturaPlayer = 2; // altura realista do player
+    // --- MOVIMENTO VERTICAL COM CHECAGEM DE CHÃO ---
+    const alturaPlayer = 2;
+    if (moveUp) controls.getObject().position.y += speed * delta;
+    if (moveDown) {
+        // Raycast para baixo para checar se há chão OU rampa logo abaixo
+        const downRay = new THREE.Raycaster(
+            controls.getObject().position.clone(),
+            new THREE.Vector3(0, -1, 0),
+            0,
+            0.2 // distância pequena para detectar superfície logo abaixo
+        );
+        // Pegue todos os objetos colidíveis que podem ser chão/topo de área ou rampas
+        const groundCandidates = scene.children.filter(
+            obj =>
+                (obj.userData && obj.userData.isCollidable) ||
+                (obj.name && obj.name.startsWith('ramp'))
+        );
+        const intersects = downRay.intersectObjects(groundCandidates, false);
+        if (intersects.length === 0) {
+            // Só desce se não houver chão nem rampa logo abaixo
+            controls.getObject().position.y -= speed * delta;
+        }
+        // Se houver chão ou rampa logo abaixo, não desce!
+    }
+
+    // --- COLISÃO HORIZONTAL ---
     const playerBox = new THREE.Box3().setFromCenterAndSize(
         controls.getObject().position.clone(),
         new THREE.Vector3(0.3, alturaPlayer, 0.3)
     );
 
-    // Visualização da caixa do player (opcional)
-    if (!window.playerHelper) {
-        window.playerHelper = new THREE.Box3Helper(playerBox, 0x00ff00);
-        scene.add(window.playerHelper);
-    }
-    window.playerHelper.box.copy(playerBox);
+//Caixa de colisão do jogador
+//   if (!window.playerHelper) {
+//       window.playerHelper = new THREE.Box3Helper(playerBox, 0x00ff00);
+//        scene.add(window.playerHelper);
+//    }
+//    window.playerHelper.box.copy(playerBox);
 
-    // --- Colisão com paredes e áreas ---
     const collidables = scene.children.filter(
         obj => obj.userData && obj.userData.isCollidable && obj.name !== "camera" && !(obj.name && obj.name.startsWith('ramp'))
     );
     for (const obj of collidables) {
-        // Só testa colisão se collisionBox existir (evita erro de undefined)
         if (obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)) {
             controls.getObject().position.copy(prevPosition);
-            return; // Sai da função se colidir
+            return;
         }
     }
-    // Calcula a direção para frente
+
+    // --- AJUSTE DE ALTURA PARA GRUDAR NO CHÃO/RAMPA ---
     const direction = new THREE.Vector3();
     controls.getDirection(direction);
     direction.y = 0;
     direction.normalize();
-   
-    // Ray para o chão (origem: centro do player)
+
     const downRayChao = new THREE.Raycaster(
         controls.getObject().position.clone(),
         new THREE.Vector3(0, -1, 0),
@@ -238,8 +262,6 @@ moveAnimate(delta) {
     const groundMeshes = scene.children.filter(obj => obj.name === 'ground');
     const chaoIntersects = downRayChao.intersectObjects(groundMeshes, false);
 
-    // Ray para rampas (origem: à frente do player)
-    
     controls.getDirection(direction);
     direction.y = 0;
     direction.normalize();
@@ -253,7 +275,6 @@ moveAnimate(delta) {
     const rampMeshes = scene.children.filter(obj => obj.name && obj.name.startsWith('ramp'));
     const rampaIntersects = downRayRampa.intersectObjects(rampMeshes, false);
 
-    // Decide qual altura usar (rampa tem prioridade se detectada)
     let surfaceY = null;
     if (rampaIntersects.length > 0) {
         surfaceY = rampaIntersects[0].point.y;
@@ -264,11 +285,29 @@ moveAnimate(delta) {
     if (surfaceY !== null) {
         const playerFeet = controls.getObject().position.y - (alturaPlayer / 2);
         const diff = surfaceY - playerFeet;
-        // Só ajusta se estiver levemente acima ou até 0.3 abaixo da superfície
-        if (diff > -0.5 && diff < 1.5) {
-            controls.getObject().position.y = surfaceY + (alturaPlayer / 2);
+
+        // Detecta se estava na rampa e agora está no topo (transição)
+        if (
+            window.wasOnRampa && rampaIntersects.length === 0 && chaoIntersects.length > 0 &&
+            diff > -0.5 && diff < 0.5
+        ) {
+            // Aplica um pequeno salto ao chegar no topo da rampa
+            controls.getObject().position.y += 0.2; 
         }
-    } 
+
+        // Ajuste normal de altura
+        if (diff > -0.5 && diff < 0.5) {
+            controls.getObject().position.y = surfaceY + (alturaPlayer / 1.7);
+            console.log("Ajuste de altura aplicado:", controls.getObject().position.y);
+        }
+        if (diff < -0.5) {
+            controls.getObject().position.y = surfaceY + (alturaPlayer / 1.7);
+            console.log("Ajuste de altura aplicado:", controls.getObject().position.y);
+        }
+    }
+
+    // Salva se estava na rampa para o próximo frame
+    window.wasOnRampa = rampaIntersects.length > 0;
 }
 
 /**
@@ -284,7 +323,6 @@ function render() {
     if (controls.isLocked) {
         moveAnimate(delta);
         updateProjectiles(delta);
-        // ... lógica do frustum, etc ...
     }
     if (spotLightHelper) spotLightHelper.update();
     renderer.render(scene, camera);
