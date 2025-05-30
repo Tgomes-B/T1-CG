@@ -11,44 +11,39 @@ let stats, renderer, scene, camera, controls, clock;
 let spotLightHelper, areas, ramp, ground, walls;
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, moveUp = false, moveDown = false;
 const speed = 20;
-/**
- * Inicializa a cena, câmera, controles e outros componentes necessários.
- * Configura texturas, materiais, event listeners e mira.
- * Deve ser chamada uma única vez no início da aplicação.
- * @returns {void}
- */
+
 function init() {
     stats = new Stats();
     renderer = initRenderer("rgb(70, 150, 240)");
     scene = new THREE.Scene();
-    window.scene = scene; // <-- adicione esta linha
+    window.scene = scene; 
     camera = createCamera();
 
     controls = new PointerLockControls(camera, renderer.domElement);
     setupControls();
+
+    // Posição inicial da câmera
+    controls.getObject().position.set(10, 2, 1); 
+    const lookAtTarget = new THREE.Vector3(0.5, 2, 1);
+    const direction = new THREE.Vector3().subVectors(lookAtTarget, controls.getObject().position).normalize();
+    const angleY = Math.atan2(direction.x, direction.z);
+    controls.getObject().rotation.y = angleY;
 
     clock = new THREE.Clock();
 
     // Ambiente
     ({ areas, ramp, ground } = criaAreasRampas(scene));
     walls = criaParedes(scene);
-    setupCollision(scene); // Garante que as paredes estão com bounding box
+    setupCollision(scene);
     spotLightHelper = setupLighting(scene);
 
     initDefaultBasicLight(scene);
     setupEventListeners();
     setupCrosshair();
     createGun();
-    setupShooting(camera, scene, controls); // Inicializa o sistema de tiro
+    setupShooting(camera, scene, controls); 
 }
 
-/**
- * Configura uma textura para uso em materiais, ajustando repetição e espaço de cor.
- * @param {THREE.Texture} texture - Textura a ser configurada.
- * @param {number} repeatX - Número de repetições no eixo X.
- * @param {number} repeatY - Número de repetições no eixo Y.
- * @returns {THREE.Texture} Textura configurada.
- */
 function configureTexture(texture, repeatX, repeatY) {
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.wrapS = THREE.MirroredRepeatWrapping;
@@ -57,11 +52,6 @@ function configureTexture(texture, repeatX, repeatY) {
     return texture;
 }
 
-/**
- * Cria uma câmera perspectiva com as dimensões da janela e adiciona à cena.
- * Utiliza THREE.PerspectiveCamera.
- * @returns {THREE.PerspectiveCamera} A câmera criada.
- */
 function createCamera() {
     const cam = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     cam.position.set(-5, 2, -5);
@@ -71,11 +61,6 @@ function createCamera() {
     return cam;
 }
 
-/**
- * Adiciona listeners para eventos de teclado e resize da janela.
- * Responsável pelo controle de movimento e ajuste da câmera.
- * @returns {void}
- */
 function setupEventListeners() {
     window.addEventListener('keydown', (event) => movementControls(event.code, true));
     window.addEventListener('keyup', (event) => movementControls(event.code, false));
@@ -84,11 +69,6 @@ function setupEventListeners() {
     }, false);
 }
 
-/**
- * Cria e posiciona o crosshair (mira) no centro da tela usando um elemento HTML.
- * Só deve ser chamado após a inicialização da cena.
- * @returns {void}
- */
 function setupCrosshair() {
     let crosshair = document.getElementById('crosshair');
     if (!crosshair) {
@@ -105,33 +85,24 @@ function setupCrosshair() {
         crosshair.style.transform = 'translate(-50%, -50%)';
         crosshair.style.pointerEvents = 'none';
         crosshair.style.zIndex = '1000';
-        crosshair.style.display = 'none'; // começa invisível
+        crosshair.style.display = 'none'; 
         document.body.appendChild(crosshair);
     } else {
         crosshair.style.display = 'none';
     }
 }
 
-/**
- * Cria e adiciona uma "arma" (cilindro) ao objeto de controle do jogador.
- * @returns {void}
- */
 function createGun() {
-    const gunGeometry = new THREE.CylinderGeometry(0.1,0.1,2,32);
+    const gunGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 32);
     const gunMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
     const gun = new THREE.Mesh(gunGeometry, gunMaterial);
     gun.name = "gun";
-    gun.position.set(0.02,-0.3,-0.5);
+    gun.position.set(0.01,-0.4, -1);
     gun.rotation.x = -Math.PI / 2;
     controls.getObject().add(gun);
     camera.add(gun);
 }
 
-/**
- * Configura os controles de primeira pessoa usando PointerLockControls.
- * Adiciona listeners para travar/destravar o mouse e manipula a exibição dos elementos de UI.
- * @returns {void}
- */
 function setupControls() {
     const blocker = document.getElementById('blocker');
     const instructions = document.getElementById('instructions');
@@ -155,21 +126,11 @@ function setupControls() {
     scene.add(controls.getObject());
 }
 
-/**
- * Adiciona uma luz ambiente básica à cena.
- * @param {THREE.Scene} scene - A cena a ser iluminada.
- */
 function initDefaultBasicLight(scene) {
     const light = new THREE.AmbientLight(0xffffff, 0.3);
     scene.add(light);
 }
 
-/**
- * Atualiza variáveis de movimento com base nas teclas pressionadas/soltas.
- * @param {string} key - Código da tecla pressionada.
- * @param {boolean} value - true se pressionada, false se solta.
- * @returns {void}
- */
 function movementControls(key, value) {
     switch (key) {
         case 'KeyW': moveForward = value; break;
@@ -180,54 +141,45 @@ function movementControls(key, value) {
         case 'ShiftLeft': moveDown = value; break;
     }
 }
-/**
- * Move o jogador de acordo com as teclas pressionadas e checa colisão.
- * Se houver colisão, retorna à posição anterior.
- * @param {number} delta - Tempo decorrido desde o último frame.
- */
-export function 
-moveAnimate(delta) {
-    const prevPosition = controls.getObject().position.clone();
 
-    // --- Movimento do player com colisão sliding ---
+// FUNÇÃO DE MOVIMENTO SIMPLIFICADA E CORRIGIDA
+export function moveAnimate(delta) {
     const playerObj = controls.getObject();
-    const alturaPlayer = 2; // altura realista do player
-    let moved = false;
-    // Calcula vetor de movimento FPS padrão
+    const alturaPlayer = 2;
+    
+    // Sistema de movimento
     const forward = controls.getDirection(new THREE.Vector3()).setY(0).normalize();
     const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
     const moveVec = new THREE.Vector3();
+    
     if (moveForward) moveVec.add(forward);
     if (moveBackward) moveVec.add(forward.clone().negate());
     if (moveRight) moveVec.add(right);
     if (moveLeft) moveVec.add(right.clone().negate());
     if (moveVec.lengthSq() > 0) moveVec.normalize();
 
-
-    // Salva posição original
+    // Posição original para colisão
     const originalPos = playerObj.position.clone();
-    // Testa movimento completo (X e Z)
+    
+    // Testa movimento completo
     let tryPos = originalPos.clone().add(moveVec.clone().multiplyScalar(speed * delta));
     playerObj.position.copy(tryPos);
+    
     let playerBox = new THREE.Box3().setFromCenterAndSize(
         playerObj.position.clone(),
         new THREE.Vector3(0.3, alturaPlayer, 0.3)
     );
-    // Separate regular collidables from top collision boxes
+    
+    // SIMPLIFICAÇÃO: Todos os objetos colidíveis são tratados igualmente
     const collidables = [];
-    const topCollisionBoxes = [];
     
     scene.children.forEach(obj => {
         if (obj.userData && obj.userData.isCollidable && obj.name !== "camera") {
-            if (obj.name === 'topo_colisao') {
-                topCollisionBoxes.push(obj);
-            } else if (!obj.name || !obj.name.startsWith('ramp')) {
-                collidables.push(obj);
-            }
+            collidables.push(obj);
         }
     });
     
-    // Check collision with regular collidables
+    // Verifica colisão com todos os objetos colidíveis
     let collided = collidables.some(obj => {
         if (obj.userData.collisionBox) {
             return playerBox.intersectsBox(obj.userData.collisionBox);
@@ -235,30 +187,11 @@ moveAnimate(delta) {
         return false;
     });
     
-    // Check if we're on top of a top_collision box
-    const playerBottom = playerObj.position.y - (alturaPlayer / 2);
-    let onTopOfSurface = false;
-    
-    // Check if player is on top of any collision box
-    for (const obj of topCollisionBoxes) {
-        const box = new THREE.Box3().setFromObject(obj);
-        if (playerBox.intersectsBox(box) && 
-            playerBottom <= box.max.y + 0.1 &&  // Slightly above the surface
-            playerBottom >= box.max.y - 0.5) {   // Or just below the surface
-            onTopOfSurface = true;
-            // If we're on top, adjust player Y position to stand on the surface
-            if (moveDown) {
-                moveDown = false;
-                playerObj.position.y = box.max.y + (alturaPlayer / 2);
-            }
-            break;
-        }
-    }
-    
+    // Trata colisões com sliding
     if (!collided) {
-        moved = true;
+        // Movimento permitido
     } else {
-        // Testa apenas X
+        // Testa apenas movimento em X
         tryPos = originalPos.clone();
         tryPos.x += moveVec.x * speed * delta;
         playerObj.position.copy(tryPos);
@@ -267,10 +200,11 @@ moveAnimate(delta) {
             new THREE.Vector3(0.3, alturaPlayer, 0.3)
         );
         collided = collidables.some(obj => obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox));
+        
         if (!collided) {
-            moved = true;
+            // Movimento permitido em X
         } else {
-            // Testa apenas Z
+            // Testa apenas movimento em Z
             tryPos = originalPos.clone();
             tryPos.z += moveVec.z * speed * delta;
             playerObj.position.copy(tryPos);
@@ -279,34 +213,43 @@ moveAnimate(delta) {
                 new THREE.Vector3(0.3, alturaPlayer, 0.3)
             );
             collided = collidables.some(obj => obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox));
+            
             if (!collided) {
-                moved = true;
+                // Movimento permitido em Z
             } else {
-                // Não pode mover nem X nem Z
+                // Não pode mover em nenhuma direção
                 playerObj.position.copy(originalPos);
             }
         }
     }
-    // Movimento vertical (Y) - não interfere com colisão horizontal
+
+    // Movimento vertical
     if (moveUp) playerObj.position.y += speed * delta;
-    if (moveDown) playerObj.position.y -= speed * delta;
-
-    // Caixa de colisão do player para visualização
-    playerBox = new THREE.Box3().setFromCenterAndSize(
-        playerObj.position.clone(),
-        new THREE.Vector3(0.3, alturaPlayer, 0.3)
-    );
-    if (!window.playerHelper) {
-        window.playerHelper = new THREE.Box3Helper(playerBox, 0x00ff00);
-        scene.add(window.playerHelper);
+    if (moveDown) {
+        // Raycast para checar se há chão/rampa abaixo
+        const downRay = new THREE.Raycaster(
+            playerObj.position.clone(),
+            new THREE.Vector3(0, -1, 0),
+            0,
+            0.2
+        );
+        
+        const groundCandidates = scene.children.filter(
+            obj => (obj.userData && obj.userData.isCollidable) ||
+                   (obj.name && obj.name.startsWith('ramp'))
+        );
+        
+        const intersects = downRay.intersectObjects(groundCandidates, false);
+        if (intersects.length === 0) {
+            playerObj.position.y -= speed * delta;
+        }
     }
-    window.playerHelper.box.copy(playerBox);
 
-    // Calcula a direção para frente
-    const direction = new THREE.Vector3();
-    controls.getDirection(direction);
-    direction.y = 0;
-    direction.normalize();
+    // Sistema de ajuste de altura para superfícies
+    const dir = new THREE.Vector3();
+    controls.getDirection(dir);
+    dir.y = 0;
+    dir.normalize();
 
     // Ray para o chão (origem: centro do player)
     const downRayChao = new THREE.Raycaster(
@@ -316,69 +259,31 @@ moveAnimate(delta) {
         alturaPlayer * 2
     );
     
-    // Inclui tanto o chão quanto as áreas de colisão superiores
-    const groundMeshes = [];
-    const topCollisionMeshes = [];
-    
-    scene.children.forEach(obj => {
-        if (obj.name === 'ground') {
-            groundMeshes.push(obj);
-        } else if (obj.name === 'topo_colisao') {
-            topCollisionMeshes.push(obj);
-        }
-    });
-    
-    // Check for ground intersections first
-    let chaoIntersects = downRayChao.intersectObjects(groundMeshes, false);
-    
-    // If no ground, check top collision boxes
-    if (chaoIntersects.length === 0) {
-        chaoIntersects = downRayChao.intersectObjects(topCollisionMeshes, false);
-    }
-
-    // Ray para rampas (origem: à frente do player)
-    controls.getDirection(direction);
-    direction.y = 0;
-    direction.normalize();
-    const rayOriginRampa = playerObj.position.clone().add(direction.multiplyScalar(1.5));
-    const downRayRampa = new THREE.Raycaster(
-        rayOriginRampa,
-        new THREE.Vector3(0, -1, 0),
-        0,
-        alturaPlayer * 2
+    // Inclui todas as superfícies andáveis: chão, topo de áreas e rampas
+    const walkableSurfaces = scene.children.filter(obj => 
+        obj.name === 'ground' || 
+        obj.name === 'topo_colisao' || 
+        (obj.name && obj.name.startsWith('ramp'))
     );
-    // Inclui rampas e topo_colisao para detecção de superfícies
-    const rampMeshes = scene.children.filter(obj => (obj.name && obj.name.startsWith('ramp')) || obj.name === 'topo_colisao');
-    const rampaIntersects = downRayRampa.intersectObjects(rampMeshes, false);
-
-    // Decide qual altura usar (rampa tem prioridade se detectada)
+    
+    const surfaceIntersects = downRayChao.intersectObjects(walkableSurfaces, false);
+    
     let surfaceY = null;
-    if (rampaIntersects.length > 0) {
-        surfaceY = rampaIntersects[0].point.y;
-    } else if (chaoIntersects.length > 0) {
-        surfaceY = chaoIntersects[0].point.y;
+    if (surfaceIntersects.length > 0) {
+        surfaceY = surfaceIntersects[0].point.y;
     }
 
     if (surfaceY !== null) {
         const playerFeet = playerObj.position.y - (alturaPlayer / 2);
         const diff = surfaceY - playerFeet;
-        // Só ajusta se estiver levemente acima ou até 0.5 abaixo da superfície
+
+        // Ajusta altura do jogador se estiver próximo à superfície
         if (diff > -0.5 && diff < 1.5) {
-            playerObj.position.y = surfaceY + (alturaPlayer / 2);
-            // Prevent falling through when on top of a surface
-            if (onTopOfSurface && moveDown) {
-                moveDown = false;
-            }
+            playerObj.position.y = surfaceY + (alturaPlayer / 1.7);
         }
     }
 }
 
-/**
- * Loop principal de renderização da cena.
- * Atualiza animações, controles, projéteis e renderiza a cena.
- * Deve ser chamada recursivamente via requestAnimationFrame.
- * @returns {void}
- */
 function render() {
     stats.update();
     const delta = clock.getDelta();
@@ -386,18 +291,12 @@ function render() {
     if (controls.isLocked) {
         moveAnimate(delta);
         updateProjectiles(delta);
-        // ... lógica do frustum, etc ...
     }
     if (spotLightHelper) spotLightHelper.update();
     renderer.render(scene, camera);
     requestAnimationFrame(render);
 }
 
-/**
- * Função principal de inicialização da aplicação.
- * Chama as funções de setup e inicia o loop de renderização.
- * @returns {void}
- */
 function main() {
     init();
     render();
