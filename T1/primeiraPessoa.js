@@ -213,10 +213,48 @@ moveAnimate(delta) {
         playerObj.position.clone(),
         new THREE.Vector3(0.3, alturaPlayer, 0.3)
     );
-    const collidables = scene.children.filter(
-        obj => obj.userData && obj.userData.isCollidable && obj.name !== "camera" && !(obj.name && obj.name.startsWith('ramp'))
-    );
-    let collided = collidables.some(obj => obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox));
+    // Separate regular collidables from top collision boxes
+    const collidables = [];
+    const topCollisionBoxes = [];
+    
+    scene.children.forEach(obj => {
+        if (obj.userData && obj.userData.isCollidable && obj.name !== "camera") {
+            if (obj.name === 'topo_colisao') {
+                topCollisionBoxes.push(obj);
+            } else if (!obj.name || !obj.name.startsWith('ramp')) {
+                collidables.push(obj);
+            }
+        }
+    });
+    
+    // Check collision with regular collidables
+    let collided = collidables.some(obj => {
+        if (obj.userData.collisionBox) {
+            return playerBox.intersectsBox(obj.userData.collisionBox);
+        }
+        return false;
+    });
+    
+    // Check if we're on top of a top_collision box
+    const playerBottom = playerObj.position.y - (alturaPlayer / 2);
+    let onTopOfSurface = false;
+    
+    // Check if player is on top of any collision box
+    for (const obj of topCollisionBoxes) {
+        const box = new THREE.Box3().setFromObject(obj);
+        if (playerBox.intersectsBox(box) && 
+            playerBottom <= box.max.y + 0.1 &&  // Slightly above the surface
+            playerBottom >= box.max.y - 0.5) {   // Or just below the surface
+            onTopOfSurface = true;
+            // If we're on top, adjust player Y position to stand on the surface
+            if (moveDown) {
+                moveDown = false;
+                playerObj.position.y = box.max.y + (alturaPlayer / 2);
+            }
+            break;
+        }
+    }
+    
     if (!collided) {
         moved = true;
     } else {
@@ -277,8 +315,26 @@ moveAnimate(delta) {
         0,
         alturaPlayer * 2
     );
-    const groundMeshes = scene.children.filter(obj => obj.name === 'ground');
-    const chaoIntersects = downRayChao.intersectObjects(groundMeshes, false);
+    
+    // Inclui tanto o chão quanto as áreas de colisão superiores
+    const groundMeshes = [];
+    const topCollisionMeshes = [];
+    
+    scene.children.forEach(obj => {
+        if (obj.name === 'ground') {
+            groundMeshes.push(obj);
+        } else if (obj.name === 'topo_colisao') {
+            topCollisionMeshes.push(obj);
+        }
+    });
+    
+    // Check for ground intersections first
+    let chaoIntersects = downRayChao.intersectObjects(groundMeshes, false);
+    
+    // If no ground, check top collision boxes
+    if (chaoIntersects.length === 0) {
+        chaoIntersects = downRayChao.intersectObjects(topCollisionMeshes, false);
+    }
 
     // Ray para rampas (origem: à frente do player)
     controls.getDirection(direction);
@@ -291,7 +347,8 @@ moveAnimate(delta) {
         0,
         alturaPlayer * 2
     );
-    const rampMeshes = scene.children.filter(obj => obj.name && obj.name.startsWith('ramp'));
+    // Inclui rampas e topo_colisao para detecção de superfícies
+    const rampMeshes = scene.children.filter(obj => (obj.name && obj.name.startsWith('ramp')) || obj.name === 'topo_colisao');
     const rampaIntersects = downRayRampa.intersectObjects(rampMeshes, false);
 
     // Decide qual altura usar (rampa tem prioridade se detectada)
@@ -305,9 +362,13 @@ moveAnimate(delta) {
     if (surfaceY !== null) {
         const playerFeet = playerObj.position.y - (alturaPlayer / 2);
         const diff = surfaceY - playerFeet;
-        // Só ajusta se estiver levemente acima ou até 0.3 abaixo da superfície
+        // Só ajusta se estiver levemente acima ou até 0.5 abaixo da superfície
         if (diff > -0.5 && diff < 1.5) {
             playerObj.position.y = surfaceY + (alturaPlayer / 2);
+            // Prevent falling through when on top of a surface
+            if (onTopOfSurface && moveDown) {
+                moveDown = false;
+            }
         }
     }
 }

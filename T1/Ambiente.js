@@ -89,6 +89,7 @@ export function criaAreasRampas(scene) {
             topoEsq.rotateY(Math.PI / 2);
             topoEsq.position.set(areaX + 45, topoY - 60, areaZ+35); // ajuste Z conforme necessário
             topoEsq.userData.isCollidable = true;
+            topoEsq.name = 'topo_colisao';
             scene.add(topoEsq);
 
             // Cubo direita do topo
@@ -99,6 +100,7 @@ export function criaAreasRampas(scene) {
             topoDir.rotateY(Math.PI / 2);
             topoDir.position.set(areaX + 45, topoY - 60, areaZ - 35);
             topoDir.userData.isCollidable = true;
+            topoDir.name = 'topo_colisao';
             scene.add(topoDir);
 
             // Cubo atrás da rampa (fundo do topo)
@@ -108,6 +110,7 @@ export function criaAreasRampas(scene) {
             );
             topoFundo.position.set(areaX + 60, topoY - 60, areaZ);
             topoFundo.userData.isCollidable = true;
+            topoFundo.name = 'topo_colisao';
             scene.add(topoFundo);
         } else {
             molde = new THREE.Mesh(areaAzulGeometry, areaMaterial[i]);
@@ -127,6 +130,7 @@ export function criaAreasRampas(scene) {
             topoAzulEsq.rotateY(Math.PI / 2);
             topoAzulEsq.position.set(areaX -45, topoYAzul-155, areaZ+82.5);
             topoAzulEsq.userData.isCollidable = true;
+            topoAzulEsq.name = 'topo_colisao';
             scene.add(topoAzulEsq);
 
             // Cubo direita do topo da área azul
@@ -137,6 +141,7 @@ export function criaAreasRampas(scene) {
             topoAzulDir.rotateY(Math.PI / 2);
             topoAzulDir.position.set(areaX -45, topoYAzul-155, areaZ-82.5);
             topoAzulDir.userData.isCollidable = true;
+            topoAzulDir.name = 'topo_colisao';
             scene.add(topoAzulDir);
 
             // Cubo fundo do topo da área azul (atrás da rampa)
@@ -146,6 +151,7 @@ export function criaAreasRampas(scene) {
             );
             topoAzulFundo.position.set(areaX -60, topoYAzul-155, areaZ);
             topoAzulFundo.userData.isCollidable = true;
+            topoAzulFundo.name = 'topo_colisao';
             scene.add(topoAzulFundo);
         }
         updateObject(molde);
