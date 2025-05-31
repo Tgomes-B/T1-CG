@@ -1,3 +1,8 @@
+/**
+ * Configuração principal do jogo em primeira pessoa.
+ * @module primeiraPessoa
+ */
+
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
@@ -6,12 +11,15 @@ import { criaAreasRampas, criaParedes, setupLighting } from './Ambiente.js';
 import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
 
-
 let stats, renderer, scene, camera, controls, clock;
 let spotLightHelper, areas, ramp, ground, walls;
-let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, moveUp = false, moveDown = false;
+let moveForward = false, moveBackward = false, moveLeft = false, 
+    moveRight = false, moveUp = false, moveDown = false;
 const speed = 20;
 
+/**
+ * Inicializa a cena, câmera, controles e objetos do jogo.
+ */
 function init() {
     stats = new Stats();
     renderer = initRenderer("rgb(70, 150, 240)");
@@ -21,39 +29,64 @@ function init() {
 
     controls = new PointerLockControls(camera, renderer.domElement);
     setupControls();
-
-    // Posição inicial da câmera
-    controls.getObject().position.set(10, 2, 1); 
-    const lookAtTarget = new THREE.Vector3(0.5, 2, 1);
-    const direction = new THREE.Vector3().subVectors(lookAtTarget, controls.getObject().position).normalize();
-    const angleY = Math.atan2(direction.x, direction.z);
-    controls.getObject().rotation.y = angleY;
-
+    setupInitialCameraPosition();
     clock = new THREE.Clock();
 
-    // Ambiente
+    setupEnvironment();
+    setupLightingAndCollision();
+    setupGameElements();
+    setupEventListeners();
+}
+
+/**
+ * Configura a posição inicial da câmera.
+ */
+function setupInitialCameraPosition() {
+    controls.getObject().position.set(10, 2, 1); 
+    const lookAtTarget = new THREE.Vector3(0.5, 2, 1);
+    const direction = new THREE.Vector3().subVectors(
+        lookAtTarget, 
+        controls.getObject().position
+    ).normalize();
+    controls.getObject().rotation.y = Math.atan2(direction.x, direction.z);
+}
+
+/**
+ * Configura o ambiente do jogo.
+ */
+function setupEnvironment() {
     ({ areas, ramp, ground } = criaAreasRampas(scene));
     walls = criaParedes(scene);
+}
+
+/**
+ * Configura iluminação e colisões.
+ */
+function setupLightingAndCollision() {
     setupCollision(scene);
     spotLightHelper = setupLighting(scene);
+}
 
-    initDefaultBasicLight(scene);
-    setupEventListeners();
+/**
+ * Configura elementos do jogo como mira e arma.
+ */
+function setupGameElements() {
     setupCrosshair();
     createGun();
-    setupShooting(camera, scene, controls); 
+    setupShooting(camera, scene, controls);
 }
 
-function configureTexture(texture, repeatX, repeatY) {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.wrapS = THREE.MirroredRepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(repeatX, repeatY);
-    return texture;
-}
-
+/**
+ * Cria e configura a câmera do jogo.
+ * @returns {THREE.PerspectiveCamera} A câmera configurada.
+ */
 function createCamera() {
-    const cam = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const cam = new THREE.PerspectiveCamera(
+        45, 
+        window.innerWidth / window.innerHeight, 
+        0.1, 
+        1000
+    );
     cam.position.set(-5, 7, -5);
     cam.lookAt(new THREE.Vector3(0, 7, 0));
     cam.name = "camera";
@@ -61,48 +94,60 @@ function createCamera() {
     return cam;
 }
 
+/**
+ * Configura os event listeners do jogo.
+ */
 function setupEventListeners() {
     window.addEventListener('keydown', (event) => movementControls(event.code, true));
     window.addEventListener('keyup', (event) => movementControls(event.code, false));
-    window.addEventListener('resize', () => {
-        onWindowResize(camera, renderer);
-    }, false);
+    window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
 }
 
+/**
+ * Cria e configura a mira na tela.
+ */
 function setupCrosshair() {
     let crosshair = document.getElementById('crosshair');
     if (!crosshair) {
         crosshair = document.createElement('div');
         crosshair.id = 'crosshair';
-        crosshair.style.position = 'fixed';
-        crosshair.style.width = '20px';
-        crosshair.style.height = '20px';
-        crosshair.style.background = 'url(../assets/textures/crosshair.png)';
-        crosshair.style.backgroundSize = 'contain';
-        crosshair.style.backgroundRepeat = 'no-repeat';
-        crosshair.style.top = '50%';
-        crosshair.style.left = '50%';
-        crosshair.style.transform = 'translate(-50%, -50%)';
-        crosshair.style.pointerEvents = 'none';
-        crosshair.style.zIndex = '1000';
-        crosshair.style.display = 'none'; 
+        Object.assign(crosshair.style, {
+            position: 'fixed',
+            width: '20px',
+            height: '20px',
+            background: 'url(../assets/textures/crosshair.png)',
+            backgroundSize: 'contain',
+            backgroundRepeat: 'no-repeat',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            pointerEvents: 'none',
+            zIndex: '1000',
+            display: 'none'
+        });
         document.body.appendChild(crosshair);
     } else {
         crosshair.style.display = 'none';
     }
 }
 
+/**
+ * Cria o modelo da arma do jogador.
+ */
 function createGun() {
     const gunGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 32);
     const gunMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
     const gun = new THREE.Mesh(gunGeometry, gunMaterial);
     gun.name = "gun";
-    gun.position.set(0.01,-0.4, -1);
+    gun.position.set(0.01, -0.4, -1);
     gun.rotation.x = -Math.PI / 2;
     controls.getObject().add(gun);
     camera.add(gun);
 }
 
+/**
+ * Configura os controles de movimento e bloqueio do ponteiro.
+ */
 function setupControls() {
     const blocker = document.getElementById('blocker');
     const instructions = document.getElementById('instructions');
@@ -126,11 +171,20 @@ function setupControls() {
     scene.add(controls.getObject());
 }
 
+/**
+ * Adiciona iluminação ambiente básica à cena.
+ * @param {THREE.Scene} scene - A cena a ser iluminada.
+ */
 function initDefaultBasicLight(scene) {
     const light = new THREE.AmbientLight(0xffffff, 0.3);
     scene.add(light);
 }
 
+/**
+ * Atualiza os controles de movimento com base nas teclas pressionadas.
+ * @param {string} key - Código da tecla pressionada.
+ * @param {boolean} value - Se a tecla foi pressionada (true) ou solta (false).
+ */
 function movementControls(key, value) {
     switch (key) {
         case 'KeyW': moveForward = value; break;
@@ -142,12 +196,13 @@ function movementControls(key, value) {
     }
 }
 
-// FUNÇÃO DE MOVIMENTO SIMPLIFICADA E CORRIGIDA
+/**
+ * Atualiza a posição do jogador e verifica colisões.
+ * @param {number} delta - Tempo decorrido desde o último frame.
+ */
 export function moveAnimate(delta) {
     const playerObj = controls.getObject();
     const alturaPlayer = 7;
-    
-    // Sistema de movimento
     const forward = controls.getDirection(new THREE.Vector3()).setY(0).normalize();
     const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
     const moveVec = new THREE.Vector3();
@@ -158,10 +213,7 @@ export function moveAnimate(delta) {
     if (moveLeft) moveVec.add(right.clone().negate());
     if (moveVec.lengthSq() > 0) moveVec.normalize();
 
-    // Posição original para colisão
     const originalPos = playerObj.position.clone();
-    
-    // Testa movimento completo
     let tryPos = originalPos.clone().add(moveVec.clone().multiplyScalar(speed * delta));
     playerObj.position.copy(tryPos);
     
@@ -170,28 +222,17 @@ export function moveAnimate(delta) {
         new THREE.Vector3(0.3, alturaPlayer, 0.3)
     );
     
-    // SIMPLIFICAÇÃO: Todos os objetos colidíveis são tratados igualmente
-    const collidables = [];
+    const collidables = scene.children.filter(obj => 
+        obj.userData && obj.userData.isCollidable && obj.name !== "camera"
+    );
     
-    scene.children.forEach(obj => {
-        if (obj.userData && obj.userData.isCollidable && obj.name !== "camera") {
-            collidables.push(obj);
-        }
-    });
+    let collided = collidables.some(obj => 
+        obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)
+    );
     
-    // Verifica colisão com todos os objetos colidíveis
-    let collided = collidables.some(obj => {
-        if (obj.userData.collisionBox) {
-            return playerBox.intersectsBox(obj.userData.collisionBox);
-        }
-        return false;
-    });
-    
-    // Trata colisões com sliding
     if (!collided) {
         // Movimento permitido
     } else {
-        // Testa apenas movimento em X
         tryPos = originalPos.clone();
         tryPos.x += moveVec.x * speed * delta;
         playerObj.position.copy(tryPos);
@@ -199,12 +240,13 @@ export function moveAnimate(delta) {
             playerObj.position.clone(),
             new THREE.Vector3(0.3, alturaPlayer, 0.3)
         );
-        collided = collidables.some(obj => obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox));
+        collided = collidables.some(obj => 
+            obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)
+        );
         
         if (!collided) {
             // Movimento permitido em X
         } else {
-            // Testa apenas movimento em Z
             tryPos = originalPos.clone();
             tryPos.z += moveVec.z * speed * delta;
             playerObj.position.copy(tryPos);
@@ -212,21 +254,20 @@ export function moveAnimate(delta) {
                 playerObj.position.clone(),
                 new THREE.Vector3(0.3, alturaPlayer, 0.3)
             );
-            collided = collidables.some(obj => obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox));
+            collided = collidables.some(obj => 
+                obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)
+            );
             
             if (!collided) {
                 // Movimento permitido em Z
             } else {
-                // Não pode mover em nenhuma direção
                 playerObj.position.copy(originalPos);
             }
         }
     }
 
-    // Movimento vertical
     if (moveUp) playerObj.position.y += speed * delta;
     if (moveDown) {
-        // Raycast para checar se há chão/rampa abaixo
         const downRay = new THREE.Raycaster(
             playerObj.position.clone(),
             new THREE.Vector3(0, -1, 0),
@@ -245,13 +286,11 @@ export function moveAnimate(delta) {
         }
     }
 
-    // Sistema de ajuste de altura para superfícies
     const dir = new THREE.Vector3();
     controls.getDirection(dir);
     dir.y = 0;
     dir.normalize();
 
-    // Ray para o chão (origem: centro do player)
     const downRayChao = new THREE.Raycaster(
         playerObj.position.clone(),
         new THREE.Vector3(0, -1, 0),
@@ -259,7 +298,6 @@ export function moveAnimate(delta) {
         alturaPlayer * 2
     );
     
-    // Inclui todas as superfícies andáveis: chão, topo de áreas e rampas
     const walkableSurfaces = scene.children.filter(obj => 
         obj.name === 'ground' || 
         obj.name === 'topo_colisao' || 
@@ -270,7 +308,6 @@ export function moveAnimate(delta) {
     
     if(playerObj.position.y > alturaPlayer){
         controls.getObject().position.y -= speed / 2 * delta;
-        console.log("deu certo")
     }
 
     let surfaceY = null;
@@ -282,13 +319,15 @@ export function moveAnimate(delta) {
         const playerFeet = playerObj.position.y - (alturaPlayer / 2);
         const diff = surfaceY - playerFeet;
 
-        // Ajusta altura do jogador se estiver próximo à superfície
         if (diff > -0.5 && diff < 1.5) {
             playerObj.position.y = surfaceY + (alturaPlayer / 1.7);
         }
     }
 }
 
+/**
+ * Loop principal de renderização do jogo.
+ */
 function render() {
     stats.update();
     const delta = clock.getDelta();
@@ -302,6 +341,9 @@ function render() {
     requestAnimationFrame(render);
 }
 
+/**
+ * Função principal que inicia o jogo.
+ */
 function main() {
     init();
     render();
