@@ -265,7 +265,7 @@ export function setupLighting(scene) {
             modo: lightModes.NOVA,
             intensidadeSpot: spotlight.intensity,
             intensidadeDirecional: directionalLight.intensity,
-            mostrarHelpers: true
+            mostrarHelpers: false
         };
         function setModoIluminacao(modo) {
             if (modo === lightModes.ANTIGA) {
