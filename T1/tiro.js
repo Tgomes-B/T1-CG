@@ -12,6 +12,8 @@ const ballMaterial = new THREE.MeshBasicMaterial({
 const ballGeometry = new THREE.SphereGeometry(0.1, 16, 16);
 
 let lastShotTime = 0;
+let isMousePressed = false
+let shootingInterval = null; 
 
 /**
  * Configura o evento de disparo com o mouse.
@@ -23,55 +25,31 @@ export function setupShooting(_camera, _scene, _controls) {
     scene = _scene;
     controls = _controls;
     document.addEventListener('mousedown', (event) => {
-        if (event.button !== 0) return;
-        const currentTime = performance.now();
-        if (currentTime - lastShotTime < 500) return;
-        lastShotTime = currentTime;
+        if (event.button !== 0) return; // Apenas o botão esquerdo
+        isMousePressed = true;
 
-        const gun = controls.getObject().getObjectByName("gun");
-        if (!gun) {
-            console.warn("Arma não encontrada!");
-            return;
-        }
+        // Dispara imediatamente ao pressionar
+        shootProjectile();
 
-        // Cria o projétil
-        const projectile = new THREE.Mesh(
-            ballGeometry,
-            new THREE.MeshBasicMaterial({ 
-                color: 0xff0000,
-                visible: true,
-                transparent: true,
-                opacity: 1,
-            })
-        );
+        // Configura disparos contínuos enquanto o botão estiver pressionado
+        shootingInterval = setInterval(() => {
+            if (isMousePressed) shootProjectile();
+        }, 500); // Intervalo de 500ms entre disparos
+    });
 
-        // Posição inicial: centro da câmera (crosshair)
-        projectile.position.copy(camera.getWorldPosition(new THREE.Vector3()));
+    // Evento para quando o botão do mouse é solto
+    document.addEventListener('mouseup', (event) => {
+        if (event.button !== 0) return; 
+        isMousePressed = false;
 
-        // Direção: para onde a câmera está olhando (crosshair)
-        const dir = new THREE.Vector3();
-        camera.getWorldDirection(dir);
-        // Define velocidade
-        projectile.userData.velocity = dir.multiplyScalar(projectileSpeed);
 
-        //Debug da direção
-        //const arrowHelper = new THREE.ArrowHelper(dir, gunTip, 2, 0x00ff00);
-        //scene.add(arrowHelper);
-
-        // Adiciona à cena e armazena
-        scene.add(projectile);
-        projectiles.push(projectile);
+        clearInterval(shootingInterval);
     });
 }
 
-/**
- * (Alternativa) Função para disparo, não usada diretamente.
- * @param {MouseEvent} event 
- */
-function onMouseDown(event) {
-    if (event.button !== 0) return;
+function shootProjectile() {
     const currentTime = performance.now();
-    if (currentTime - lastShotTime < 500) return;
+    if (currentTime - lastShotTime < 500) return; // Controle de taxa de disparo (500ms)
     lastShotTime = currentTime;
 
     const gun = controls.getObject().getObjectByName("gun");
@@ -80,6 +58,7 @@ function onMouseDown(event) {
         return;
     }
 
+    // Cria o projétil
     const projectile = new THREE.Mesh(
         ballGeometry,
         new THREE.MeshBasicMaterial({ 
@@ -90,21 +69,20 @@ function onMouseDown(event) {
         })
     );
 
-    const gunTip = new THREE.Vector3(0, 0.5, 0);
-    gun.localToWorld(gunTip);
-    projectile.position.copy(gunTip);
+    // Posição inicial: centro da câmera (crosshair)
+    projectile.position.copy(camera.getWorldPosition(new THREE.Vector3()));
 
-    const dir = new THREE.Vector3(0.015, -0.5, 0);
-    gun.localToWorld(dir);
-    dir.sub(gunTip).normalize();
+    // Direção: para onde a câmera está olhando (crosshair)
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
 
-    projectile.userData.velocity = dir.multiplyScalar(projectileSpeed);
+    // Define a velocidade do projétil
+    projectile.userData.velocity = dir.multiplyScalar(projectileSpeed * 0.016); // Ajuste para delta time
 
+    // Adiciona à cena e armazena
     scene.add(projectile);
     projectiles.push(projectile);
 }
-
-const MAX_DISTANCE = 100; // ajuste conforme necessário
 
 /**
  * Atualiza a posição de todos os projéteis ativos na cena.
@@ -114,7 +92,7 @@ const MAX_DISTANCE = 100; // ajuste conforme necessário
 export function updateProjectiles(delta) {
     for (let i = projectiles.length - 1; i >= 0; i--) {
         const projectile = projectiles[i];
-        const velocity = projectile.userData.velocity.clone().multiplyScalar(delta);
+        const velocity = projectile.userData.velocity;
 
         // Raycaster para detectar colisão no caminho do projétil
         const raycaster = new THREE.Raycaster(
@@ -177,6 +155,9 @@ export function fadeOut(object, duration, onComplete) {
         } else {
             object.material.opacity = 0;
             scene.remove(object);
+            // Remove o projétil da lista
+            const idx = projectiles.indexOf(object);
+            if (idx !== -1) projectiles.splice(idx, 1);
             if (onComplete) onComplete();
         }
     }

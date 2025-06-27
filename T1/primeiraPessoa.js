@@ -187,10 +187,10 @@ function initDefaultBasicLight(scene) {
  */
 function movementControls(key, value) {
     switch (key) {
-        case 'KeyW': moveForward = value; break;
-        case 'KeyS': moveBackward = value; break;
-        case 'KeyA': moveLeft = value; break;
-        case 'KeyD': moveRight = value; break;
+        case 'KeyW': case 'ArrowUp': moveForward = value; break;
+        case 'KeyS': case 'ArrowDown': moveBackward = value; break;
+        case 'KeyA': case 'ArrowLeft': moveLeft = value; break;
+        case 'KeyD': case 'ArrowRight': moveRight = value; break;
         case 'Space': moveUp = value; break;
         case 'ShiftLeft': moveDown = value; break;
     }
