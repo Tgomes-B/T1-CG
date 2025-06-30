@@ -15,6 +15,7 @@ let stats, renderer, scene, camera, controls, clock;
 let spotLightHelper, areas, ramp, ground, walls;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
+
 const speed = 20;
 const WEAPONS = {
     launcher: {
@@ -29,12 +30,8 @@ const WEAPONS = {
         fireRate: 50, // ms (20 tiros por segundo)
         showProjectile: false,
         sprite: null,
-        spritesheet: [
-            "sprites/chaingun_0.png",
-            "sprites/chaingun_1.png",
-            "sprites/chaingun_2.png",
-            "sprites/chaingun_3.png"
-        ]
+        spritesheet: "images/sprites/chaingun.png",
+        frames:3
     }
 };
 let currentWeapon = WEAPONS.launcher;
@@ -109,8 +106,8 @@ function createCamera() {
         0.1, 
         1000
     );
-    cam.position.set(-5, 7, -5);
-    cam.lookAt(new THREE.Vector3(0, 7, 0));
+    cam.position.set(-5, 40, -5);
+    cam.lookAt(new THREE.Vector3(0, 40, 0));
     cam.name = "camera";
     scene.add(cam);
     return cam;
@@ -183,14 +180,22 @@ function switchWeapon(weaponName) {
 }
 
 function createChaingunSprite() {
-    const texture = new THREE.TextureLoader().load(WEAPONS.chaingun.spritesheet[0]);
+    const frames = WEAPONS.chaingun.frames;
+    const texture = new THREE.TextureLoader().load(WEAPONS.chaingun.spritesheet);
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1 / frames, 1); // 4 frames na horizontal
+
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
     const sprite = new THREE.Sprite(material);
     sprite.name = "chaingun_sprite";
-    sprite.scale.set(2, 2, 1); // Ajuste conforme necessário
-    sprite.position.set(0, -1, -2); // Ajuste conforme necessário
+    sprite.scale.set(2, 2, 2);
+    sprite.position.set(0, -1, -3);
     camera.add(sprite);
+
+    // Guarda referência para animação
     WEAPONS.chaingun.sprite = sprite;
+    WEAPONS.chaingun.spriteTexture = texture;
+    WEAPONS.chaingun.currentFrame = 0;
 }
 function removeCurrentWeaponVisual() {
     // Remove mesh ou sprite da câmera

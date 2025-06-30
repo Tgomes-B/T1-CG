@@ -3,27 +3,20 @@ import * as THREE from 'three';
 let camera, scene, controls;
 const projectileSpeed = 100;
 const projectiles = [];
-const ballMaterial = new THREE.MeshBasicMaterial({ 
-    color: 0xff0000,
-    visible: true,
-    transparent: true,
-    opacity: 1,
-});
 const ballGeometry = new THREE.SphereGeometry(0.1, 16, 16);
 
 let lastShotTime = 0;
 let isMousePressed = false
 let shootingInterval = null; 
 let getCurrentWeapon = () => WEAPONS.launcher; // Defina isso para acessar o estado global
-let chaingunFrame = 0;
 let chaingunAnimInterval = null;
 
 /**
  * Configura o evento de disparo com o mouse.
  * Dispara projétil da ponta da arma (objeto "gun") na direção correta.
+ * Também inicia/paralisa a animação da chaingun.
  * @returns {void}
  */
-
 export function setupShooting(_camera, _scene, _controls, _getCurrentWeapon) {
     camera = _camera;
     scene = _scene;
@@ -42,23 +35,29 @@ export function setupShooting(_camera, _scene, _controls, _getCurrentWeapon) {
         if (event.button !== 0 && event.button !== 2) return;
         isMousePressed = false;
         clearInterval(shootingInterval);
+        if (getCurrentWeapon().name === "chaingun") stopChaingunAnimation()
     });
 }
 
+/**
+ * Dispara um projétil ou executa o tiro da chaingun.
+ * Para o lançador, cria um projétil visível.
+ * Para a chaingun, faz raycast e aplica dano sem criar projétil.
+ * Também controla a animação do sprite da chaingun.
+ */
 function shootProjectile() {
     const weapon = getCurrentWeapon();
     const currentTime = performance.now();
     if (currentTime - lastShotTime < weapon.fireRate) return;
     lastShotTime = currentTime;
 
-    const gun = controls.getObject().getObjectByName("launcher");
-    if (!gun) {
-        console.warn("Arma não encontrada!");
-        return;
-    }
-
     if (weapon.name === "launcher") {
         // Cria o projétil
+        const gun = controls.getObject().getObjectByName("launcher");
+        if (!gun) {
+            console.warn("Arma não encontrada!");
+            return;
+        }
         const projectile = new THREE.Mesh(
             ballGeometry,
             new THREE.MeshBasicMaterial({
@@ -105,6 +104,7 @@ function shootProjectile() {
 /**
  * Atualiza a posição de todos os projéteis ativos na cena.
  * Deve ser chamada a cada frame.
+ * Remove projéteis que colidem ou atingem distância máxima.
  * @param {number} delta - Intervalo de tempo desde o último frame.
  */
 export function updateProjectiles(delta) {
@@ -182,25 +182,32 @@ export function fadeOut(object, duration, onComplete) {
     animateFadeOut();
 }
 
+/**
+ * Inicia a animação do sprite da chaingun, alternando os frames do spritesheet.
+ * Só anima se não estiver já animando.
+ */
 function animateChaingunSprite() {
-    if (!WEAPONS.chaingun.sprite) return;
-    if (chaingunAnimInterval) clearInterval(chaingunAnimInterval);
-    chaingunFrame = 0;
+    const weapon = getCurrentWeapon();
+    const frames = weapon.frames;
+    if (!weapon.sprite || !weapon.spriteTexture) return;
+    if (chaingunAnimInterval) return; // já animando
+
     chaingunAnimInterval = setInterval(() => {
-        chaingunFrame = (chaingunFrame + 1) % WEAPONS.chaingun.spritesheet.length;
-        WEAPONS.chaingun.sprite.material.map = new THREE.TextureLoader().load(
-            WEAPONS.chaingun.spritesheet[chaingunFrame]
-        );
-        WEAPONS.chaingun.sprite.material.needsUpdate = true;
-    }, 50); // 20 FPS
+        weapon.currentFrame = (weapon.currentFrame + 1) % frames;
+        weapon.spriteTexture.offset.x = weapon.currentFrame / frames;
+        weapon.spriteTexture.needsUpdate = true;
+    }, weapon.fireRate);
 }
+
+/**
+ * Para a animação do sprite da chaingun e retorna ao frame inicial.
+ */
 function stopChaingunAnimation() {
+    const weapon = getCurrentWeapon();
     if (chaingunAnimInterval) clearInterval(chaingunAnimInterval);
-    chaingunFrame = 0;
-    if (WEAPONS.chaingun.sprite) {
-        WEAPONS.chaingun.sprite.material.map = new THREE.TextureLoader().load(
-            WEAPONS.chaingun.spritesheet[0]
-        );
-        WEAPONS.chaingun.sprite.material.needsUpdate = true;
+    chaingunAnimInterval = null;
+    if (weapon.spriteTexture) {
+        weapon.spriteTexture.offset.x = 0; // volta para o frame inicial
+        weapon.spriteTexture.needsUpdate = true;
     }
 }
