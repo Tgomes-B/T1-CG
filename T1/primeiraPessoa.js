@@ -115,7 +115,7 @@ function setupCrosshair() {
             position: 'fixed',
             width: '20px',
             height: '20px',
-            background: 'url(../assets/textures/crosshair.png)',
+            background: 'url(../T1/images/crosshair.png)',
             backgroundSize: 'contain',
             backgroundRepeat: 'no-repeat',
             top: '50%',
