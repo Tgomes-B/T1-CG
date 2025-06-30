@@ -61,7 +61,7 @@ function init() {
  * Configura a posição inicial da câmera.
  */
 function setupInitialCameraPosition() {
-    controls.getObject().position.set(10, 2, 1); 
+    controls.getObject().position.set(10, 7, 1); 
     const lookAtTarget = new THREE.Vector3(0.5, 2, 1);
     const direction = new THREE.Vector3().subVectors(
         lookAtTarget, 
@@ -184,11 +184,13 @@ function createChaingunSprite() {
     const texture = new THREE.TextureLoader().load(WEAPONS.chaingun.spritesheet);
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(1 / frames, 1); // 4 frames na horizontal
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
 
     const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
     const sprite = new THREE.Sprite(material);
     sprite.name = "chaingun_sprite";
-    sprite.scale.set(2, 2, 2);
+    sprite.scale.set(1.5, 2, 1.5);
     sprite.position.set(0, -1, -3);
     camera.add(sprite);
 
@@ -280,121 +282,82 @@ export function moveAnimate(delta) {
     const forward = controls.getDirection(new THREE.Vector3()).setY(0).normalize();
     const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
     const moveVec = new THREE.Vector3();
-    
+
+    // 1. Calcula vetor de movimento
     if (moveForward) moveVec.add(forward);
     if (moveBackward) moveVec.add(forward.clone().negate());
     if (moveRight) moveVec.add(right);
     if (moveLeft) moveVec.add(right.clone().negate());
     if (moveVec.lengthSq() > 0) moveVec.normalize();
 
+    // 2. Tenta mover normalmente
     const originalPos = playerObj.position.clone();
     let tryPos = originalPos.clone().add(moveVec.clone().multiplyScalar(speed * delta));
     playerObj.position.copy(tryPos);
-    
+
     let playerBox = new THREE.Box3().setFromCenterAndSize(
         playerObj.position.clone(),
         new THREE.Vector3(0.3, alturaPlayer, 0.3)
     );
-    
-    const collidables = scene.children.filter(obj => 
+
+    const collidables = scene.children.filter(obj =>
         obj.userData && obj.userData.isCollidable && obj.name !== "camera"
     );
-    
-    let collided = collidables.some(obj => 
+
+    let collided = collidables.some(obj =>
         obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)
     );
-    
-    if (!collided) {
-        // Movimento permitido
-    } else {
-        tryPos = originalPos.clone();
-        tryPos.x += moveVec.x * speed * delta;
-        playerObj.position.copy(tryPos);
-        playerBox = new THREE.Box3().setFromCenterAndSize(
-            playerObj.position.clone(),
-            new THREE.Vector3(0.3, alturaPlayer, 0.3)
-        );
-        collided = collidables.some(obj => 
-            obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)
-        );
-        
-        if (!collided) {
-            // Movimento permitido em X
-        } else {
-            tryPos = originalPos.clone();
-            tryPos.z += moveVec.z * speed * delta;
-            playerObj.position.copy(tryPos);
-            playerBox = new THREE.Box3().setFromCenterAndSize(
+
+    // 3. Se colidiu, tenta auto step (subir degrau/área)
+    if (collided) {
+        let stepped = false;
+        const maxStep = 1.5;
+        const stepIncrement = 0.1;
+        for (let step = stepIncrement; step <= maxStep; step += stepIncrement) {
+            playerObj.position.y += step;
+            let playerBoxStep = new THREE.Box3().setFromCenterAndSize(
                 playerObj.position.clone(),
                 new THREE.Vector3(0.3, alturaPlayer, 0.3)
             );
-            collided = collidables.some(obj => 
-                obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)
+            let collidedStep = collidables.some(obj =>
+                obj.userData.collisionBox && playerBoxStep.intersectsBox(obj.userData.collisionBox)
             );
-            
-            if (!collided) {
-                // Movimento permitido em Z
-            } else {
-                playerObj.position.copy(originalPos);
+            if (!collidedStep) {
+                stepped = true;
+                break;
             }
+            playerObj.position.y -= step;
+        }
+        if (!stepped) {
+            playerObj.position.copy(originalPos);
         }
     }
 
+    // 4. Movimento vertical manual (pulo/crouch)
     if (moveUp) playerObj.position.y += speed * delta;
-    if (moveDown) {
-        const downRay = new THREE.Raycaster(
-            playerObj.position.clone(),
-            new THREE.Vector3(0, -1, 0),
-            0,
-            0.2
-        );
-        
-        const groundCandidates = scene.children.filter(
-            obj => (obj.userData && obj.userData.isCollidable) ||
-                   (obj.name && obj.name.startsWith('ramp'))
-        );
-        
-        const intersects = downRay.intersectObjects(groundCandidates, false);
-        if (intersects.length === 0) {
-            playerObj.position.y -= speed * delta;
-        }
-    }
+    if (moveDown) playerObj.position.y -= speed * delta;
 
-    const dir = new THREE.Vector3();
-    controls.getDirection(dir);
-    dir.y = 0;
-    dir.normalize();
-
-    const downRayChao = new THREE.Raycaster(
+    // 5. Alinha os pés ao chão/área usando raycast
+    const downRay = new THREE.Raycaster(
         playerObj.position.clone(),
         new THREE.Vector3(0, -1, 0),
         0,
         alturaPlayer * 2
     );
-    
-    const walkableSurfaces = scene.children.filter(obj => 
-        obj.name === 'ground' || 
-        obj.name === 'topo_colisao' || 
+    const walkableSurfaces = scene.children.filter(obj =>
+        obj.name === 'ground' ||
+        obj.name === 'topo_colisao' ||
         (obj.name && obj.name.startsWith('ramp'))
     );
-    
-    const surfaceIntersects = downRayChao.intersectObjects(walkableSurfaces, false);
-    
-    if(playerObj.position.y > alturaPlayer){
-        controls.getObject().position.y -= speed / 2 * delta;
-    }
+    const surfaceIntersects = downRay.intersectObjects(walkableSurfaces, false);
 
-    let surfaceY = null;
     if (surfaceIntersects.length > 0) {
-        surfaceY = surfaceIntersects[0].point.y;
-    }
-
-    if (surfaceY !== null) {
+        const surfaceY = surfaceIntersects[0].point.y;
         const playerFeet = playerObj.position.y - (alturaPlayer / 2);
         const diff = surfaceY - playerFeet;
-
-        if (diff > -0.5 && diff < 1.5) {
-            playerObj.position.y = surfaceY + (alturaPlayer / 1.7);
+        // Só ajusta se diferença for pequena (evita "teleporte" ao cair)
+        if (diff < 1.5) {
+            playerObj.position.y = surfaceY + (alturaPlayer);
         }
     }
 }
