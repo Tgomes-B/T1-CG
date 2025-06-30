@@ -14,74 +14,92 @@ const ballGeometry = new THREE.SphereGeometry(0.1, 16, 16);
 let lastShotTime = 0;
 let isMousePressed = false
 let shootingInterval = null; 
+let getCurrentWeapon = () => WEAPONS.launcher; // Defina isso para acessar o estado global
+let chaingunFrame = 0;
+let chaingunAnimInterval = null;
 
 /**
  * Configura o evento de disparo com o mouse.
  * Dispara projétil da ponta da arma (objeto "gun") na direção correta.
  * @returns {void}
  */
-export function setupShooting(_camera, _scene, _controls) {
+
+export function setupShooting(_camera, _scene, _controls, _getCurrentWeapon) {
     camera = _camera;
     scene = _scene;
     controls = _controls;
+    getCurrentWeapon = _getCurrentWeapon;
+    if (getCurrentWeapon().name === "chaingun") stopChaingunAnimation();
     document.addEventListener('mousedown', (event) => {
-        if (event.button !== 0) return; // Apenas o botão esquerdo
+        if (event.button !== 0 && event.button !== 2) return;
         isMousePressed = true;
-
-        // Dispara imediatamente ao pressionar
         shootProjectile();
-
-        // Configura disparos contínuos enquanto o botão estiver pressionado
         shootingInterval = setInterval(() => {
             if (isMousePressed) shootProjectile();
-        }, 500); // Intervalo de 500ms entre disparos
+        }, getCurrentWeapon().fireRate);
     });
-
-    // Evento para quando o botão do mouse é solto
     document.addEventListener('mouseup', (event) => {
-        if (event.button !== 0) return; 
+        if (event.button !== 0 && event.button !== 2) return;
         isMousePressed = false;
-
-
         clearInterval(shootingInterval);
     });
 }
 
 function shootProjectile() {
+    const weapon = getCurrentWeapon();
     const currentTime = performance.now();
-    if (currentTime - lastShotTime < 500) return; // Controle de taxa de disparo (500ms)
+    if (currentTime - lastShotTime < weapon.fireRate) return;
     lastShotTime = currentTime;
 
-    const gun = controls.getObject().getObjectByName("gun");
+    const gun = controls.getObject().getObjectByName("launcher");
     if (!gun) {
         console.warn("Arma não encontrada!");
         return;
     }
 
-    // Cria o projétil
-    const projectile = new THREE.Mesh(
-        ballGeometry,
-        new THREE.MeshBasicMaterial({ 
-            color: 0xff0000,
-            visible: true,
-            transparent: true,
-            opacity: 1,
-        })
-    );
+    if (weapon.name === "launcher") {
+        // Cria o projétil
+        const projectile = new THREE.Mesh(
+            ballGeometry,
+            new THREE.MeshBasicMaterial({
+                color: 0xff0000,
+                visible: true,
+                transparent: true,
+                opacity: 1,
+            })
+        );
 
-    // Posição inicial: centro da câmera (crosshair)
-    projectile.position.copy(camera.getWorldPosition(new THREE.Vector3()));
+        // Posição inicial: centro da câmera (crosshair)
+        projectile.position.copy(camera.getWorldPosition(new THREE.Vector3()));
 
-    // Direção: para onde a câmera está olhando (crosshair)
-    const dir = new THREE.Vector3();
-    camera.getWorldDirection(dir);
+        // Direção: para onde a câmera está olhando (crosshair)
+        const dir = new THREE.Vector3();
+        camera.getWorldDirection(dir);
 
-    // Define a velocidade do projétil
-    projectile.userData.velocity = dir.multiplyScalar(projectileSpeed * 0.016); // Ajuste para delta time
+        // Define a velocidade do projétil
+        projectile.userData.velocity = dir.multiplyScalar(projectileSpeed * 0.016); // Ajuste para delta time
 
-    // Adiciona à cena e armazena
-    scene.add(projectile);
-    projectiles.push(projectile);
+        // Adiciona à cena e armazena
+        scene.add(projectile);
+        projectiles.push(projectile);
+    } else if (weapon.name === "chaingun") {
+        animateChaingunSprite();
+        // Raycast para detectar inimigo
+        const dir = new THREE.Vector3();
+        camera.getWorldDirection(dir);
+        const raycaster = new THREE.Raycaster(camera.getWorldPosition(new THREE.Vector3()), dir, 0, 100);
+        const enemies = scene.children.filter(obj => obj.userData?.isEnemy);
+        const hits = raycaster.intersectObjects(enemies, true);
+        if (hits.length > 0) {
+            const enemy = hits[0].object;
+            if (enemy.userData.hp === undefined) enemy.userData.hp = 100;
+            enemy.userData.hp -= 2 * (weapon.fireRate / 1000); // 2 HP por segundo
+            if (enemy.userData.hp <= 0) {
+                scene.remove(enemy);
+            }
+        }
+        return; // Não cria projétil!
+    }
 }
 
 /**
@@ -162,4 +180,27 @@ export function fadeOut(object, duration, onComplete) {
         }
     }
     animateFadeOut();
+}
+
+function animateChaingunSprite() {
+    if (!WEAPONS.chaingun.sprite) return;
+    if (chaingunAnimInterval) clearInterval(chaingunAnimInterval);
+    chaingunFrame = 0;
+    chaingunAnimInterval = setInterval(() => {
+        chaingunFrame = (chaingunFrame + 1) % WEAPONS.chaingun.spritesheet.length;
+        WEAPONS.chaingun.sprite.material.map = new THREE.TextureLoader().load(
+            WEAPONS.chaingun.spritesheet[chaingunFrame]
+        );
+        WEAPONS.chaingun.sprite.material.needsUpdate = true;
+    }, 50); // 20 FPS
+}
+function stopChaingunAnimation() {
+    if (chaingunAnimInterval) clearInterval(chaingunAnimInterval);
+    chaingunFrame = 0;
+    if (WEAPONS.chaingun.sprite) {
+        WEAPONS.chaingun.sprite.material.map = new THREE.TextureLoader().load(
+            WEAPONS.chaingun.spritesheet[0]
+        );
+        WEAPONS.chaingun.sprite.material.needsUpdate = true;
+    }
 }

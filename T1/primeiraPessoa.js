@@ -16,6 +16,28 @@ let spotLightHelper, areas, ramp, ground, walls;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
 const speed = 20;
+const WEAPONS = {
+    launcher: {
+        name: "launcher",
+        fireRate: 500, // ms
+        showProjectile: true,
+        sprite: null,
+        spritesheet: null // não precisa para lançador
+    },
+    chaingun: {
+        name: "chaingun",
+        fireRate: 50, // ms (20 tiros por segundo)
+        showProjectile: false,
+        sprite: null,
+        spritesheet: [
+            "sprites/chaingun_0.png",
+            "sprites/chaingun_1.png",
+            "sprites/chaingun_2.png",
+            "sprites/chaingun_3.png"
+        ]
+    }
+};
+let currentWeapon = WEAPONS.launcher;
 
 /**
  * Inicializa a cena, câmera, controles e objetos do jogo.
@@ -73,7 +95,7 @@ function setupLightingAndCollision() {
 function setupGameElements() {
     setupCrosshair();
     createGun();
-    setupShooting(camera, scene, controls);
+    setupShooting(camera, scene, controls, () => currentWeapon);
 }
 
 /**
@@ -101,6 +123,22 @@ function setupEventListeners() {
     window.addEventListener('keydown', (event) => movementControls(event.code, true));
     window.addEventListener('keyup', (event) => movementControls(event.code, false));
     window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
+
+        window.addEventListener('keydown', (event) => {
+            movementControls(event.code, true);
+            if (event.code === "Digit1") switchWeapon("chaingun");
+            if (event.code === "Digit2") switchWeapon("launcher");
+        });
+        window.addEventListener('keyup', (event) => movementControls(event.code, false));
+        window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
+        window.addEventListener('wheel', (event) => {
+            if (event.deltaY < 0) { // scroll up
+                switchWeapon("chaingun");
+            } else if (event.deltaY > 0) { // scroll down
+                switchWeapon("launcher");
+            }
+        });
+    
 }
 
 /**
@@ -131,14 +169,45 @@ function setupCrosshair() {
     }
 }
 
+function switchWeapon(weaponName) {
+    if (currentWeapon.name === weaponName) return;
+    // Remove arma anterior
+    removeCurrentWeaponVisual();
+    currentWeapon = WEAPONS[weaponName];
+    // Adiciona visual da nova arma
+    if (weaponName === "launcher") {
+        createGun();
+    } else if (weaponName === "chaingun") {
+        createChaingunSprite();
+    }
+}
+
+function createChaingunSprite() {
+    const texture = new THREE.TextureLoader().load(WEAPONS.chaingun.spritesheet[0]);
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(material);
+    sprite.name = "chaingun_sprite";
+    sprite.scale.set(2, 2, 1); // Ajuste conforme necessário
+    sprite.position.set(0, -1, -2); // Ajuste conforme necessário
+    camera.add(sprite);
+    WEAPONS.chaingun.sprite = sprite;
+}
+function removeCurrentWeaponVisual() {
+    // Remove mesh ou sprite da câmera
+    const gun = camera.getObjectByName("launcher");
+    if (gun) camera.remove(gun);
+    const chaingunSprite = camera.getObjectByName("chaingun_sprite");
+    if (chaingunSprite) camera.remove(chaingunSprite);
+}
+
 /**
- * Cria o modelo da arma do jogador.
+ * Cria o modelo da arma do jogador
  */
 function createGun() {
     const gunGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 32);
     const gunMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
     const gun = new THREE.Mesh(gunGeometry, gunMaterial);
-    gun.name = "gun";
+    gun.name = "launcher";
     gun.position.set(0.01, -0.4, -1);
     gun.rotation.x = -Math.PI / 2;
     controls.getObject().add(gun);
