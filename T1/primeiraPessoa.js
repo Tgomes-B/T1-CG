@@ -7,12 +7,12 @@ import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
 import { initRenderer, onWindowResize } from "../libs/util/util.js";
-import { criaAreasRampas, criaParedes, setupLighting } from './Ambiente.js';
+import { criaAreasRampas, criaParedes,criaChave, setupLighting } from './Ambiente.js';
 import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
 
 let stats, renderer, scene, camera, controls, clock;
-let spotLightHelper, areas, ramp, ground, walls;
+let spotLightHelper, areas, ramp, ground, walls, key;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
 const speed = 20;
@@ -57,6 +57,7 @@ function setupInitialCameraPosition() {
 function setupEnvironment() {
     ({ areas, ramp, ground } = criaAreasRampas(scene));
     walls = criaParedes(scene);
+    key = criaChave(scene);
 }
 
 /**

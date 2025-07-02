@@ -39,9 +39,6 @@ export function criaAreasRampas(scene) {
         mesh.updateMatrix();
     }
 
-    function cortaArea(areaInteira, boxAuxiliar) {
-        return areaInteira.subtract(boxAuxiliar);
-    }
 
     function criaEscada(posX, posZ, comp, rampX) {
         let degrau;
@@ -113,7 +110,7 @@ export function criaAreasRampas(scene) {
 
         updateObject(molde);
         let auxCSG = CSG.fromMesh(molde);
-        let objectCSG = cortaArea(auxCSG, boxCSG);
+        let objectCSG = auxCSG.subtract(boxCSG);
         areas[i] = CSG.toMesh(objectCSG, new THREE.Matrix4());
         
         if (i == 3) {
@@ -131,8 +128,45 @@ export function criaAreasRampas(scene) {
         posZ += 155;
         scene.add(areas[i]);
     }
-
+    
     return { areas, ramp, ground };
+}
+export function criaChave(scene) {
+    let keyMesh = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3));
+    const keyMaterial = new THREE.MeshPhongMaterial({ color: 'gray' });
+    let keyCSG = CSG.fromMesh(keyMesh);
+    
+    let cylinGeometryY = new THREE.CylinderGeometry(1, 1, 3, 26);
+    let cylinMeshY = new THREE.Mesh(cylinGeometryY);
+
+    let cylinGeometryX = new THREE.CylinderGeometry(1, 1, 3, 26);
+    cylinGeometryX.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+    let cylinMeshX = new THREE.Mesh(cylinGeometryX);
+
+    let cylinGeometryZ = new THREE.CylinderGeometry(1, 1, 3, 26);
+    cylinGeometryZ.applyMatrix4(new THREE.Matrix4().makeRotationZ(Math.PI / 2));
+    let cylinMeshZ = new THREE.Mesh(cylinGeometryZ);
+
+    let cylinCSG = CSG.fromMesh(cylinMeshX);
+    keyCSG = keyCSG.subtract(cylinCSG);
+
+    cylinCSG = CSG.fromMesh(cylinMeshY);
+    keyCSG = keyCSG.subtract(cylinCSG);
+
+    cylinCSG = CSG.fromMesh(cylinMeshZ);
+    keyCSG = keyCSG.subtract(cylinCSG);
+
+    keyMesh = CSG.toMesh(keyCSG, new THREE.Matrix4());
+    keyMesh.material = keyMaterial;
+
+    keyMesh.position.set(0, 5, 0);
+    //key.userData.isCollidable = true;
+    scene.add(keyMesh);
+    
+    // Configura colisão para a chave
+    //setupCollision(key);
+
+    return keyMesh;
 }
 
 /**
