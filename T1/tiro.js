@@ -120,7 +120,8 @@ export function updateProjectiles(delta) {
             velocity.length()
         );
 
-        const collidables = scene.children.filter(obj => obj.userData?.isCollidable);
+        // Filtra inimigos e objetos colidíveis
+        const collidables = scene.children.filter(obj => obj.userData?.isCollidable || obj.userData?.isEnemy);
         const intersects = raycaster.intersectObjects(collidables, true);
 
         // Checa distância máxima
@@ -132,12 +133,25 @@ export function updateProjectiles(delta) {
         // Condição para fade-out (colisão ou distância máxima)
         if ((intersects.length > 0 || distance > 750) && !projectile.userData.fading) {
             projectile.userData.fading = true;
-            // console.log(
-            //     intersects.length > 0
-            //         ? `Colisão detectada com: ${intersects[0].object.name || intersects[0].object.uuid}`
-            //         : "Distância máxima atingida, removendo projétil"
-            // );
 
+            if (intersects.length > 0) {
+                const hitObject = intersects[0].object;
+
+                // Aplica dano se o objeto for um inimigo
+                if (hitObject.userData?.isEnemy) {
+                    if (hitObject.userData.hp === undefined) hitObject.userData.hp = 100; // HP padrão
+                    hitObject.userData.hp -= 10; // Dano do launcher
+                    console.log(`Inimigo atingido! HP restante: ${hitObject.userData.hp}`);
+
+                    // Remove inimigo se o HP for menor ou igual a 0
+                    if (hitObject.userData.hp <= 0) {
+                        scene.remove(hitObject);
+                        console.log("Inimigo eliminado!");
+                    }
+                }
+            }
+
+            // Remove o projétil com fade-out
             fadeOut(projectile, 250, () => {
                 const idx = projectiles.indexOf(projectile);
                 if (idx !== -1) projectiles.splice(idx, 1);
@@ -173,9 +187,6 @@ export function fadeOut(object, duration, onComplete) {
         } else {
             object.material.opacity = 0;
             scene.remove(object);
-            // Remove o projétil da lista
-            const idx = projectiles.indexOf(object);
-            if (idx !== -1) projectiles.splice(idx, 1);
             if (onComplete) onComplete();
         }
     }

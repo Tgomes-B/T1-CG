@@ -16,6 +16,9 @@ let spotLightHelper, areas, ramp, ground, walls;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
 
+let currentWeaponIndex = 0;
+const gravity = 9.8; 
+let velocityY = 0;   
 const speed = 20;
 const WEAPONS = {
     launcher: {
@@ -23,7 +26,8 @@ const WEAPONS = {
         fireRate: 500, // ms
         showProjectile: true,
         sprite: null,
-        spritesheet: null // não precisa para lançador
+        spritesheet: null, // não precisa para lançador
+        create: createGun // Função para criar o modelo da arma
     },
     chaingun: {
         name: "chaingun",
@@ -31,10 +35,12 @@ const WEAPONS = {
         showProjectile: false,
         sprite: null,
         spritesheet: "images/sprites/chaingun.png",
-        frames:3
+        frames:3,
+        create: createChaingunSprite // Função para criar o sprite da chaingun
     }
 };
 let currentWeapon = WEAPONS.launcher;
+const weaponNames = Object.keys(WEAPONS); 
 
 /**
  * Inicializa a cena, câmera, controles e objetos do jogo.
@@ -121,20 +127,26 @@ function setupEventListeners() {
     window.addEventListener('keyup', (event) => movementControls(event.code, false));
     window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
 
-        window.addEventListener('keydown', (event) => {
-            movementControls(event.code, true);
-            if (event.code === "Digit1") switchWeapon("chaingun");
-            if (event.code === "Digit2") switchWeapon("launcher");
-        });
-        window.addEventListener('keyup', (event) => movementControls(event.code, false));
-        window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
-        window.addEventListener('wheel', (event) => {
-            if (event.deltaY < 0) { // scroll up
-                switchWeapon("chaingun");
-            } else if (event.deltaY > 0) { // scroll down
-                switchWeapon("launcher");
-            }
-        });
+    window.addEventListener('keydown', (event) => {
+        movementControls(event.code, true);
+        if (event.code === "Digit1") {
+            currentWeaponIndex = 0; // Launcher
+            switchWeaponByIndex(currentWeaponIndex);
+        }
+        if (event.code === "Digit2") {
+            currentWeaponIndex = 1; // Chaingun
+            switchWeaponByIndex(currentWeaponIndex);
+        }
+    });
+    
+    window.addEventListener('wheel', (event) => {
+        if (event.deltaY < 0) { // Scroll up
+            currentWeaponIndex = (currentWeaponIndex + 1) % weaponNames.length;
+        } else if (event.deltaY > 0) { // Scroll down
+            currentWeaponIndex = (currentWeaponIndex - 1 + weaponNames.length) % weaponNames.length;
+        }
+        switchWeaponByIndex(currentWeaponIndex);
+    });
     
 }
 
@@ -166,17 +178,30 @@ function setupCrosshair() {
     }
 }
 
-function switchWeapon(weaponName) {
+function switchWeaponByIndex(index) {
+    if (index < 0 || index >= weaponNames.length) {
+        console.error(`Índice de arma inválido: ${index}`);
+        return;
+    }
+
+    const weaponName = weaponNames[index];
+    const weapon = WEAPONS[weaponName];
+
+    if (!weapon) {
+        console.error(`Arma "${weaponName}" não encontrada.`);
+        return;
+    }
+
     if (currentWeapon.name === weaponName) return;
+
     // Remove arma anterior
     removeCurrentWeaponVisual();
-    currentWeapon = WEAPONS[weaponName];
-    // Adiciona visual da nova arma
-    if (weaponName === "launcher") {
-        createGun();
-    } else if (weaponName === "chaingun") {
-        createChaingunSprite();
-    }
+
+    // Atualiza a arma atual
+    currentWeapon = weapon;
+
+    // Cria o visual da nova arma
+    currentWeapon.create();
 }
 
 function createChaingunSprite() {
@@ -334,8 +359,8 @@ export function moveAnimate(delta) {
     }
 
     // 4. Movimento vertical manual (pulo/crouch)
-    if (moveUp) playerObj.position.y += speed * delta;
-    if (moveDown) playerObj.position.y -= speed * delta;
+    if (moveUp) velocityY = speed; // Pulo
+    if (moveDown) velocityY = -speed; // Descida manual
 
     // 5. Alinha os pés ao chão/área usando raycast
     const downRay = new THREE.Raycaster(
@@ -355,10 +380,26 @@ export function moveAnimate(delta) {
         const surfaceY = surfaceIntersects[0].point.y;
         const playerFeet = playerObj.position.y - (alturaPlayer / 2);
         const diff = surfaceY - playerFeet;
-        // Só ajusta se diferença for pequena (evita "teleporte" ao cair)
+    
         if (diff < 1.5) {
-            playerObj.position.y = surfaceY + (alturaPlayer);
+            // Ajusta ao chão suavemente
+            if (velocityY < 0) {
+                velocityY = 0; // Zera a velocidade de queda
+            }
+            playerObj.position.y = THREE.MathUtils.lerp(
+                playerObj.position.y,
+                surfaceY + alturaPlayer,
+                0.1 // Taxa de suavização
+            );
+        } else {
+            // Aplica gravidade se estiver acima do chão
+            velocityY -= gravity * delta;
+            playerObj.position.y += velocityY * delta;
         }
+    } else {
+        // Aplica gravidade se não houver interseção
+        velocityY -= gravity * delta;
+        playerObj.position.y += velocityY * delta;
     }
 }
 
