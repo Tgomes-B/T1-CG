@@ -189,27 +189,38 @@ export function criaParedes(scene) {
  * @param {THREE.Scene} scene - A cena a ser iluminada
  * @returns {THREE.SpotLightHelper} Helper visual para a spotlight
  */
+
+
 export function setupLighting(scene) {
+    // 1. Luz ambiente (mantida)
     const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
     scene.add(ambientLight);
 
+    // 2. Luz direcional principal (ajustada)
     const directionalLight = createDirectionalLight();
-    const spotlight = createSpotlight();
-    const spotLightHelper = new THREE.SpotLightHelper(spotlight);
-    scene.add(spotLightHelper);
+    
+    // 3. NOVA: Segunda luz direcional (preenchimento)
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    fillLight.position.set(-100, 80, -30); // Direção oposta
+    fillLight.castShadow = false; // Sem sombras!
 
-    buildLightingInterface(spotlight, directionalLight, spotLightHelper, scene);
+    scene.add(directionalLight);
+    scene.add(fillLight);
 
-    return spotLightHelper;
+    // Helper (opcional)
+    const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 5);
+    scene.add(directionalLightHelper);
 
-    /**
-     * Cria uma luz direcional com configurações padrão
-     * @private
-     * @returns {THREE.DirectionalLight} A luz direcional criada
-     */
+    // Atualização da GUI
+    buildLightingInterface(directionalLight, fillLight, directionalLightHelper, scene);
+
+    return directionalLightHelper;
+
     function createDirectionalLight() {
-        const light = new THREE.DirectionalLight(0xffffff, 0.6);
-        light.position.set(100, 100, 50);
+        const light = new THREE.DirectionalLight(0xffffff, 0.8); // Intensidade aumentada
+        light.position.set(100, 150, 30); // Posição mais alta (ângulo ~60°)
+        
+        // Configuração de sombras
         light.castShadow = true;
         light.shadow.mapSize.width = 2048;
         light.shadow.mapSize.height = 2048;
@@ -219,87 +230,37 @@ export function setupLighting(scene) {
         light.shadow.camera.right = 250;
         light.shadow.camera.top = 250;
         light.shadow.camera.bottom = -250;
-        scene.add(light);
+        
         return light;
     }
 
-    /**
-     * Cria uma spotlight com configurações padrão
-     * @private
-     * @returns {THREE.SpotLight} A spotlight criada
-     */
-    function createSpotlight() {
-        const light = new THREE.SpotLight(0xffffff, 1);
-        light.position.set(0, 30, 0);
-        light.angle = Math.PI / 6;
-        light.penumbra = 0.2;
-        light.decay = 1.5;
-        light.distance = 150;
-        light.castShadow = true;
-        light.shadow.mapSize.width = 1024;
-        light.shadow.mapSize.height = 1024;
-        light.shadow.camera.near = 0.5;
-        light.shadow.camera.far = 200;
-        scene.add(light);
-        return light;
-    }
-
-    /**
-     * Constrói a interface gráfica para controle de iluminação
-     * @private
-     * @param {THREE.SpotLight} spotlight - Instância da spotlight
-     * @param {THREE.DirectionalLight} directionalLight - Instância da luz direcional
-     * @param {THREE.SpotLightHelper} spotLightHelper - Helper da spotlight
-     * @param {THREE.Scene} scene - Cena principal
-     */
-    function buildLightingInterface(spotlight, directionalLight, spotLightHelper, scene) {
-        const lightModes = {
-            ANTIGA: 'Antiga (Spotlight)',
-            NOVA: 'Nova (Direcional)'
-        };
-
+    function buildLightingInterface(directionalLight, fillLight, helper, scene) {
         const lightControls = {
-            modo: lightModes.NOVA,
-            intensidadeSpot: spotlight.intensity,
-            intensidadeDirecional: directionalLight.intensity,
+            intensidadePrincipal: directionalLight.intensity,
+            intensidadePreenchimento: fillLight.intensity,
+            intensidadeAmbiente: ambientLight.intensity,
             mostrarHelpers: true
         };
-
-        function setModoIluminacao(modo) {
-            spotlight.visible = (modo === lightModes.ANTIGA);
-            directionalLight.visible = (modo === lightModes.NOVA);
-        }
-
-        function setHelpers(ativo) {
-            spotLightHelper.visible = ativo;
-            scene.children.forEach(child => {
-                if (child instanceof THREE.PointLightHelper) {
-                    child.visible = ativo;
-                }
-            });
-        }
 
         const gui = new GUI({ width: 300 });
         const pasta = gui.addFolder('Controle de Iluminação');
         pasta.open();
         
-        pasta.add(lightControls, 'modo', [lightModes.ANTIGA, lightModes.NOVA])
-            .name('Modo de Iluminação')
-            .onChange(modo => setModoIluminacao(modo));
+        pasta.add(lightControls, 'intensidadePrincipal', 0, 2, 0.1)
+            .name('Intensidade Principal')
+            .onChange(val => directionalLight.intensity = val);
             
-        pasta.add(lightControls, 'intensidadeSpot', 0, 2, 0.1)
-            .name('Intensidade Spotlight')
-            .onChange(val => { spotlight.intensity = val; });
+        pasta.add(lightControls, 'intensidadePreenchimento', 0, 2, 0.1)
+            .name('Intensidade Preenchimento')
+            .onChange(val => fillLight.intensity = val);
             
-        pasta.add(lightControls, 'intensidadeDirecional', 0, 2, 0.1)
-            .name('Intensidade Direcional')
-            .onChange(val => { directionalLight.intensity = val; });
+        pasta.add(lightControls, 'intensidadeAmbiente', 0, 2, 0.1)
+            .name('Intensidade Ambiente')
+            .onChange(val => ambientLight.intensity = val);
             
         pasta.add(lightControls, 'mostrarHelpers')
             .name('Mostrar Helpers')
-            .onChange(val => setHelpers(val));
-
-        setModoIluminacao(lightControls.modo);
-        setHelpers(lightControls.mostrarHelpers);
+            .onChange(val => helper.visible = val);
     }
 }
+
