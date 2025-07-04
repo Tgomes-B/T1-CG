@@ -131,19 +131,21 @@ export function criaAreasRampas(scene) {
     
     return { areas, ramp, ground };
 }
-export function criaChave(scene) {
-    let keyMesh = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3));
+export function criaChave(scene, areas) {
+    let keyMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2));
     const keyMaterial = new THREE.MeshPhongMaterial({ color: 'gray' });
     let keyCSG = CSG.fromMesh(keyMesh);
+
+    let cylinGeometry = new THREE.CylinderGeometry(0.60, 0.60, 2, 26);
     
-    let cylinGeometryY = new THREE.CylinderGeometry(1, 1, 3, 26);
+    let cylinGeometryY = cylinGeometry.clone();
     let cylinMeshY = new THREE.Mesh(cylinGeometryY);
 
-    let cylinGeometryX = new THREE.CylinderGeometry(1, 1, 3, 26);
+    let cylinGeometryX = cylinGeometry.clone();
     cylinGeometryX.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
     let cylinMeshX = new THREE.Mesh(cylinGeometryX);
 
-    let cylinGeometryZ = new THREE.CylinderGeometry(1, 1, 3, 26);
+    let cylinGeometryZ = cylinGeometry.clone();
     cylinGeometryZ.applyMatrix4(new THREE.Matrix4().makeRotationZ(Math.PI / 2));
     let cylinMeshZ = new THREE.Mesh(cylinGeometryZ);
 
@@ -159,12 +161,12 @@ export function criaChave(scene) {
     keyMesh = CSG.toMesh(keyCSG, new THREE.Matrix4());
     keyMesh.material = keyMaterial;
 
-    keyMesh.position.set(0, 5, 0);
+    keyMesh.position.set(45, 10, 0);
     //key.userData.isCollidable = true;
-    scene.add(keyMesh);
+    areas[0].add(keyMesh);
     
     // Configura colisão para a chave
-    //setupCollision(key);
+    //setupCollision(keyMesh);
 
     return keyMesh;
 }

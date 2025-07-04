@@ -15,7 +15,7 @@ let stats, renderer, scene, camera, controls, clock;
 let spotLightHelper, areas, ramp, ground, walls, key;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
-const speed = 20;
+const speed = 70;
 
 /**
  * Inicializa a cena, câmera, controles e objetos do jogo.
@@ -57,7 +57,7 @@ function setupInitialCameraPosition() {
 function setupEnvironment() {
     ({ areas, ramp, ground } = criaAreasRampas(scene));
     walls = criaParedes(scene);
-    key = criaChave(scene);
+    key = criaChave(scene, areas);
 }
 
 /**
