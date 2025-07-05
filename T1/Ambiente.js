@@ -85,17 +85,28 @@ export function criaAreasRampas(scene) {
 
     for (let i = 0; i <= 3; i++) {
         let areaX, areaY, areaZ;
-                
-        if (i < 3) {
+        if( i == 0) {
+            const PrimAreaGeometry = new THREE.BoxGeometry(120, 4, 120);
+            molde = new THREE.Mesh(PrimAreaGeometry, areaMaterial[i]);
+            molde.position.set(45, 0, 0);
+            areaX = 130;
+            areaY = 2;
+            areaZ = posZ;
+
+            criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 10, 120], true);
+            criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 10, 120], true);
+            criaAreaColisao(areaX + 60, areaY, areaZ, [90, 10, 20]);
+        
+        }else if (i > 0 && i < 3) {
             molde = new THREE.Mesh(areaGeometry, areaMaterial[i]);
             molde.position.set(45, 0, 0);
             areaX = 130;
             areaY = 5;
             areaZ = posZ;
 
-            criaAreaColisao(areaX + 45, areaY + 60 - 60, areaZ + 35, [50, 10, 120], true);
-            criaAreaColisao(areaX + 45, areaY + 60 - 60, areaZ - 35, [50, 10, 120], true);
-            criaAreaColisao(areaX + 60, areaY + 60 - 60, areaZ, [90, 10, 20]);
+            criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 10, 120], true);
+            criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 10, 120], true);
+            criaAreaColisao(areaX + 60, areaY, areaZ, [90, 10, 20]);
         } else {
             molde = new THREE.Mesh(areaAzulGeometry, areaMaterial[i]);
             molde.position.set(-45, 0, 0);
@@ -119,7 +130,11 @@ export function criaAreasRampas(scene) {
             posZ = 0;
             rotY = rotY * -1;
             criaEscada(-115, posZ, comp, -130);
-        } else if (i < 3) {
+        
+        }else if (i == 0) {
+            areas[i].position.set(130, 2, posZ);
+        }
+         else if (i > 0 && i < 3) {
             areas[i].position.set(130, 5, posZ);
             criaEscada(115, posZ, comp, 130);
         }
@@ -128,12 +143,18 @@ export function criaAreasRampas(scene) {
         posZ += 155;
         scene.add(areas[i]);
     }
+    criaPilares(areas[0]);
     
     return { areas, ramp, ground };
 }
+
 export function criaChave(scene, areas) {
     let keyMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2));
-    const keyMaterial = new THREE.MeshPhongMaterial({ color: 'gray' });
+    const keyMaterial = new THREE.MeshPhongMaterial({
+        color: 'gray',
+        shininess: 100,
+        specular: "rgb(255, 255, 255)"
+    });
     let keyCSG = CSG.fromMesh(keyMesh);
 
     let cylinGeometry = new THREE.CylinderGeometry(0.60, 0.60, 2, 26);
@@ -169,6 +190,32 @@ export function criaChave(scene, areas) {
     //setupCollision(keyMesh);
 
     return keyMesh;
+}
+export function criaPilares(area1){
+    const pilarGeometry = new THREE.CylinderGeometry(4, 4, 30, 32);
+    const pilarMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(200, 200, 200)' });
+    let Xcont = -10;
+    let Zcont = -35;
+    while (Xcont <= 114){
+        let pilar = new THREE.Mesh(pilarGeometry, pilarMaterial);
+        let pilarDir = new THREE.Mesh(pilarGeometry, pilarMaterial);
+        pilar.position.set(Xcont, 17, -55);
+        pilarDir.position.set(Xcont, 17, 55);
+        area1.add(pilar);
+        area1.add(pilarDir);
+        Xcont = Xcont + 22;
+        pilar.name = "pilar";
+        pilarDir.name = "pilar";
+    }
+    while (Zcont <= -15){
+        let pilarFron = new THREE.Mesh(pilarGeometry, pilarMaterial);
+        pilarFron.position.set(-10, 17, Zcont);
+        area1.add(pilarFron);
+        Zcont = Zcont + 20;
+        pilarFron.name = "pilar";
+    }
+
+    return area1;
 }
 
 /**

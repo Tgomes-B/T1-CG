@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
 import { initRenderer, onWindowResize } from "../libs/util/util.js";
-import { criaAreasRampas, criaParedes,criaChave, setupLighting } from './Ambiente.js';
+import { criaAreasRampas, criaParedes,criaChave,criaPilares, setupLighting } from './Ambiente.js';
 import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
 
@@ -58,6 +58,7 @@ function setupEnvironment() {
     ({ areas, ramp, ground } = criaAreasRampas(scene));
     walls = criaParedes(scene);
     key = criaChave(scene, areas);
+    criaPilares(areas[0]);
 }
 
 /**
