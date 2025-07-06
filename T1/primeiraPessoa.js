@@ -2,7 +2,7 @@
  * Configuração principal do jogo em primeira pessoa.
  * @module primeiraPessoa
  */
-
+import { adicionarInimigoCena } from './inimigo.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
@@ -78,10 +78,12 @@ function setupInitialCameraPosition() {
 
 /**
  * Configura o ambiente do jogo.
+ * caminho antigo: images/sprites/2025.1_T2_Assets/cacodemon.glb
  */
 function setupEnvironment() {
     ({ areas, ramp, ground } = criaAreasRampas(scene));
     walls = criaParedes(scene);
+    adicionarInimigoCena(scene, 'images/sprites/teste/cacodemonanimations.glb', { x: 100, y: 20, z: 100 });
 }
 
 /**
@@ -409,6 +411,61 @@ export function moveAnimate(delta) {
 function render() {
     stats.update();
     const delta = clock.getDelta();
+
+    // Atualiza animações dos inimigos
+    scene.traverse(obj => {
+        if (obj.userData && obj.userData.mixer) {
+            obj.userData.mixer.update(delta);
+        }
+    
+        if (obj.userData && obj.userData.isEnemy) {
+            const playerPos = controls.getObject().position;
+            const enemyPos = obj.position;
+            const dist = playerPos.distanceTo(enemyPos);
+
+            const boxSize = 7.57; // mesmo valor usado na criação
+            const boxCenter = obj.position.clone();
+            const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxSize/2, -boxSize/2));
+            const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxSize/2, boxSize/2));
+            obj.userData.collisionBox.min.copy(min);
+            obj.userData.collisionBox.max.copy(max);
+            
+            // Atualiza o helper visual
+            if (obj.userData.boxHelper) {
+                obj.userData.boxHelper.box.copy(obj.userData.collisionBox);
+                obj.userData.boxHelper.updateMatrixWorld(true);
+            }
+            // Troca de estado: idle -> perseguir
+            if (obj.userData.state === "idle" && dist < obj.userData.detectionRadius) {
+                obj.userData.state = "perseguir";
+            }
+    
+            // Troca de estado: perseguir -> idle (desistir)
+            if (obj.userData.state === "perseguir" && dist > obj.userData.detectionRadius + 10) {
+                obj.userData.state = "idle";
+            }
+    
+            // Idle: flutuando
+            if (obj.userData.state === "idle") {
+                const targetY = obj.userData.baseY + Math.sin(performance.now() * 0.001) * 2;
+                obj.position.y = THREE.MathUtils.lerp(obj.position.y, targetY, 0.1);
+            }
+    
+            // Perseguir: vai atrás do player
+            if (obj.userData.state === "perseguir") {
+                const dir = new THREE.Vector3().subVectors(playerPos, enemyPos);
+                dir.y = 0;
+                const distance = dir.length();
+                if (distance > 5) { // distância mínima para não grudar
+                    dir.normalize();
+                    obj.position.add(dir.multiplyScalar(5 * delta));
+                }
+                // Rotaciona para olhar para o player
+                const angle = Math.atan2(playerPos.x - enemyPos.x, playerPos.z - enemyPos.z);
+                obj.rotation.y = angle;
+            }
+        }
+    });
 
     if (controls.isLocked) {
         moveAnimate(delta);
