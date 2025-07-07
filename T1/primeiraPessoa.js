@@ -67,7 +67,7 @@ function init() {
  * Configura a posição inicial da câmera.
  */
 function setupInitialCameraPosition() {
-    controls.getObject().position.set(10, 7, 1); 
+    controls.getObject().position.set(10, 2, 1); 
     const lookAtTarget = new THREE.Vector3(0.5, 2, 1);
     const direction = new THREE.Vector3().subVectors(
         lookAtTarget, 
@@ -78,7 +78,7 @@ function setupInitialCameraPosition() {
 
 /**
  * Configura o ambiente do jogo.
- * caminho antigo: images/sprites/2025.1_T2_Assets/cacodemon.glb
+ * caminho antigo: images/sprites/cacodemon.glb
  */
 function setupEnvironment() {
     ({ areas, ramp, ground } = criaAreasRampas(scene));
@@ -305,7 +305,7 @@ function movementControls(key, value) {
  */
 export function moveAnimate(delta) {
     const playerObj = controls.getObject();
-    const alturaPlayer = 7;
+    const alturaPlayer = 2;
     const forward = controls.getDirection(new THREE.Vector3()).setY(0).normalize();
     const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
     const moveVec = new THREE.Vector3();
