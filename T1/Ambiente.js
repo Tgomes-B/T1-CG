@@ -93,11 +93,21 @@ export function criaAreasRampas(scene) {
             areaY = 2;
             areaZ = posZ;
 
+            criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 4, 120], true);
+            criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 4, 120], true);
+            criaAreaColisao(areaX + 60, areaY, areaZ, [90, 4, 20]);
+        
+        }else if (i == 1) {
+            molde = new THREE.Mesh(areaGeometry, areaMaterial[i]);
+            molde.position.set(55, 0, 0);
+            areaX = 130;
+            areaY = 5;
+            areaZ = posZ;
+
             criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 10, 120], true);
             criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 10, 120], true);
-            criaAreaColisao(areaX + 60, areaY, areaZ, [90, 10, 20]);
-        
-        }else if (i > 0 && i < 3) {
+            criaAreaColisao(areaX + 55, areaY, areaZ, [100, 10, 20]);
+        }else if (i == 2) {
             molde = new THREE.Mesh(areaGeometry, areaMaterial[i]);
             molde.position.set(45, 0, 0);
             areaX = 130;
@@ -107,16 +117,16 @@ export function criaAreasRampas(scene) {
             criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 10, 120], true);
             criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 10, 120], true);
             criaAreaColisao(areaX + 60, areaY, areaZ, [90, 10, 20]);
-        } else {
+        } else if (i == 3) {
             molde = new THREE.Mesh(areaAzulGeometry, areaMaterial[i]);
             molde.position.set(-45, 0, 0);
             areaX = -130;
             areaY = 5;
             areaZ = 0;
 
-            criaAreaColisao(areaX - 45, areaY + 155 - 155, areaZ + 82.5, [145, 10, 120], true);
-            criaAreaColisao(areaX - 45, areaY + 155 - 155, areaZ - 82.5, [145, 10, 120], true);
-            criaAreaColisao(areaX - 60, areaY + 155 - 155, areaZ, [90, 10, 20]);
+            criaAreaColisao(areaX - 45, areaY, areaZ + 82.5, [145, 10, 120], true);
+            criaAreaColisao(areaX - 45, areaY, areaZ - 82.5, [145, 10, 120], true);
+            criaAreaColisao(areaX - 60, areaY, areaZ, [90, 10, 20]);
         }
 
         updateObject(molde);
@@ -134,7 +144,7 @@ export function criaAreasRampas(scene) {
             areas[i].position.set(130, 2, posZ);
             criaEscada(115, posZ, comp, 130, 4, -0.1325, 2);
         }else if (i == 1) {
-            areas[i].position.set(130, 5, posZ);
+            areas[i].position.set(120, 5, posZ);
             elevador(areas);
         }else if (i == 2) {
             areas[i].position.set(130, 5, posZ);
@@ -231,12 +241,19 @@ export function criaPilares(area1){
     return area1;
 }
 function elevador(areas) {
-    const elevadorGeometry = new THREE.BoxGeometry(30, 10, 20);
-    const elevadorMaterial = new THREE.MeshPhongMaterial({ color: 'blue' });
+    const portaGeometry = new THREE.BoxGeometry(5, 10, 20);
+    const portaMaterial = new THREE.MeshLambertMaterial({ color: 'red' });
+    const portaMesh = new THREE.Mesh(portaGeometry, portaMaterial);
+
+    const elevadorGeometry = new THREE.BoxGeometry(15, 10, 20);
+    const elevadorMaterial = new THREE.MeshLambertMaterial({ color: 'blue' });
     const elevadorMesh = new THREE.Mesh(elevadorGeometry, elevadorMaterial);
 
-    elevadorMesh.position.set(0, -10.5, 0);
+    portaMesh.position.set(-2.5, 0, 0);
+    elevadorMesh.position.set(7.5, 0, 0);
     areas[1].add(elevadorMesh);
+    elevadorMesh.userData.isCollidable = true;
+    //areas[1].add(portaMesh);
 
     return elevadorMesh;
 }
