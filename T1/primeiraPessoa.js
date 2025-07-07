@@ -372,6 +372,12 @@ function render() {
     if (controls.isLocked) {
         moveAnimate(delta);
         updateProjectiles(delta);
+
+                // Atualiza comportamento dos inimigos
+                const enemies = scene.children.filter(obj => obj.name === "enemy");
+                for(const enemy of enemies) {
+                    updateEnemyBehavior(enemy, controls.getObject(), scene, delta);
+                }
     }
     if (spotLightHelper) spotLightHelper.update();
     renderer.render(scene, camera);
