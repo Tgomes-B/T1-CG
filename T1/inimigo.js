@@ -28,6 +28,7 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicao = { x: 0, y: 0, z
             inimigo.userData.moveDirection = 1;
             inimigo.userData.baseY = inimigo.position.y;
             inimigo.userData.hp = 100;
+
             cena.add(inimigo);
 
             // --- Animação ---
