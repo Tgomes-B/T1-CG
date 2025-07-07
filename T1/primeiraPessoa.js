@@ -2,7 +2,7 @@
  * Configuração principal do jogo em primeira pessoa.
  * @module primeiraPessoa
  */
-
+import { adicionarInimigoCena } from './inimigo.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
@@ -16,6 +16,9 @@ let spotLightHelper, areas, ramp, ground, walls;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
 
+let currentWeaponIndex = 0;
+const gravity = 9.8; 
+let velocityY = 0;   
 const speed = 20;
 const WEAPONS = {
     launcher: {
@@ -23,7 +26,8 @@ const WEAPONS = {
         fireRate: 500, // ms
         showProjectile: true,
         sprite: null,
-        spritesheet: null // não precisa para lançador
+        spritesheet: null, // não precisa para lançador
+        create: createGun // Função para criar o modelo da arma
     },
     chaingun: {
         name: "chaingun",
@@ -31,10 +35,12 @@ const WEAPONS = {
         showProjectile: false,
         sprite: null,
         spritesheet: "images/sprites/chaingun.png",
-        frames:3
+        frames:3,
+        create: createChaingunSprite // Função para criar o sprite da chaingun
     }
 };
 let currentWeapon = WEAPONS.launcher;
+const weaponNames = Object.keys(WEAPONS); 
 
 /**
  * Inicializa a cena, câmera, controles e objetos do jogo.
@@ -72,10 +78,12 @@ function setupInitialCameraPosition() {
 
 /**
  * Configura o ambiente do jogo.
+ * caminho antigo: images/sprites/2025.1_T2_Assets/cacodemon.glb
  */
 function setupEnvironment() {
     ({ areas, ramp, ground } = criaAreasRampas(scene));
     walls = criaParedes(scene);
+    adicionarInimigoCena(scene, 'images/sprites/teste/cacodemonanimations.glb', { x: 100, y: 20, z: 100 });
 }
 
 /**
@@ -121,20 +129,26 @@ function setupEventListeners() {
     window.addEventListener('keyup', (event) => movementControls(event.code, false));
     window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
 
-        window.addEventListener('keydown', (event) => {
-            movementControls(event.code, true);
-            if (event.code === "Digit1") switchWeapon("chaingun");
-            if (event.code === "Digit2") switchWeapon("launcher");
-        });
-        window.addEventListener('keyup', (event) => movementControls(event.code, false));
-        window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
-        window.addEventListener('wheel', (event) => {
-            if (event.deltaY < 0) { // scroll up
-                switchWeapon("chaingun");
-            } else if (event.deltaY > 0) { // scroll down
-                switchWeapon("launcher");
-            }
-        });
+    window.addEventListener('keydown', (event) => {
+        movementControls(event.code, true);
+        if (event.code === "Digit1") {
+            currentWeaponIndex = 0; // Launcher
+            switchWeaponByIndex(currentWeaponIndex);
+        }
+        if (event.code === "Digit2") {
+            currentWeaponIndex = 1; // Chaingun
+            switchWeaponByIndex(currentWeaponIndex);
+        }
+    });
+    
+    window.addEventListener('wheel', (event) => {
+        if (event.deltaY < 0) { // Scroll up
+            currentWeaponIndex = (currentWeaponIndex + 1) % weaponNames.length;
+        } else if (event.deltaY > 0) { // Scroll down
+            currentWeaponIndex = (currentWeaponIndex - 1 + weaponNames.length) % weaponNames.length;
+        }
+        switchWeaponByIndex(currentWeaponIndex);
+    });
     
 }
 
@@ -166,17 +180,30 @@ function setupCrosshair() {
     }
 }
 
-function switchWeapon(weaponName) {
+function switchWeaponByIndex(index) {
+    if (index < 0 || index >= weaponNames.length) {
+        console.error(`Índice de arma inválido: ${index}`);
+        return;
+    }
+
+    const weaponName = weaponNames[index];
+    const weapon = WEAPONS[weaponName];
+
+    if (!weapon) {
+        console.error(`Arma "${weaponName}" não encontrada.`);
+        return;
+    }
+
     if (currentWeapon.name === weaponName) return;
+
     // Remove arma anterior
     removeCurrentWeaponVisual();
-    currentWeapon = WEAPONS[weaponName];
-    // Adiciona visual da nova arma
-    if (weaponName === "launcher") {
-        createGun();
-    } else if (weaponName === "chaingun") {
-        createChaingunSprite();
-    }
+
+    // Atualiza a arma atual
+    currentWeapon = weapon;
+
+    // Cria o visual da nova arma
+    currentWeapon.create();
 }
 
 function createChaingunSprite() {
@@ -334,8 +361,8 @@ export function moveAnimate(delta) {
     }
 
     // 4. Movimento vertical manual (pulo/crouch)
-    if (moveUp) playerObj.position.y += speed * delta;
-    if (moveDown) playerObj.position.y -= speed * delta;
+    if (moveUp) velocityY = speed; // Pulo
+    if (moveDown) velocityY = -speed; // Descida manual
 
     // 5. Alinha os pés ao chão/área usando raycast
     const downRay = new THREE.Raycaster(
@@ -355,10 +382,26 @@ export function moveAnimate(delta) {
         const surfaceY = surfaceIntersects[0].point.y;
         const playerFeet = playerObj.position.y - (alturaPlayer / 2);
         const diff = surfaceY - playerFeet;
-        // Só ajusta se diferença for pequena (evita "teleporte" ao cair)
+    
         if (diff < 1.5) {
-            playerObj.position.y = surfaceY + (alturaPlayer);
+            // Ajusta ao chão suavemente
+            if (velocityY < 0) {
+                velocityY = 0; // Zera a velocidade de queda
+            }
+            playerObj.position.y = THREE.MathUtils.lerp(
+                playerObj.position.y,
+                surfaceY + alturaPlayer,
+                0.1 // Taxa de suavização
+            );
+        } else {
+            // Aplica gravidade se estiver acima do chão
+            velocityY -= gravity * delta;
+            playerObj.position.y += velocityY * delta;
         }
+    } else {
+        // Aplica gravidade se não houver interseção
+        velocityY -= gravity * delta;
+        playerObj.position.y += velocityY * delta;
     }
 }
 
@@ -368,6 +411,61 @@ export function moveAnimate(delta) {
 function render() {
     stats.update();
     const delta = clock.getDelta();
+
+    // Atualiza animações dos inimigos
+    scene.traverse(obj => {
+        if (obj.userData && obj.userData.mixer) {
+            obj.userData.mixer.update(delta);
+        }
+    
+        if (obj.userData && obj.userData.isEnemy) {
+            const playerPos = controls.getObject().position;
+            const enemyPos = obj.position;
+            const dist = playerPos.distanceTo(enemyPos);
+
+            const boxSize = 7.57; // mesmo valor usado na criação
+            const boxCenter = obj.position.clone();
+            const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxSize/2, -boxSize/2));
+            const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxSize/2, boxSize/2));
+            obj.userData.collisionBox.min.copy(min);
+            obj.userData.collisionBox.max.copy(max);
+            
+            // Atualiza o helper visual
+            if (obj.userData.boxHelper) {
+                obj.userData.boxHelper.box.copy(obj.userData.collisionBox);
+                obj.userData.boxHelper.updateMatrixWorld(true);
+            }
+            // Troca de estado: idle -> perseguir
+            if (obj.userData.state === "idle" && dist < obj.userData.detectionRadius) {
+                obj.userData.state = "perseguir";
+            }
+    
+            // Troca de estado: perseguir -> idle (desistir)
+            if (obj.userData.state === "perseguir" && dist > obj.userData.detectionRadius + 10) {
+                obj.userData.state = "idle";
+            }
+    
+            // Idle: flutuando
+            if (obj.userData.state === "idle") {
+                const targetY = obj.userData.baseY + Math.sin(performance.now() * 0.001) * 2;
+                obj.position.y = THREE.MathUtils.lerp(obj.position.y, targetY, 0.1);
+            }
+    
+            // Perseguir: vai atrás do player
+            if (obj.userData.state === "perseguir") {
+                const dir = new THREE.Vector3().subVectors(playerPos, enemyPos);
+                dir.y = 0;
+                const distance = dir.length();
+                if (distance > 5) { // distância mínima para não grudar
+                    dir.normalize();
+                    obj.position.add(dir.multiplyScalar(5 * delta));
+                }
+                // Rotaciona para olhar para o player
+                const angle = Math.atan2(playerPos.x - enemyPos.x, playerPos.z - enemyPos.z);
+                obj.rotation.y = angle;
+            }
+        }
+    });
 
     if (controls.isLocked) {
         moveAnimate(delta);
