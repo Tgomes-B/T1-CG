@@ -2,14 +2,20 @@
  * Configuração principal do jogo em primeira pessoa.
  * @module primeiraPessoa
  */
-import { adicionarInimigoCena, Comportamento, updateEnemyProjectiles } from './inimigo.js';
-import { createEnemy, loadEnemyOBJ, updateEnemyBehavior } from './enemy.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
 import { initRenderer, onWindowResize } from "../libs/util/util.js";
-import {
-    criaAreasRampas, criaParedes, criaChave, criaPilares, setupLighting} from './Ambiente.js';
+
+import { adicionarInimigoCena, Comportamento, updateEnemyProjectiles } from './inimigo.js';
+import { createEnemy, loadEnemyOBJ, updateEnemyBehavior } from './enemy.js';
+import { setupAreaChave,criaChave } from './areaChave.js';
+import { 
+    criaAreasRampas, 
+    criaParedes, 
+    criaPilares, 
+    setupLighting 
+} from './Ambiente.js';
 import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
 
@@ -18,7 +24,7 @@ let spotLightHelper, areas, ramp, ground, walls, key;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
 
-    
+    let areaChaveController = null;
 const enemyProjectiles = [];
 let currentWeaponIndex = 0;
 const gravity = 9.8; 
@@ -94,8 +100,7 @@ function setupEnvironment() {
         scene.add(enemyObj);
     });
 
-    
-    key = criaChave(scene, areas);
+    areaChaveController = setupAreaChave(scene, areas[0]);
     criaPilares(areas[0]);
 }
 
@@ -435,7 +440,14 @@ function render() {
             }
         }
     });
-
+    if (areaChaveController) {
+        const chave = areaChaveController.getChaveAnimada && areaChaveController.getChaveAnimada();
+        const baseY = areaChaveController.getBaseY && areaChaveController.getBaseY();
+        if (chave && chave.parent) {
+            chave.rotation.y += 0.02;
+            chave.position.y = baseY + Math.sin(Date.now() * 0.002) * 2;
+        }
+    }
     updateEnemyProjectiles(scene, controls, delta);
 
     if (controls.isLocked) {

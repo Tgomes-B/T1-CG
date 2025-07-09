@@ -1,5 +1,7 @@
 import * as THREE from 'three';
+import { fadeOut } from './tiro.js';
 import { OBJLoader } from '../build/jsm/loaders/OBJLoader.js';
+import { MTLLoader } from '../build/jsm/loaders/MTLLoader.js';
 
 // Configurações do inimigo
 const ENEMY_SEARCH_RAYS = 120; // 360° / 3
@@ -12,22 +14,64 @@ for(let i = 0; i < 360; i += 3) {
     const angle = THREE.MathUtils.degToRad(i);
     searchDirections.push(new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle)));
 }
-export function loadEnemyOBJ(path, position = { x: 0, y: 2, z: 0 }, onLoad) {
-    const loader = new OBJLoader();
-    loader.load(
-        path,
-        (obj) => {
-            obj.position.set(position.x, position.y, position.z);
-            obj.name = "enemy";
-            obj.userData.isEnemy = true;
-            obj.userData.enemyType = "obj";
-            if (onLoad) onLoad(obj);
-        },
-        undefined,
-        (error) => {
-            console.error('Erro ao carregar modelo OBJ:', error);
-        }
-    );
+
+export function loadEnemyOBJ(path, position = { x: 0, y: 0, z: 0 }, onLoad) {
+
+    const assetPath = 'images/sprites/skull/';
+
+    const mtlLoader = new MTLLoader();
+    mtlLoader.setPath(assetPath);
+    mtlLoader.load('skull.mtl', (materials) => {
+        materials.preload();
+        const loader = new OBJLoader();
+        loader.setMaterials(materials); // Aplica os materiais carregados
+        loader.setPath(assetPath);
+        loader.load(
+            'skull.obj', // Use o nome do arquivo OBJ relativo ao assetPath
+            (obj) => {
+                obj.position.set(position.x, position.y, position.z);
+                obj.scale.set(1, 1, 1); // Ajuste conforme necessário
+                obj.name = "enemy";
+                obj.userData.isEnemy = true;
+                obj.userData.hp = 20;
+                obj.userData.enemyType = "obj";
+                obj.userData.fading = false;
+                obj.userData.isCollidable = true;
+                obj.userData.boundingBox = new THREE.Box3().setFromObject(obj);
+
+                obj.traverse(child => {
+                    if (child.isMesh) {
+                        child.userData.isEnemy = true;
+                        child.userData.hp = obj.userData.hp;
+                        child.userData.enemyRoot = obj;
+                    }
+                });
+
+                obj.updateMatrixWorld(true);
+
+                // Adicione o helper na cena, não como filho do obj
+                const boxHelper = new THREE.BoxHelper(obj, 0x00ff00);
+                obj.userData.boxHelper = boxHelper;
+                if (obj.parent) {
+                    obj.parent.add(boxHelper);
+                } else {
+                    // Adicione na cena depois de adicionar o obj
+                    setTimeout(() => {
+                        if (obj.parent) obj.parent.add(boxHelper);
+                    }, 0);
+                }
+
+                // Opcional: veja o centro do modelo
+                // obj.add(new THREE.AxesHelper(5));
+
+                if (onLoad) onLoad(obj);
+            },
+            undefined,
+            (error) => {
+                console.error('Erro ao carregar modelo OBJ:', error);
+            }
+        );
+    });
 }
 
 export function createEnemy(position = { x: 0, y: 2, z: 0 }) {
@@ -35,7 +79,7 @@ export function createEnemy(position = { x: 0, y: 2, z: 0 }) {
     const material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
     const enemy = new THREE.Mesh(geometry, material);
     enemy.position.set(position.x, position.y, position.z);
-    enemy.scale.set(0.015, 0.015, 0.015);
+    boxHelper.position.set(position.x, position.y, position.z);
     enemy.name = "enemy";
     enemy.userData.isEnemy = true;
     return enemy;
@@ -77,6 +121,18 @@ export function updateEnemyBehavior(enemy, player, scene, delta) {
                 enemy.lookAt(player.position);
                 break;
             }
+        }
+        if (enemy.userData.hp !== undefined && enemy.userData.hp <= 0 && !enemy.userData.fading) {
+            enemy.userData.fading = true;
+            fadeOut(enemy, 500, () => {
+                if (enemy.parent) enemy.parent.remove(enemy);
+                if (enemy.userData.boxHelper && enemy.userData.boxHelper.parent) {
+                    enemy.userData.boxHelper.parent.remove(enemy.userData.boxHelper);
+                }
+            });
+        }
+        if (enemy.userData.boxHelper) {
+            enemy.userData.boxHelper.update();
         }
     }
 

@@ -150,7 +150,7 @@ export function updateProjectiles(delta) {
                 const hitObject = intersects[0].object;
         
                 // Aplica dano se o objeto for um inimigo
-                let enemyRoot = hitObject;
+                let enemyRoot = hitObject.userData.enemyRoot || hitObject;
                 while (enemyRoot.parent && !enemyRoot.userData.isEnemy) {
                     enemyRoot = enemyRoot.parent;
                 }
