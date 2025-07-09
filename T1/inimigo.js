@@ -11,6 +11,11 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicao = { x: 0, y: 0, z
             inimigo.scale.set(0.015, 0.015, 0.015);
             inimigo.userData.isEnemy = true;
             inimigo.userData.isCollidable = true;
+            inimigo.traverse(child => {
+                if (child.isMesh) {
+                    child.userData.isEnemy = true;
+                }
+            });
 
             const boxSize = 7.57; // tamanho do lado do quadrado (ajuste para o seu modelo)
             const boxCenter = inimigo.position.clone();
@@ -20,14 +25,14 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicao = { x: 0, y: 0, z
 
             const boxHelper = new THREE.Box3Helper(inimigo.userData.collisionBox, "red");
             cena.add(boxHelper);
-
+            inimigo.userData.hp = 50;
+            inimigo.userData.shootCooldown = 0;
             inimigo.userData.boxHelper = boxHelper;
             inimigo.userData.state = "idle";
             inimigo.userData.detectionRadius = 100;
             inimigo.userData.moveType = "float";
             inimigo.userData.moveDirection = 1;
             inimigo.userData.baseY = inimigo.position.y;
-            inimigo.userData.hp = 100;
 
             cena.add(inimigo);
 

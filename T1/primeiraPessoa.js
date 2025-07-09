@@ -3,6 +3,7 @@
  * @module primeiraPessoa
  */
 import { adicionarInimigoCena } from './inimigo.js';
+import { fadeOut } from './tiro.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
@@ -16,10 +17,13 @@ let spotLightHelper, areas, ramp, ground, walls;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
 
+    
+const enemyProjectiles = [];
 let currentWeaponIndex = 0;
 const gravity = 9.8; 
 let velocityY = 0;   
 const speed = 20;
+const ENEMY_SPEED = 5;
 const WEAPONS = {
     launcher: {
         name: "launcher",
@@ -338,7 +342,7 @@ export function moveAnimate(delta) {
     // 3. Se colidiu, tenta auto step (subir degrau/área)
     if (collided) {
         let stepped = false;
-        const maxStep = 1.5;
+        const maxStep = 5;
         const stepIncrement = 0.1;
         for (let step = stepIncrement; step <= maxStep; step += stepIncrement) {
             playerObj.position.y += step;
@@ -412,29 +416,40 @@ function render() {
     stats.update();
     const delta = clock.getDelta();
 
-    // Atualiza animações dos inimigos
+    // Atualiza animações dos inimigos e lógica de IA
     scene.traverse(obj => {
-        if (obj.userData && obj.userData.mixer) {
-            obj.userData.mixer.update(delta);
-        }
-    
         if (obj.userData && obj.userData.isEnemy) {
+            const boxSize = 7.57;
             const playerPos = controls.getObject().position;
             const enemyPos = obj.position;
             const dist = playerPos.distanceTo(enemyPos);
-
-            const boxSize = 7.57; // mesmo valor usado na criação
-            const boxCenter = obj.position.clone();
-            const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxSize/2, -boxSize/2));
-            const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxSize/2, boxSize/2));
-            obj.userData.collisionBox.min.copy(min);
-            obj.userData.collisionBox.max.copy(max);
-            
-            // Atualiza o helper visual
-            if (obj.userData.boxHelper) {
-                obj.userData.boxHelper.box.copy(obj.userData.collisionBox);
-                obj.userData.boxHelper.updateMatrixWorld(true);
+    
+            // Atualiza collisionBox do inimigo
+            if (obj.userData.collisionBox) {
+                const boxCenter = obj.position.clone();
+                const min = boxCenter.clone().add(new THREE.Vector3(-boxSize / 2, -boxSize / 2, -boxSize / 2));
+                const max = boxCenter.clone().add(new THREE.Vector3(boxSize / 2, boxSize / 2, boxSize / 2));
+                obj.userData.collisionBox.min.copy(min);
+                obj.userData.collisionBox.max.copy(max);
+    
+                if (obj.userData.boxHelper) {
+                    obj.userData.boxHelper.box.copy(obj.userData.collisionBox);
+                    obj.userData.boxHelper.updateMatrixWorld(true);
+                }
             }
+    
+            // Detecta altura do solo logo abaixo do inimigo
+            const collidables = scene.children.filter(o =>
+                o !== obj && o.userData && o.userData.isCollidable && o.userData.collisionBox
+            );
+            let groundY = obj.position.y - boxSize / 2;
+            collidables.forEach(o => {
+                if (o.userData.collisionBox.containsPoint(new THREE.Vector3(obj.position.x, groundY, obj.position.z))) {
+                    groundY = o.userData.collisionBox.max.y;
+                }
+            });
+            const baseY = 8;
+    
             // Troca de estado: idle -> perseguir
             if (obj.userData.state === "idle" && dist < obj.userData.detectionRadius) {
                 obj.userData.state = "perseguir";
@@ -445,27 +460,139 @@ function render() {
                 obj.userData.state = "idle";
             }
     
-            // Idle: flutuando
+            // Idle: volta suavemente para a altura base e flutua
             if (obj.userData.state === "idle") {
-                const targetY = obj.userData.baseY + Math.sin(performance.now() * 0.001) * 2;
-                obj.position.y = THREE.MathUtils.lerp(obj.position.y, targetY, 0.1);
+                const targetY = baseY + Math.sin(performance.now() * 0.001) * 2;
+                // Só sobe até a altura base, nunca mais alto
+                if (obj.position.y < targetY) {
+                    obj.position.y = THREE.MathUtils.lerp(obj.position.y, targetY, 0.05);
+                } else if (obj.position.y > targetY + 0.1) {
+                    obj.position.y = THREE.MathUtils.lerp(obj.position.y, targetY, 0.05);
+                }
             }
     
-            // Perseguir: vai atrás do player
+            // Perseguir: vai atrás do player, descendo até o solo se necessário
             if (obj.userData.state === "perseguir") {
+                // Movimento horizontal em direção ao player
                 const dir = new THREE.Vector3().subVectors(playerPos, enemyPos);
-                dir.y = 0;
+                dir.y = 0; // só move horizontalmente
                 const distance = dir.length();
-                if (distance > 5) { // distância mínima para não grudar
+                if (distance > 1) {
                     dir.normalize();
-                    obj.position.add(dir.multiplyScalar(5 * delta));
+                    // Testa colisão à frente
+                    const nextPos = obj.position.clone().add(dir.clone().multiplyScalar(ENEMY_SPEED * delta));
+                    const enemyBox = new THREE.Box3(
+                        nextPos.clone().add(new THREE.Vector3(-boxSize / 2, -boxSize / 2, -boxSize / 2)),
+                        nextPos.clone().add(new THREE.Vector3(boxSize / 2, boxSize / 2, boxSize / 2))
+                    );
+                    const collided = collidables.some(o => o.userData.collisionBox.intersectsBox(enemyBox));
+                    if (!collided) {
+                        obj.position.copy(nextPos);
+                    }else {
+                        // Só tenta subir se está abaixo da altura base
+                        if (obj.position.y < baseY - 0.05) {
+                            let stepped = false;
+                            const maxStep = Math.min(2, baseY - obj.position.y); // sobe no máximo 2 unidades, nunca acima do baseY
+                            const stepIncrement = 0.1;
+                            for (let step = stepIncrement; step <= maxStep; step += stepIncrement) {
+                                const tryPos = nextPos.clone();
+                                tryPos.y = obj.position.y + step;
+                                // Nunca sobe acima do baseY
+                                if (tryPos.y > baseY) break;
+                                const enemyBoxStep = new THREE.Box3(
+                                    tryPos.clone().add(new THREE.Vector3(-boxSize / 2, -boxSize / 2, -boxSize / 2)),
+                                    tryPos.clone().add(new THREE.Vector3(boxSize / 2, boxSize / 2, boxSize / 2))
+                                );
+                                let collidedStep = collidables.some(o => o.userData.collisionBox.intersectsBox(enemyBoxStep));
+                                if (!collidedStep) {
+                                    obj.position.copy(tryPos);
+                                    stepped = true;
+                                    break;
+                                }
+                            }
+                            // Se não conseguiu subir, não move
+                        }
+                    }
                 }
-                // Rotaciona para olhar para o player
+                // Desce suavemente até o solo se estiver acima
+                if (obj.position.y > baseY + 0.05) {
+                    obj.position.y = THREE.MathUtils.lerp(obj.position.y, baseY, 0.05);
+                }
+                // Rotaciona para olhar para o player (apenas no eixo Y)
                 const angle = Math.atan2(playerPos.x - enemyPos.x, playerPos.z - enemyPos.z);
                 obj.rotation.y = angle;
+            
+                // Atira se cooldown zerou
+                obj.userData.shootCooldown -= delta;
+                if (obj.userData.shootCooldown <= 0) {
+                    console.log(obj.userData.state, distance, obj.userData.shootCooldown);
+                    enemyShoot(obj, playerPos);
+                    obj.userData.shootCooldown = 3; // 1 segundo entre tiros
+                }
+            }
+            if (obj.userData.hp !== undefined && obj.userData.hp <= 0 && !obj.userData.fading) {
+                obj.userData.fading = true;
+            
+                // Sobe até o objeto raiz do inimigo
+                let root = obj;
+                while (root.parent && !root.parent.isScene) {
+                    root = root.parent;
+                }
+            
+                fadeOut(root, 250, () => {
+                    console.log("Removendo inimigo da cena!", root); // Agora mostra o grupo inteiro
+                    scene.remove(root);
+                    if (root.userData.boxHelper) scene.remove(root.userData.boxHelper);
+                });
             }
         }
     });
+
+
+// ATUALIZAÇÃO DOS PROJÉTEIS DO INIMIGO
+for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
+    const proj = enemyProjectiles[i];
+    proj.position.add(proj.userData.velocity.clone().multiplyScalar(delta));
+
+    // Checa colisão com player
+    if (proj.position.distanceTo(controls.getObject().position) < 1) {
+        fadeOut(proj, 250, () => {
+            scene.remove(proj);
+        });
+        enemyProjectiles.splice(i, 1);
+        continue;
+    }
+
+    // Checa colisão com obstáculos colidíveis
+    const collidables = scene.children.filter(obj =>
+        obj.userData &&
+        obj.userData.isCollidable &&
+        obj.userData.collisionBox &&
+        obj !== proj.userData.shooter // IGNORA O INIMIGO QUE DISPAROU
+    );
+    const projBox = new THREE.Box3().setFromCenterAndSize(
+        proj.position.clone(),
+        new THREE.Vector3(0.4, 0.4, 0.4) // tamanho da bola de fogo
+    );
+    const hitObstacle = collidables.some(obj =>
+        obj.userData.collisionBox && projBox.intersectsBox(obj.userData.collisionBox)
+    );
+    if (hitObstacle) {
+        fadeOut(proj, 100, () => {
+            scene.remove(proj);
+        });
+        enemyProjectiles.splice(i, 1);
+        continue;
+    }
+
+    // Remove após 3 segundos
+    if (performance.now() - proj.userData.startTime > 3000) {
+        fadeOut(proj, 250, () => {
+            scene.remove(proj);
+        });
+        enemyProjectiles.splice(i, 1);
+    }
+}
 
     if (controls.isLocked) {
         moveAnimate(delta);
@@ -474,6 +601,35 @@ function render() {
     if (spotLightHelper) spotLightHelper.update();
     renderer.render(scene, camera);
     requestAnimationFrame(render);
+}
+
+function enemyShoot(enemyObj, targetPos) {
+    const fireballSpeed = 20; // velocidade moderada
+    const geometry = new THREE.SphereGeometry(0.4, 16, 16);
+    const material = new THREE.MeshPhongMaterial({ 
+        color: 0xff6600, 
+        emissive: 0xff2200, 
+        shininess: 100 
+    });
+    const fireball = new THREE.Mesh(geometry, material);
+
+    // Começa um pouco à frente do inimigo (evita nascer dentro do modelo)
+    const dir = new THREE.Vector3().subVectors(targetPos, enemyObj.position).normalize();
+    fireball.position.copy(enemyObj.position).add(dir.clone().multiplyScalar(4)); // 4 unidades à frente
+
+    // Define velocidade
+    fireball.userData.velocity = dir.multiplyScalar(fireballSpeed*2); // ajustado para delta
+    fireball.userData.startTime = performance.now();
+    fireball.userData.shooter = enemyObj; // <-- Adicione esta linha
+
+    // Garante visibilidade
+    fireball.visible = true;
+    fireball.material.opacity = 1;
+    fireball.material.transparent = false;
+
+    // Adiciona à cena e à lista de projéteis do inimigo
+    scene.add(fireball);
+    enemyProjectiles.push(fireball);
 }
 
 /**

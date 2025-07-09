@@ -86,15 +86,27 @@ function shootProjectile() {
         // Raycast para detectar inimigo
         const dir = new THREE.Vector3();
         camera.getWorldDirection(dir);
-        const raycaster = new THREE.Raycaster(camera.getWorldPosition(new THREE.Vector3()), dir, 0, 100);
+        const raycaster = new THREE.Raycaster(camera.getWorldPosition(new THREE.Vector3()), dir, 0, 200);
         const enemies = scene.children.filter(obj => obj.userData?.isEnemy);
         const hits = raycaster.intersectObjects(enemies, true);
         if (hits.length > 0) {
             const enemy = hits[0].object;
-            if (enemy.userData.hp === undefined) enemy.userData.hp = 100;
-            enemy.userData.hp -= 2 * (weapon.fireRate / 1000); // 2 HP por segundo
-            if (enemy.userData.hp <= 0) {
-                scene.remove(enemy);
+            if (enemy.userData.hp === undefined) enemy.userData.hp = 50;
+            enemy.userData.hp -= 2; // 2 HP por segundo
+            console.log(`Inimigo atingido! HP restante: ${enemy.userData.hp}`);
+            if (enemyRoot.userData.hp <= 0) {
+                enemyRoot.userData.hp = 0;
+                fadeOut(enemyRoot, 250, () => {
+                    // Remove todas as meshes filhas do inimigo da cena
+                    enemyRoot.traverse(child => {
+                        if (child.isMesh) {
+                            scene.remove(child);
+                        }
+                    });
+                    scene.remove(enemyRoot);
+                    if (enemyRoot.userData.boxHelper) scene.remove(enemyRoot.userData.boxHelper);
+                    console.log("Inimigo eliminado!");
+                });
             }
         }
         return; // Não cria projétil!
@@ -133,28 +145,49 @@ export function updateProjectiles(delta) {
         // Condição para fade-out (colisão ou distância máxima)
         if ((intersects.length > 0 || distance > 750) && !projectile.userData.fading) {
             projectile.userData.fading = true;
-
+        
             if (intersects.length > 0) {
                 const hitObject = intersects[0].object;
-
+        
                 // Aplica dano se o objeto for um inimigo
-                if (hitObject.userData?.isEnemy) {
-                    if (hitObject.userData.hp === undefined) hitObject.userData.hp = 100; // HP padrão
-                    hitObject.userData.hp -= 10; // Dano do launcher
-                    console.log(`Inimigo atingido! HP restante: ${hitObject.userData.hp}`);
-
-                    // Remove inimigo se o HP for menor ou igual a 0
-                    if (hitObject.userData.hp <= 0) {
-                        scene.remove(hitObject);
-                        console.log("Inimigo eliminado!");
+                let enemyRoot = hitObject;
+                while (enemyRoot.parent && !enemyRoot.userData.isEnemy) {
+                    enemyRoot = enemyRoot.parent;
+                }
+                if (enemyRoot.userData?.isEnemy) {
+                    if (enemyRoot.userData.hp === undefined) enemyRoot.userData.hp = 50;
+                    enemyRoot.userData.hp -= 10;
+                    if (enemyRoot.userData.hp < 0) enemyRoot.userData.hp = 0; // <-- impede HP negativo
+                    console.log(`Inimigo atingido! HP restante: ${enemyRoot.userData.hp}`);
+                    if (enemyRoot.userData.hp <= 0) {
+                        fadeOut(enemyRoot, 500, () => {
+                            // Remove todas as meshes filhas do inimigo da cena (caso estejam na cena)
+                            enemyRoot.traverse(child => {
+                                if (child.isMesh && scene.children.includes(child)) {
+                                    scene.remove(child);
+                                }
+                            });
+                            // Remove o group do inimigo
+                            if (scene.children.includes(enemyRoot)) {
+                                scene.remove(enemyRoot);
+                            }
+                            // Remove o boxHelper se existir
+                            if (enemyRoot.userData.boxHelper && scene.children.includes(enemyRoot.userData.boxHelper)) {
+                                scene.remove(enemyRoot.userData.boxHelper);
+                            }
+                            console.log("Inimigo eliminado!");
+                        });
                     }
                 }
             }
-
+        
+            // Remove o projétil do array ANTES do fade para não atualizar mais
+            const idx = projectiles.indexOf(projectile);
+            if (idx !== -1) projectiles.splice(idx, 1);
+        
             // Remove o projétil com fade-out
             fadeOut(projectile, 250, () => {
-                const idx = projectiles.indexOf(projectile);
-                if (idx !== -1) projectiles.splice(idx, 1);
+                if (scene.children.includes(projectile)) scene.remove(projectile);
             });
             continue;
         }
@@ -171,26 +204,28 @@ export function updateProjectiles(delta) {
  * @param {function} onComplete - Função a ser chamada após o fade-out.
  */
 export function fadeOut(object, duration, onComplete) {
-    if (!object.material || !object.material.transparent) {
-        console.warn("O material do objeto precisa ter 'transparent: true'.");
-        return;
-    }
-
-    const startOpacity = object.material.opacity;
-    const fadeSpeed = startOpacity / duration;
-    object.userData.velocity.set(0, 0, 0); // Para o movimento do projétil
-
-    function animateFadeOut() {
-        if (object.material.opacity > 0) {
-            object.material.opacity -= fadeSpeed * 16.67; // Aproximadamente 60 FPS
-            requestAnimationFrame(animateFadeOut);
-        } else {
-            object.material.opacity = 0;
-            scene.remove(object);
-            if (onComplete) onComplete();
+    // Aplica fade em todos os meshes filhos se for um grupo
+    let faded = false;
+    object.traverse(child => {
+        if (child.material && 'opacity' in child.material) {
+            child.material.transparent = true;
+            const start = performance.now();
+            const initialOpacity = child.material.opacity !== undefined ? child.material.opacity : 1;
+            function animate() {
+                const now = performance.now();
+                const elapsed = now - start;
+                const t = Math.min(elapsed / duration, 1);
+                child.material.opacity = initialOpacity * (1 - t);
+                if (t < 1) {
+                    requestAnimationFrame(animate);
+                } else if (!faded) {
+                    faded = true;
+                    if (onComplete) onComplete();
+                }
+            }
+            animate();
         }
-    }
-    animateFadeOut();
+    });
 }
 
 /**
