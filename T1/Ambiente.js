@@ -16,6 +16,8 @@ export function criaAreasRampas(scene) {
     ground.rotation.x = -0.5 * Math.PI;
     ground.name = "ground";
     scene.add(ground);
+    ground.receiveShadow = true; // Adicionar esta linha
+    ground.name = "ground";
 
     const areaGeometry = new THREE.BoxGeometry(120, 10, 120);
     const areaAzulGeometry = new THREE.BoxGeometry(120, 10, 310);
@@ -33,6 +35,7 @@ export function criaAreasRampas(scene) {
 
     const rampGeometry = new THREE.PlaneGeometry(31.62, 20);
     const rampMaterial = new THREE.MeshLambertMaterial({});
+    
 
     function updateObject(mesh) {
         mesh.matrixAutoUpdate = false;
@@ -52,6 +55,8 @@ export function criaAreasRampas(scene) {
         for (let i = 0; i < 8; i++) {
             degrau = new THREE.Mesh(degrauGeometry, degrauMaterial);
             degrau.position.set(i * comp + comp / 2 + posX, i * alt + alt / 2, posZ);
+            degrau.castShadow = true;
+            degrau.receiveShadow = true;
             scene.add(degrau);
         }
         
@@ -60,6 +65,8 @@ export function criaAreasRampas(scene) {
         ramp.rotation.y = rotY;
         ramp.position.set(rampX, 5, posZ);
         ramp.name = 'ramp';
+        ramp.castShadow = true;
+        ramp.receiveShadow = true;
         scene.add(ramp);
     }
 
@@ -128,6 +135,8 @@ export function criaAreasRampas(scene) {
         }
         
         areas[i].material = areaMaterial[i];
+        areas[i].castShadow = true;
+        areas[i].receiveShadow = true;
         posZ += 155;
         scene.add(areas[i]);
     }
@@ -144,10 +153,10 @@ export function criaParedes(scene) {
     const wallThickness = 5;
     const wallHeight = 50;
     const wallLength = 500;
-    const wallMaterial = new THREE.MeshBasicMaterial({ 
+    const wallMaterial = new THREE.MeshLambertMaterial({ 
         color: 'rgba(255, 140, 0, 0.65)',
         side: THREE.DoubleSide
-    });
+      });
     
     const walls = [];
     
@@ -174,14 +183,20 @@ export function criaParedes(scene) {
      * @param {string} name - Nome identificador da parede
      * @returns {THREE.Mesh} A parede criada
      */
-    function createWall(width, height, depth, position, name) {
-        const geometry = new THREE.BoxGeometry(width, height, depth);
-        const wall = new THREE.Mesh(geometry, wallMaterial);
-        wall.position.set(...position);
-        wall.name = name;
-        wall.userData.isCollidable = true;
-        return wall;
-    }
+// 2. Função createWall atualizada:
+function createWall(width, height, depth, position, name) {
+  const geometry = new THREE.BoxGeometry(width, height, depth);
+  const wall = new THREE.Mesh(geometry, wallMaterial);
+  wall.position.set(...position);
+  wall.name = name;
+  wall.userData.isCollidable = true;
+  
+  // Habilitar sombras
+  wall.castShadow = true;
+  wall.receiveShadow = true;
+  
+  return wall;
+}
 }
 
 /**
@@ -216,23 +231,28 @@ export function setupLighting(scene) {
 
     return directionalLightHelper;
 
-    function createDirectionalLight() {
-        const light = new THREE.DirectionalLight(0xffffff, 0.8); // Intensidade aumentada
-        light.position.set(100, 150, 30); // Posição mais alta (ângulo ~60°)
-        
-        // Configuração de sombras
-        light.castShadow = true;
-        light.shadow.mapSize.width = 2048;
-        light.shadow.mapSize.height = 2048;
-        light.shadow.camera.near = 0.5;
-        light.shadow.camera.far = 500;
-        light.shadow.camera.left = -250;
-        light.shadow.camera.right = 250;
-        light.shadow.camera.top = 250;
-        light.shadow.camera.bottom = -250;
-        
-        return light;
-    }
+// 4. Configuração adicional na luz direcional principal:
+function createDirectionalLight() {
+    const light = new THREE.DirectionalLight(0xffffff, 0.8);
+    light.position.set(100, 150, 30);
+    
+    // Configurações de sombra (mantidas)
+    light.castShadow = true;
+    light.shadow.mapSize.width = 2048;
+    light.shadow.mapSize.height = 2048;
+    light.shadow.camera.near = 0.5;
+    light.shadow.camera.far = 500;
+    light.shadow.camera.left = -250;
+    light.shadow.camera.right = 250;
+    light.shadow.camera.top = 250;
+    light.shadow.camera.bottom = -250;
+    
+    // Aumentar a qualidade das sombras
+    light.shadow.bias = -0.001;
+    light.shadow.normalBias = 0.02;
+    
+    return light;
+  }
 
     function buildLightingInterface(directionalLight, fillLight, helper, scene) {
         const lightControls = {
