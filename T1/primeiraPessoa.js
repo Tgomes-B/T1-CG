@@ -8,12 +8,12 @@ import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
 import { initRenderer, onWindowResize } from "../libs/util/util.js";
-import { criaAreasRampas, criaParedes, setupLighting } from './Ambiente.js';
+import { criaAreasRampas, criaParedes,criaChave,criaPilares, setupLighting } from './Ambiente.js';
 import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
 
 let stats, renderer, scene, camera, controls, clock;
-let spotLightHelper, areas, ramp, ground, walls;
+let spotLightHelper, areas, ramp, ground, walls, key;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
 
@@ -94,6 +94,8 @@ function setupEnvironment() {
     });
 
     
+    key = criaChave(scene, areas);
+    criaPilares(areas[0]);
 }
 
 /**
