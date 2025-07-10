@@ -2,35 +2,24 @@
  * Configuração principal do jogo em primeira pessoa.
  * @module primeiraPessoa
  */
+import { adicionarInimigoCena } from './inimigo.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
 import { initRenderer, onWindowResize } from "../libs/util/util.js";
-
-import { adicionarInimigoCena, Comportamento, updateEnemyProjectiles } from './inimigo.js';
-import { createEnemy, loadEnemyOBJ, updateEnemyBehavior } from './enemy.js';
-import { setupAreaChave,criaChave } from './areaChave.js';
-import { 
-    criaAreasRampas, 
-    criaParedes, 
-    criaPilares, 
-    setupLighting 
-} from './Ambiente.js';
+import { criaAreasRampas, criaParedes, setupLighting } from './Ambiente.js';
 import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
 
 let stats, renderer, scene, camera, controls, clock;
-let spotLightHelper, areas, ramp, ground, walls, key;
+let spotLightHelper, areas, ramp, ground, walls;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
 
-    let areaChaveController = null;
-const enemyProjectiles = [];
 let currentWeaponIndex = 0;
 const gravity = 9.8; 
 let velocityY = 0;   
 const speed = 20;
-const ENEMY_SPEED = 5;
 const WEAPONS = {
     launcher: {
         name: "launcher",
@@ -68,7 +57,6 @@ function init() {
     setupInitialCameraPosition();
     clock = new THREE.Clock();
 
-
     setupEnvironment();
     setupLightingAndCollision();
     setupGameElements();
@@ -79,7 +67,7 @@ function init() {
  * Configura a posição inicial da câmera.
  */
 function setupInitialCameraPosition() {
-    controls.getObject().position.set(10, 2, 1); 
+    controls.getObject().position.set(10, 7, 1); 
     const lookAtTarget = new THREE.Vector3(0.5, 2, 1);
     const direction = new THREE.Vector3().subVectors(
         lookAtTarget, 
@@ -90,18 +78,12 @@ function setupInitialCameraPosition() {
 
 /**
  * Configura o ambiente do jogo.
- * caminho antigo: images/sprites/cacodemon.glb
+ * caminho antigo: images/sprites/2025.1_T2_Assets/cacodemon.glb
  */
 function setupEnvironment() {
     ({ areas, ramp, ground } = criaAreasRampas(scene));
     walls = criaParedes(scene);
     adicionarInimigoCena(scene, 'images/sprites/teste/cacodemonanimations.glb', { x: 100, y: 20, z: 100 });
-    loadEnemyOBJ('images/skull.obj', { x: 0, y: 2, z: 0 }, (enemyObj) => {
-        scene.add(enemyObj);
-    });
-
-    areaChaveController = setupAreaChave(scene, areas[0]);
-    criaPilares(areas[0]);
 }
 
 /**
@@ -316,14 +298,13 @@ function movementControls(key, value) {
         case 'ShiftLeft': moveDown = value; break;
     }
 }
-
 /**
  * Atualiza a posição do jogador e verifica colisões.
  * @param {number} delta - Tempo decorrido desde o último frame.
  */
 export function moveAnimate(delta) {
     const playerObj = controls.getObject();
-    const alturaPlayer = 2;
+    const alturaPlayer = 7;
     const forward = controls.getDirection(new THREE.Vector3()).setY(0).normalize();
     const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
     const moveVec = new THREE.Vector3();
@@ -356,7 +337,7 @@ export function moveAnimate(delta) {
     // 3. Se colidiu, tenta auto step (subir degrau/área)
     if (collided) {
         let stepped = false;
-        const maxStep = 5;
+        const maxStep = 1.5;
         const stepIncrement = 0.1;
         for (let step = stepIncrement; step <= maxStep; step += stepIncrement) {
             playerObj.position.y += step;
@@ -430,29 +411,92 @@ function render() {
     stats.update();
     const delta = clock.getDelta();
 
-    // Atualiza animações dos inimigos e lógica de IA
+    // Fazer barras de vida olharem para a câmera
     scene.traverse(obj => {
         if (obj.userData && obj.userData.isEnemy) {
-            if (obj.userData.enemyType === "esfera") {
-                updateEnemyBehavior(obj, controls.getObject(), scene, delta);
-            } else if (obj.userData.enemyType === "glb") {
-                Comportamento(obj, controls.getObject(), scene, delta);
+            // Encontrar a barra de vida na hierarquia
+            obj.traverse(child => {
+                if (child.userData && child.userData.isHealthBar) {
+                    child.lookAt(camera.position);
+                }
+            });
+        }
+    });
+
+    // Atualiza animações dos inimigos
+    scene.traverse(obj => {
+        if (obj.userData && obj.userData.mixer) {
+            obj.userData.mixer.update(delta);
+        }
+    
+        if (obj.userData && obj.userData.isEnemy) {
+            const playerPos = controls.getObject().position;
+            const enemyPos = obj.position;
+            const dist = playerPos.distanceTo(enemyPos);
+
+            const boxSize = 7.57; // mesmo valor usado na criação
+            const boxHeight = 10; // Aumentar altura da caixa de colisão
+            const boxCenter = obj.position.clone();
+            const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
+            const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
+            obj.userData.collisionBox.min.copy(min);
+            obj.userData.collisionBox.max.copy(max);
+            
+            // Atualiza o helper visual
+            if (obj.userData.boxHelper) {
+                obj.userData.boxHelper.box.copy(obj.userData.collisionBox);
+                obj.userData.boxHelper.updateMatrixWorld(true);
+            }
+            // Troca de estado: idle -> perseguir
+            if (obj.userData.state === "idle" && dist < obj.userData.detectionRadius) {
+                obj.userData.state = "perseguir";
+            }
+    
+            // Troca de estado: perseguir -> idle (desistir)
+            if (obj.userData.state === "perseguir" && dist > obj.userData.detectionRadius + 10) {
+                obj.userData.state = "idle";
+            }
+    
+            // Idle: flutuando
+            if (obj.userData.state === "idle") {
+                const targetY = obj.userData.baseY + Math.sin(performance.now() * 0.001) * 2;
+                obj.position.y = THREE.MathUtils.lerp(obj.position.y, targetY, 0.1);
+            }
+    
+            // Perseguir: vai atrás do player
+            if (obj.userData.state === "perseguir") {
+                // Movimento horizontal: direção XZ
+                const dir = new THREE.Vector3().subVectors(playerPos, enemyPos);
+                dir.y = 0; // Ignorar altura para movimento horizontal
+                const distance = dir.length();
+                
+                if (distance > 5) { // distância mínima para não grudar
+                    dir.normalize();
+                    obj.position.add(dir.multiplyScalar(5 * delta));
+                }
+                
+                // Movimento vertical: ajusta suavemente a altura do inimigo para a altura do jogador
+                const targetHeight = playerPos.y;
+                const heightDifference = targetHeight - obj.position.y;
+                const verticalSpeed = 0.05; // Velocidade de ajuste vertical
+                obj.position.y += heightDifference * verticalSpeed * delta * 60; // delta * 60 para taxa constante
+                
+                // Rotaciona para olhar para o player (horizontalmente)
+                const angle = Math.atan2(playerPos.x - enemyPos.x, playerPos.z - enemyPos.z);
+                obj.rotation.y = angle;
             }
         }
     });
-    if (areaChaveController) {
-        const chave = areaChaveController.getChaveAnimada && areaChaveController.getChaveAnimada();
-        const baseY = areaChaveController.getBaseY && areaChaveController.getBaseY();
-        if (chave && chave.parent) {
-            chave.rotation.y += 0.02;
-            chave.position.y = baseY + Math.sin(Date.now() * 0.002) * 2;
-        }
-    }
-    updateEnemyProjectiles(scene, controls, delta);
 
     if (controls.isLocked) {
         moveAnimate(delta);
         updateProjectiles(delta);
+
+                // Atualiza comportamento dos inimigos
+                const enemies = scene.children.filter(obj => obj.name === "enemy");
+                for(const enemy of enemies) {
+                    updateEnemyBehavior(enemy, controls.getObject(), scene, delta);
+                }
     }
     if (spotLightHelper) spotLightHelper.update();
     renderer.render(scene, camera);
