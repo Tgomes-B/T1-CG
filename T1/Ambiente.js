@@ -96,7 +96,6 @@ export function criaAreasRampas(scene) {
             criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 4, 120], true);
             criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 4, 120], true);
             criaAreaColisao(areaX + 60, areaY, areaZ, [90, 4, 20]);
-        
         }else if (i == 1) {
             molde = new THREE.Mesh(areaGeometry, areaMaterial[i]);
             molde.position.set(55, 0, 0);
@@ -146,6 +145,7 @@ export function criaAreasRampas(scene) {
         }else if (i == 1) {
             areas[i].position.set(120, 5, posZ);
             elevador(areas);
+            criaTorres(areas[i]);
         }else if (i == 2) {
             areas[i].position.set(130, 5, posZ);
             criaEscada(115, posZ, comp, 130, 10, -0.102 * Math.PI, 5);
@@ -387,5 +387,47 @@ export function setupLighting(scene) {
 
         setModoIluminacao(lightControls.modo);
         setHelpers(lightControls.mostrarHelpers);
+    }
+}
+
+function criaTorres(area) {
+    const base = 10;
+    const alturas = [22, 28, 19, 16, 27, 25, 21, 30, 18, 24, 29, 20, 17, 23, 26];
+    const espacoX = 90 / 4;
+    const espacoZ4 = (120 - base*4)/3;
+    const espacoZ3 = (120 - base*3)/4;
+    const iniZ4 = -60 + base/2;
+    const iniZ3 = -60 + base / 2 + espacoZ3;
+    const material = new THREE.MeshLambertMaterial({ color: 0x888888 });
+    const torresLinha = [4, 3, 4, 3];
+    let z = 0;
+
+    let i = 0;
+    for (let row = 0; row < torresLinha.length; row++) {
+        for (let col = 0; col < torresLinha[row]; col++) {
+            if (i >= alturas.length) break;
+            const altura = alturas[i++];
+            if(torresLinha[row] == 4){
+                z = iniZ4 + (espacoZ4 + base) * col;
+            }
+            else if(torresLinha[row] == 3){
+                z = iniZ3 + (espacoZ3 + base) * col;
+            }else{
+                break;
+            }
+            
+            let x = 30 + row * espacoX;
+            const geometry = new THREE.BoxGeometry(base, altura, base);  
+            const torre = new THREE.Mesh(geometry, material);
+
+            torre.position.set(x, 5 + altura / 2, z);
+            torre.name = "torre";
+            torre.userData.isCollidable = true;
+
+            area.add(torre);
+            if(alturas[i]==25){
+                // torre que guarda a chave
+            }
+        }
     }
 }
