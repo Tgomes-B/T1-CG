@@ -222,3 +222,67 @@ function stopChaingunAnimation() {
         weapon.spriteTexture.needsUpdate = true;
     }
 }
+
+// tiro.js (adicionar estas funções)
+
+// Função para atualizar a barra de vida
+function updateEnemyHealth(enemy, damage) {
+    if (enemy.userData.hp === undefined) enemy.userData.hp = 100;
+    enemy.userData.hp -= damage;
+    
+    // Atualizar barra de vida
+    if (enemy.userData.healthBar) {
+        enemy.userData.healthBar.update(enemy.userData.hp);
+    }
+    
+    return enemy.userData.hp;
+}
+
+// Função para fade-out do inimigo
+function fadeOutEnemy(enemy) {
+    const fadeSpeed = 0.05;
+    
+    const fade = () => {
+        if (enemy.material && enemy.material.opacity > 0) {
+            // Atualizar todos os materiais do inimigo
+            enemy.traverse(child => {
+                if (child.material) {
+                    child.material.opacity -= fadeSpeed;
+                }
+            });
+            
+            // Atualizar barra de vida
+            if (enemy.userData.healthBar) {
+                enemy.userData.healthBar.healthMaterial.opacity -= fadeSpeed;
+                enemy.userData.healthBar.background.material.opacity -= fadeSpeed;
+            }
+            
+            requestAnimationFrame(fade);
+        } else {
+            // Remover inimigo da cena
+            scene.remove(enemy);
+        }
+    };
+    
+    fade();
+}
+
+// Atualizar onde o dano é aplicado (dentro de shootProjectile e updateProjectiles)
+// Substituir o código existente de dano por:
+
+// Para chaingun (raycast):
+/*if (hits.length > 0) {
+    const enemy = hits[0].object;
+    const hpLeft = updateEnemyHealth(enemy, 2 * (weapon.fireRate / 1000));
+    if (hpLeft <= 0) {
+        fadeOutEnemy(enemy);
+    }
+}
+
+// Para launcher (projétil):
+if (hitObject.userData?.isEnemy) {
+    const hpLeft = updateEnemyHealth(hitObject, 10);
+    if (hpLeft <= 0) {
+        fadeOutEnemy(hitObject);
+    }
+}*/

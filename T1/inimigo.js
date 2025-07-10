@@ -1,5 +1,7 @@
+// inimigo.js
 import * as THREE from 'three';
 import { GLTFLoader } from '../build/jsm/loaders/GLTFLoader.js';
+import { HealthBar } from './healthbar.js'; // Importe a classe HealthBar
 
 export function adicionarInimigoCena(cena, caminhoGLB, posicao = { x: 0, y: 0, z: 0 }) {
     const loader = new GLTFLoader();
@@ -12,10 +14,12 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicao = { x: 0, y: 0, z
             inimigo.userData.isEnemy = true;
             inimigo.userData.isCollidable = true;
 
-            const boxSize = 7.57; // tamanho do lado do quadrado (ajuste para o seu modelo)
+            // Aumentar altura da caixa de colisão
+            const boxSize = 7.57;
+            const boxHeight = 10; // Altura maior para movimento vertical
             const boxCenter = inimigo.position.clone();
-            const min = boxCenter.clone().add(new THREE.Vector3(-boxSize / 2, -boxSize / 2, -boxSize / 2));
-            const max = boxCenter.clone().add(new THREE.Vector3(boxSize / 2, boxSize / 2, boxSize / 2));
+            const min = boxCenter.clone().add(new THREE.Vector3(-boxSize / 2, -boxHeight / 2, -boxSize / 2));
+            const max = boxCenter.clone().add(new THREE.Vector3(boxSize / 2, boxHeight / 2, boxSize / 2));
             inimigo.userData.collisionBox = new THREE.Box3(min, max);
 
             const boxHelper = new THREE.Box3Helper(inimigo.userData.collisionBox, "red");
@@ -27,7 +31,22 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicao = { x: 0, y: 0, z
             inimigo.userData.moveType = "float";
             inimigo.userData.moveDirection = 1;
             inimigo.userData.baseY = inimigo.position.y;
+            
+            // Configurar HP e barra de vida
             inimigo.userData.hp = 100;
+            inimigo.userData.maxHp = 100;
+            
+            // Criar barra de vida
+            const healthBar = new HealthBar(inimigo.userData.maxHp, 1.0, 15);
+            inimigo.add(healthBar.getObject());
+            inimigo.userData.healthBar = healthBar;
+            
+            // Tornar materiais transparentes para fade-out
+            inimigo.traverse((child) => {
+                if (child.isMesh) {
+                    child.material.transparent = true;
+                }
+            });
 
             cena.add(inimigo);
 

@@ -412,6 +412,18 @@ function render() {
     stats.update();
     const delta = clock.getDelta();
 
+    // Fazer barras de vida olharem para a câmera
+    scene.traverse(obj => {
+        if (obj.userData && obj.userData.isEnemy) {
+            // Encontrar a barra de vida na hierarquia
+            obj.traverse(child => {
+                if (child.userData && child.userData.isHealthBar) {
+                    child.lookAt(camera.position);
+                }
+            });
+        }
+    });
+
     // Atualiza animações dos inimigos
     scene.traverse(obj => {
         if (obj.userData && obj.userData.mixer) {
@@ -424,9 +436,10 @@ function render() {
             const dist = playerPos.distanceTo(enemyPos);
 
             const boxSize = 7.57; // mesmo valor usado na criação
+            const boxHeight = 10; // Aumentar altura da caixa de colisão
             const boxCenter = obj.position.clone();
-            const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxSize/2, -boxSize/2));
-            const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxSize/2, boxSize/2));
+            const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
+            const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
             obj.userData.collisionBox.min.copy(min);
             obj.userData.collisionBox.max.copy(max);
             
@@ -453,14 +466,23 @@ function render() {
     
             // Perseguir: vai atrás do player
             if (obj.userData.state === "perseguir") {
+                // Movimento horizontal: direção XZ
                 const dir = new THREE.Vector3().subVectors(playerPos, enemyPos);
-                dir.y = 0;
+                dir.y = 0; // Ignorar altura para movimento horizontal
                 const distance = dir.length();
+                
                 if (distance > 5) { // distância mínima para não grudar
                     dir.normalize();
                     obj.position.add(dir.multiplyScalar(5 * delta));
                 }
-                // Rotaciona para olhar para o player
+                
+                // Movimento vertical: ajusta suavemente a altura do inimigo para a altura do jogador
+                const targetHeight = playerPos.y;
+                const heightDifference = targetHeight - obj.position.y;
+                const verticalSpeed = 0.05; // Velocidade de ajuste vertical
+                obj.position.y += heightDifference * verticalSpeed * delta * 60; // delta * 60 para taxa constante
+                
+                // Rotaciona para olhar para o player (horizontalmente)
                 const angle = Math.atan2(playerPos.x - enemyPos.x, playerPos.z - enemyPos.z);
                 obj.rotation.y = angle;
             }

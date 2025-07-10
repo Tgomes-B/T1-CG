@@ -238,8 +238,8 @@ function createDirectionalLight() {
     
     // Configurações de sombra (mantidas)
     light.castShadow = true;
-    light.shadow.mapSize.width = 2048;
-    light.shadow.mapSize.height = 2048;
+    light.shadow.mapSize.width = 4096; // Dobrar a resolução
+    light.shadow.mapSize.height = 4096;
     light.shadow.camera.near = 0.5;
     light.shadow.camera.far = 500;
     light.shadow.camera.left = -250;
@@ -248,9 +248,11 @@ function createDirectionalLight() {
     light.shadow.camera.bottom = -250;
     
     // Aumentar a qualidade das sombras
-    light.shadow.bias = -0.001;
-    light.shadow.normalBias = 0.02;
-    
+    //light.shadow.bias = -0.001;
+    //light.shadow.normalBias = 0.02;
+    light.shadow.bias = -0.0001; // Reduzir acne de sombra
+    light.shadow.normalBias = 0.05; // Reduzir peter panning
+
     return light;
   }
 
