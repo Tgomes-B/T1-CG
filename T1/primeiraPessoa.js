@@ -3,6 +3,8 @@
  * @module primeiraPessoa
  */
 import { adicionarInimigoCena } from './inimigo.js';
+import { createEnemy, loadEnemyOBJ, updateEnemyBehavior } from './enemy.js';
+import { setupAreaChave } from './areaChave.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
@@ -12,6 +14,7 @@ import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
 
 let stats, renderer, scene, camera, controls, clock;
+let areaChaveData;
 let spotLightHelper, areas, ramp, ground, walls;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
@@ -83,7 +86,23 @@ function setupInitialCameraPosition() {
 function setupEnvironment() {
     ({ areas, ramp, ground } = criaAreasRampas(scene));
     walls = criaParedes(scene);
-    adicionarInimigoCena(scene, 'images/sprites/teste/cacodemonanimations.glb', { x: 100, y: 20, z: 100 });
+
+    // Aguarda as torres serem criadas
+    setTimeout(() => {
+        const torresArea2 = areas[1].children.filter(obj => obj.name === "torre");
+        // Pegue 3 torres (exemplo: as 3 primeiras)
+        const torresParaInimigos = torresArea2.slice(0, 3);
+        torresParaInimigos.forEach(torre => {
+            const pos = {
+                x: torre.position.x,
+                y: torre.position.y + (torre.geometry.parameters.height / 2) + 2,
+                z: torre.position.z
+            };
+            adicionarInimigoCena(areas[1], 'images/sprites/teste/cacodemonanimations.glb', pos);
+        });
+    }, 0);
+
+    areaChaveData = setupAreaChave(scene, areas[0]);
 }
 
 /**
@@ -439,13 +458,22 @@ function render() {
             const boxCenter = obj.position.clone();
             const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
             const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
-            obj.userData.collisionBox.min.copy(min);
-            obj.userData.collisionBox.max.copy(max);
+            if (
+                obj.userData &&
+                obj.userData.collisionBox instanceof THREE.Box3 &&
+                obj.userData.collisionBox.min && obj.userData.collisionBox.max
+            ) {
+                obj.userData.collisionBox.min.copy(min);
+                obj.userData.collisionBox.max.copy(max);
             
-            // Atualiza o helper visual
-            if (obj.userData.boxHelper) {
-                obj.userData.boxHelper.box.copy(obj.userData.collisionBox);
-                obj.userData.boxHelper.updateMatrixWorld(true);
+                // Atualiza o helper visual
+                if (
+                    obj.userData.boxHelper &&
+                    obj.userData.boxHelper.box instanceof THREE.Box3
+                ) {
+                    obj.userData.boxHelper.box.copy(obj.userData.collisionBox);
+                    obj.userData.boxHelper.updateMatrixWorld(true);
+                }
             }
             // Troca de estado: idle -> perseguir
             if (obj.userData.state === "idle" && dist < obj.userData.detectionRadius) {
@@ -498,6 +526,13 @@ function render() {
                     updateEnemyBehavior(enemy, controls.getObject(), scene, delta);
                 }
     }
+
+    if (areaChaveData && areaChaveData.getChaveAnimada()) {
+        const chave = areaChaveData.getChaveAnimada();
+        const baseY = areaChaveData.getBaseY();
+        chave.position.y = baseY + Math.sin(performance.now() * 0.002) * 1.2; // 1.2 é a amplitude
+    }
+
     if (spotLightHelper) spotLightHelper.update();
     renderer.render(scene, camera);
     requestAnimationFrame(render);

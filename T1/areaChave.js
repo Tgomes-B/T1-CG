@@ -65,7 +65,7 @@ export function setupAreaChave(scene, area) {
     let chave = null;
 
     enemyPositions.forEach((pos) => {
-        loadEnemyOBJ('images/skull.obj', pos, (enemy) => {
+        loadEnemyOBJ('images/sprites/skull/skull.obj', pos, (enemy) => {
             area.add(enemy);
             enemies.push(enemy);
 
