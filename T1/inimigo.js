@@ -33,8 +33,8 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicao = { x: 0, y: 0, z
             inimigo.userData.baseY = inimigo.position.y;
             
             // Configurar HP e barra de vida
-            inimigo.userData.hp = 50;
-            inimigo.userData.maxHp = 50;
+            inimigo.userData.hp = 100;
+            inimigo.userData.maxHp = 100;
             
             // Criar barra de vida
             const healthBar = new HealthBar(inimigo.userData.maxHp, 1.0, 15);

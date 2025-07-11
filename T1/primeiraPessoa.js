@@ -458,22 +458,13 @@ function render() {
             const boxCenter = obj.position.clone();
             const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
             const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
-            if (
-                obj.userData &&
-                obj.userData.collisionBox instanceof THREE.Box3 &&
-                obj.userData.collisionBox.min && obj.userData.collisionBox.max
-            ) {
-                obj.userData.collisionBox.min.copy(min);
-                obj.userData.collisionBox.max.copy(max);
+            obj.userData.collisionBox.min.copy(min);
+            obj.userData.collisionBox.max.copy(max);
             
-                // Atualiza o helper visual
-                if (
-                    obj.userData.boxHelper &&
-                    obj.userData.boxHelper.box instanceof THREE.Box3
-                ) {
-                    obj.userData.boxHelper.box.copy(obj.userData.collisionBox);
-                    obj.userData.boxHelper.updateMatrixWorld(true);
-                }
+            // Atualiza o helper visual
+            if (obj.userData.boxHelper) {
+                obj.userData.boxHelper.box.copy(obj.userData.collisionBox);
+                obj.userData.boxHelper.updateMatrixWorld(true);
             }
             // Troca de estado: idle -> perseguir
             if (obj.userData.state === "idle" && dist < obj.userData.detectionRadius) {
@@ -526,13 +517,6 @@ function render() {
                     updateEnemyBehavior(enemy, controls.getObject(), scene, delta);
                 }
     }
-
-    if (areaChaveData && areaChaveData.getChaveAnimada()) {
-        const chave = areaChaveData.getChaveAnimada();
-        const baseY = areaChaveData.getBaseY();
-        chave.position.y = baseY + Math.sin(performance.now() * 0.002) * 1.2; // 1.2 é a amplitude
-    }
-
     if (spotLightHelper) spotLightHelper.update();
     renderer.render(scene, camera);
     requestAnimationFrame(render);
