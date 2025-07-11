@@ -1,7 +1,7 @@
 // inimigo.js
 import * as THREE from 'three';
 import { GLTFLoader } from '../build/jsm/loaders/GLTFLoader.js';
-import { HealthBar } from './healthbar.js'; // Importe a classe HealthBar
+import { HealthBar } from './healthbar.js';
 
 export function adicionarInimigoCena(cena, caminhoGLB, posicao = { x: 0, y: 0, z: 0 }) {
     const loader = new GLTFLoader();
@@ -14,22 +14,22 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicao = { x: 0, y: 0, z
             inimigo.userData.isEnemy = true;
             inimigo.userData.isCollidable = true;
 
-            // Aumentar altura da caixa de colisão
-            const boxSize = 7.57;
-            const boxHeight = 10; // Altura maior para movimento vertical
+            // Configurar caixa de colisão maior
+            const boxSize = 9.0; // Tamanho aumentado
+            const boxHeight = 12.0; // Tamanho aumentado
             const boxCenter = inimigo.position.clone();
             const min = boxCenter.clone().add(new THREE.Vector3(-boxSize / 2, -boxHeight / 2, -boxSize / 2));
             const max = boxCenter.clone().add(new THREE.Vector3(boxSize / 2, boxHeight / 2, boxSize / 2));
             inimigo.userData.collisionBox = new THREE.Box3(min, max);
 
+            // Helper visual (opcional)
             const boxHelper = new THREE.Box3Helper(inimigo.userData.collisionBox, "red");
             cena.add(boxHelper);
-
             inimigo.userData.boxHelper = boxHelper;
+
+            // Configurar estados do inimigo
             inimigo.userData.state = "idle";
             inimigo.userData.detectionRadius = 100;
-            inimigo.userData.moveType = "float";
-            inimigo.userData.moveDirection = 1;
             inimigo.userData.baseY = inimigo.position.y;
             
             // Configurar HP e barra de vida
@@ -50,7 +50,7 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicao = { x: 0, y: 0, z
 
             cena.add(inimigo);
 
-            // --- Animação ---
+            // Configurar animações
             if (gltf.animations && gltf.animations.length > 0) {
                 const mixer = new THREE.AnimationMixer(inimigo);
                 const idleClip = gltf.animations.find(clip => clip.name.toLowerCase() === "idle");

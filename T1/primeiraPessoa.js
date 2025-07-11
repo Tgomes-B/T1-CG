@@ -1,4 +1,4 @@
-/**
+/** 
  * Configuração principal do jogo em primeira pessoa.
  * @module primeiraPessoa
  */
@@ -308,63 +308,82 @@ export function moveAnimate(delta) {
     const alturaPlayer = 7;
     const forward = controls.getDirection(new THREE.Vector3()).setY(0).normalize();
     const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+    
+    // Calcular movimento total
     const moveVec = new THREE.Vector3();
-
-    // 1. Calcula vetor de movimento
     if (moveForward) moveVec.add(forward);
     if (moveBackward) moveVec.add(forward.clone().negate());
     if (moveRight) moveVec.add(right);
     if (moveLeft) moveVec.add(right.clone().negate());
-    if (moveVec.lengthSq() > 0) moveVec.normalize();
-
-    // 2. Tenta mover normalmente
-    const originalPos = playerObj.position.clone();
-    let tryPos = originalPos.clone().add(moveVec.clone().multiplyScalar(speed * delta));
-    playerObj.position.copy(tryPos);
-
-    let playerBox = new THREE.Box3().setFromCenterAndSize(
-        playerObj.position.clone(),
-        new THREE.Vector3(0.3, alturaPlayer, 0.3)
-    );
-
+    
+    if (moveVec.length() > 0) {
+        moveVec.normalize();
+    }
+    
     const collidables = scene.children.filter(obj =>
         obj.userData && obj.userData.isCollidable && obj.name !== "camera"
     );
-
-    let collided = collidables.some(obj =>
-        obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)
+    
+    const originalPos = playerObj.position.clone();
+    
+    // Movimento completo (direção combinada)
+    playerObj.position.x += moveVec.x * speed * delta;
+    playerObj.position.z += moveVec.z * speed * delta;
+    
+    const playerBox = new THREE.Box3().setFromCenterAndSize(
+        playerObj.position.clone(),
+        new THREE.Vector3(0.3, alturaPlayer, 0.3)
     );
-
-    // 3. Se colidiu, tenta auto step (subir degrau/área)
-    if (collided) {
-        let stepped = false;
-        const maxStep = 1.5;
-        const stepIncrement = 0.1;
-        for (let step = stepIncrement; step <= maxStep; step += stepIncrement) {
-            playerObj.position.y += step;
-            let playerBoxStep = new THREE.Box3().setFromCenterAndSize(
-                playerObj.position.clone(),
-                new THREE.Vector3(0.3, alturaPlayer, 0.3)
-            );
-            let collidedStep = collidables.some(obj =>
-                obj.userData.collisionBox && playerBoxStep.intersectsBox(obj.userData.collisionBox)
-            );
-            if (!collidedStep) {
-                stepped = true;
-                break;
-            }
-            playerObj.position.y -= step;
+    
+    if (collidables.some(obj => 
+        obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)
+    )) {
+        // Se colidiu, tentar movimento em X separadamente
+        playerObj.position.z = originalPos.z;
+        playerBox.setFromCenterAndSize(
+            playerObj.position.clone(),
+            new THREE.Vector3(0.3, alturaPlayer, 0.3)
+        );
+        
+        if (collidables.some(obj => 
+            obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)
+        )) {
+            playerObj.position.x = originalPos.x;
         }
-        if (!stepped) {
-            playerObj.position.copy(originalPos);
+        
+        // Se colidiu em X, tentar movimento em Z separadamente
+        playerObj.position.x = originalPos.x;
+        playerObj.position.z += moveVec.z * speed * delta;
+        playerBox.setFromCenterAndSize(
+            playerObj.position.clone(),
+            new THREE.Vector3(0.3, alturaPlayer, 0.3)
+        );
+        
+        if (collidables.some(obj => 
+            obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)
+        )) {
+            playerObj.position.z = originalPos.z;
         }
     }
 
-    // 4. Movimento vertical manual (pulo/crouch)
+    // Verificar colisão com inimigos
+    const enemies = scene.children.filter(obj => 
+        obj.userData && obj.userData.isEnemy
+    );
+    
+    for (const enemy of enemies) {
+        if (enemy.userData.collisionBox && playerBox.intersectsBox(enemy.userData.collisionBox)) {
+            // Reverter movimento se colidiu com inimigo
+            playerObj.position.copy(originalPos);
+            break;
+        }
+    }
+
+    // Movimento vertical manual (pulo/crouch)
     if (moveUp) velocityY = speed; // Pulo
     if (moveDown) velocityY = -speed; // Descida manual
 
-    // 5. Alinha os pés ao chão/área usando raycast
+    // Alinha os pés ao chão/área usando raycast
     const downRay = new THREE.Raycaster(
         playerObj.position.clone(),
         new THREE.Vector3(0, -1, 0),
@@ -406,11 +425,74 @@ export function moveAnimate(delta) {
 }
 
 /**
+ * Função para mover o inimigo com colisão
+ */
+function moveEnemy(enemy, targetPos, delta, collidables) {
+    const enemySpeed = 10; // Velocidade aumentada
+    const enemySize = new THREE.Vector3(5.0, 7.0, 5.0); // Tamanho aumentado
+    
+    const originalPos = enemy.position.clone();
+    const dir = new THREE.Vector3().subVectors(targetPos, originalPos);
+    dir.y = 0; // Movimento apenas horizontal
+    
+    if (dir.length() === 0) return;
+    
+    dir.normalize();
+    
+    // Movimento completo
+    enemy.position.x = originalPos.x + dir.x * enemySpeed * delta;
+    enemy.position.z = originalPos.z + dir.z * enemySpeed * delta;
+    
+    // Criar caixa de colisão temporária para verificação
+    const enemyBox = new THREE.Box3().setFromCenterAndSize(
+        enemy.position.clone(),
+        enemySize
+    );
+    
+    if (collidables.some(obj => 
+        obj.userData.collisionBox && enemyBox.intersectsBox(obj.userData.collisionBox)
+    )) {
+        // Reverter movimento completo
+        enemy.position.x = originalPos.x;
+        enemy.position.z = originalPos.z;
+        
+        // Tentar movimento apenas em X
+        enemy.position.x = originalPos.x + dir.x * enemySpeed * delta;
+        enemyBox.setFromCenterAndSize(
+            enemy.position.clone(),
+            enemySize
+        );
+        
+        if (collidables.some(obj => 
+            obj.userData.collisionBox && enemyBox.intersectsBox(obj.userData.collisionBox)
+        )) {
+            enemy.position.x = originalPos.x;
+        }
+        
+        // Tentar movimento apenas em Z
+        enemy.position.z = originalPos.z + dir.z * enemySpeed * delta;
+        enemyBox.setFromCenterAndSize(
+            enemy.position.clone(),
+            enemySize
+        );
+        
+        if (collidables.some(obj => 
+            obj.userData.collisionBox && enemyBox.intersectsBox(obj.userData.collisionBox)
+        )) {
+            enemy.position.z = originalPos.z;
+        }
+    }
+}
+
+/**
  * Loop principal de renderização do jogo.
  */
 function render() {
     stats.update();
-    const delta = clock.getDelta();
+    let delta = clock.getDelta();
+    
+    // Limitar delta para evitar problemas quando o jogo está minimizado
+    if (delta > 0.1) delta = 0.1;
 
     // Fazer barras de vida olharem para a câmera
     scene.traverse(obj => {
@@ -435,8 +517,9 @@ function render() {
             const enemyPos = obj.position;
             const dist = playerPos.distanceTo(enemyPos);
 
-            const boxSize = 7.57; // mesmo valor usado na criação
-            const boxHeight = 10; // Aumentar altura da caixa de colisão
+            // Atualizar caixa de colisão do inimigo
+            const boxSize = 12.0; // Aumentado de 9 para 12
+            const boxHeight = 15.0; // Aumentado de 12 para 15
             const boxCenter = obj.position.clone();
             const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
             const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
@@ -448,14 +531,17 @@ function render() {
                 obj.userData.boxHelper.box.copy(obj.userData.collisionBox);
                 obj.userData.boxHelper.updateMatrixWorld(true);
             }
+            
             // Troca de estado: idle -> perseguir
             if (obj.userData.state === "idle" && dist < obj.userData.detectionRadius) {
                 obj.userData.state = "perseguir";
+                console.log("Inimigo agora está perseguindo!");
             }
     
             // Troca de estado: perseguir -> idle (desistir)
             if (obj.userData.state === "perseguir" && dist > obj.userData.detectionRadius + 10) {
                 obj.userData.state = "idle";
+                console.log("Inimigo parou de perseguir!");
             }
     
             // Idle: flutuando
@@ -466,21 +552,20 @@ function render() {
     
             // Perseguir: vai atrás do player
             if (obj.userData.state === "perseguir") {
-                // Movimento horizontal: direção XZ
-                const dir = new THREE.Vector3().subVectors(playerPos, enemyPos);
-                dir.y = 0; // Ignorar altura para movimento horizontal
-                const distance = dir.length();
+                // Obtém objetos colidíveis
+                const collidables = scene.children.filter(objColl => 
+                    objColl.userData && objColl.userData.isCollidable && 
+                    objColl.name !== "camera"
+                );
                 
-                if (distance > 5) { // distância mínima para não grudar
-                    dir.normalize();
-                    obj.position.add(dir.multiplyScalar(5 * delta));
-                }
+                // Usa função de movimento com colisão
+                moveEnemy(obj, playerPos, delta, collidables);
                 
                 // Movimento vertical: ajusta suavemente a altura do inimigo para a altura do jogador
                 const targetHeight = playerPos.y;
                 const heightDifference = targetHeight - obj.position.y;
                 const verticalSpeed = 0.05; // Velocidade de ajuste vertical
-                obj.position.y += heightDifference * verticalSpeed * delta * 60; // delta * 60 para taxa constante
+                obj.position.y += heightDifference * verticalSpeed * delta * 60;
                 
                 // Rotaciona para olhar para o player (horizontalmente)
                 const angle = Math.atan2(playerPos.x - enemyPos.x, playerPos.z - enemyPos.z);
@@ -492,13 +577,8 @@ function render() {
     if (controls.isLocked) {
         moveAnimate(delta);
         updateProjectiles(delta);
-
-                // Atualiza comportamento dos inimigos
-                const enemies = scene.children.filter(obj => obj.name === "enemy");
-                for(const enemy of enemies) {
-                    updateEnemyBehavior(enemy, controls.getObject(), scene, delta);
-                }
     }
+    
     if (spotLightHelper) spotLightHelper.update();
     renderer.render(scene, camera);
     requestAnimationFrame(render);

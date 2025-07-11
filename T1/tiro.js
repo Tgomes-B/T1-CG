@@ -91,10 +91,9 @@ function shootProjectile() {
         const hits = raycaster.intersectObjects(enemies, true);
         if (hits.length > 0) {
             const enemy = hits[0].object;
-            if (enemy.userData.hp === undefined) enemy.userData.hp = 100;
-            enemy.userData.hp -= 2 * (weapon.fireRate / 1000); // 2 HP por segundo
-            if (enemy.userData.hp <= 0) {
-                scene.remove(enemy);
+            const hpLeft = updateEnemyHealth(enemy, 2 * (weapon.fireRate / 1000)); // 2 HP por segundo
+            if (hpLeft <= 0) {
+                fadeOutEnemy(enemy);
             }
         }
         return; // Não cria projétil!
@@ -139,14 +138,9 @@ export function updateProjectiles(delta) {
 
                 // Aplica dano se o objeto for um inimigo
                 if (hitObject.userData?.isEnemy) {
-                    if (hitObject.userData.hp === undefined) hitObject.userData.hp = 100; // HP padrão
-                    hitObject.userData.hp -= 10; // Dano do launcher
-                    console.log(`Inimigo atingido! HP restante: ${hitObject.userData.hp}`);
-
-                    // Remove inimigo se o HP for menor ou igual a 0
-                    if (hitObject.userData.hp <= 0) {
-                        scene.remove(hitObject);
-                        console.log("Inimigo eliminado!");
+                    const hpLeft = updateEnemyHealth(hitObject, 10); // Dano do launcher
+                    if (hpLeft <= 0) {
+                        fadeOutEnemy(hitObject);
                     }
                 }
             }
@@ -194,7 +188,7 @@ export function fadeOut(object, duration, onComplete) {
 }
 
 /**
- * Inicia a animação do sprite da chaingun, alternando os frames do spritesheet.
+ * Inicia a animação do sprite da chaingun, alternando os frames del spritesheet.
  * Só anima se não estiver já animando.
  */
 function animateChaingunSprite() {
@@ -211,7 +205,7 @@ function animateChaingunSprite() {
 }
 
 /**
- * Para a animação do sprite da chaingun e retorna ao frame inicial.
+ * Para a animação del sprite da chaingun e retorna ao frame inicial.
  */
 function stopChaingunAnimation() {
     const weapon = getCurrentWeapon();
@@ -222,8 +216,6 @@ function stopChaingunAnimation() {
         weapon.spriteTexture.needsUpdate = true;
     }
 }
-
-// tiro.js (adicionar estas funções)
 
 // Função para atualizar a barra de vida
 function updateEnemyHealth(enemy, damage) {
