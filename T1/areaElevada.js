@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { criaChave } from './areaChave.js';
+import { criaBlocoChave, criaChave } from './areaChave.js';
 
 export function setupArea2(area, scene) {
     // Cria torres na área elevada
@@ -45,6 +45,10 @@ export function setupArea2(area, scene) {
             }
         }
     }
+    let bloco = criaBlocoChave();
+    bloco.name = 'bloco';
+    bloco.position.set(100, 2, 0);
+    scene.add(bloco);
     elevador(scene);
 }
 
@@ -57,22 +61,33 @@ function elevador(scene) {
     const elevadorMaterial = new THREE.MeshLambertMaterial({ color: 'blue' });
     const elevadorMesh = new THREE.Mesh(elevadorGeometry, elevadorMaterial);
 
-    portaMesh.position.set(-2.5, 0, 0);
+    portaMesh.position.set(117.5, 5, 0);
     elevadorMesh.position.set(127.5, 5, 0);
 
     elevadorMesh.name = 'elevador';
     portaMesh.name = 'porta';
 
     scene.add(elevadorMesh);
-    //scene.add(portaMesh);
-    movimentoElevador(elevadorMesh, portaMesh);
+    scene.add(portaMesh);
+    //movimentoElevador(elevadorMesh, portaMesh);
+    elevadorMesh.userData.isCollidable = true;
+    portaMesh.userData.isCollidable = true;
 }
 
 function movimentoElevador(elevadorMesh, portaMesh) {
     // Animação do elevador e da porta
+    const downRay = new THREE.Raycaster(
+        playerObj.position.clone(),
+        new THREE.Vector3(0, -1, 0),
+        0,
+        4);
+    const portaColision = scene.children.filter(obj =>
+        obj.userData && obj.userData.isCollidable && obj.name === 'elevador'
+    );
 
-    elevadorMesh.userData.isCollidable = true;
-    portaMesh.userData.isCollidable = true;
+    const portaIntersects = downRay.intersectObjects(portaColision, false);
+
+    
 
 
 }

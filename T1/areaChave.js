@@ -84,18 +84,18 @@ export function setupAreaChave(scene, area) {
     function showPilarComChave() {
         // Pilar
         
-        let pilar = criaPilarChave();
-        area.add(pilar);
+        let bloco = criaBlocoChave();
+        area.add(bloco);
 
         // Chave
         chave = criaChave('red');
         chave.position.set(0, 6, 0); // Em cima do pilar (posição relativa ao pilar)
-        pilar.add(chave);
+        bloco.add(chave);
 
         // Guarda referência para animação no render principal
         chaveAnimada = chave;
         baseY = chave.position.y;
-        return pilar;
+        return bloco;
     }
     showPilarComChave();
     // Retorna referência para controle externo se quiser
@@ -110,10 +110,10 @@ export function setupAreaChave(scene, area) {
         getBaseY: () => baseY
     };
 }
-export function criaPilarChave(){
-    const pilarGeometry = new THREE.CylinderGeometry(2, 2, 7, 32);
-    const pilarMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(200, 200, 200)' });
-    let pilar = new THREE.Mesh(pilarGeometry, pilarMaterial);
-    pilar.position.set(45, 1, 0);
-    return pilar;
+export function criaBlocoChave(){
+    const blocoGeometry = new THREE.BoxGeometry(2,4,2);
+    const blocoMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(200, 200, 200)' });
+    let bloco = new THREE.Mesh(blocoGeometry, blocoMaterial);
+    bloco.position.set(45, 4, 0);
+    return bloco;
 }
