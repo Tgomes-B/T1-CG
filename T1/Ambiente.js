@@ -211,13 +211,13 @@ export function setupLighting(scene) {
     const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
     scene.add(ambientLight);
 
-    // 2. Luz direcional principal (ajustada)
+    // 2. Luz direcional principal (ajustada para maior altura)
     const directionalLight = createDirectionalLight();
     
-    // 3. NOVA: Segunda luz direcional (preenchimento)
+    // 3. Segunda luz direcional (preenchimento) - também ajustada para maior altura
     const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
-    fillLight.position.set(-100, 80, -30); // Direção oposta
-    fillLight.castShadow = false; // Sem sombras!
+    fillLight.position.set(-100, 150, -30); // Altura aumentada para 150
+    fillLight.castShadow = false; // Sem sombras
 
     scene.add(directionalLight);
     scene.add(fillLight);
@@ -227,36 +227,33 @@ export function setupLighting(scene) {
     scene.add(directionalLightHelper);
 
     // Atualização da GUI
-    buildLightingInterface(directionalLight, fillLight, directionalLightHelper, scene);
+    buildLightingInterface(directionalLight, fillLight, directionalLightHelper, ambientLight, scene);
 
     return directionalLightHelper;
 
-// 4. Configuração adicional na luz direcional principal:
-function createDirectionalLight() {
-    const light = new THREE.DirectionalLight(0xffffff, 0.8);
-    light.position.set(100, 150, 30);
-    
-    // Configurações de sombra (mantidas)
-    light.castShadow = true;
-    light.shadow.mapSize.width = 4096; // Dobrar a resolução
-    light.shadow.mapSize.height = 4096;
-    light.shadow.camera.near = 0.5;
-    light.shadow.camera.far = 500;
-    light.shadow.camera.left = -250;
-    light.shadow.camera.right = 250;
-    light.shadow.camera.top = 250;
-    light.shadow.camera.bottom = -250;
-    
-    // Aumentar a qualidade das sombras
-    //light.shadow.bias = -0.001;
-    //light.shadow.normalBias = 0.02;
-    light.shadow.bias = -0.0001; // Reduzir acne de sombra
-    light.shadow.normalBias = 0.05; // Reduzir peter panning
+    function createDirectionalLight() {
+        const light = new THREE.DirectionalLight(0xffffff, 0.8);
+        light.position.set(100, 250, 30); // Altura aumentada para 250 (antes era 150)
+        
+        // Configurações de sombra
+        light.castShadow = true;
+        light.shadow.mapSize.width = 4096;
+        light.shadow.mapSize.height = 4096;
+        light.shadow.camera.near = 0.5;
+        light.shadow.camera.far = 500;
+        light.shadow.camera.left = -250;
+        light.shadow.camera.right = 250;
+        light.shadow.camera.top = 250;
+        light.shadow.camera.bottom = -250;
+        
+        // Ajustes de bias para melhorar a qualidade das sombras
+        light.shadow.bias = -0.0001;
+        light.shadow.normalBias = 0.05;
 
-    return light;
-  }
+        return light;
+    }
 
-    function buildLightingInterface(directionalLight, fillLight, helper, scene) {
+    function buildLightingInterface(directionalLight, fillLight, helper, ambientLight, scene) {
         const lightControls = {
             intensidadePrincipal: directionalLight.intensity,
             intensidadePreenchimento: fillLight.intensity,
@@ -285,4 +282,3 @@ function createDirectionalLight() {
             .onChange(val => helper.visible = val);
     }
 }
-

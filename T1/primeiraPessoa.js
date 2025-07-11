@@ -10,6 +10,7 @@ import { initRenderer, onWindowResize } from "../libs/util/util.js";
 import { criaAreasRampas, criaParedes, setupLighting } from './Ambiente.js';
 import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
+import { CSS2DRenderer, CSS2DObject } from '../build/jsm/renderers/CSS2DRenderer.js';
 
 let stats, renderer, scene, camera, controls, clock;
 let spotLightHelper, areas, ramp, ground, walls;
@@ -505,7 +506,7 @@ function render() {
             });
         }
     });
-
+    
     // Atualiza animações dos inimigos
     scene.traverse(obj => {
         if (obj.userData && obj.userData.mixer) {

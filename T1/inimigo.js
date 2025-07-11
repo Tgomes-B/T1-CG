@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from '../build/jsm/loaders/GLTFLoader.js';
 import { HealthBar } from './healthbar.js';
 
+
 export function adicionarInimigoCena(cena, caminhoGLB, posicao = { x: 0, y: 0, z: 0 }) {
     const loader = new GLTFLoader();
     loader.load(
@@ -14,9 +15,9 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicao = { x: 0, y: 0, z
             inimigo.userData.isEnemy = true;
             inimigo.userData.isCollidable = true;
 
-            // Configurar caixa de colisão maior
-            const boxSize = 9.0; // Tamanho aumentado
-            const boxHeight = 12.0; // Tamanho aumentado
+            // Configurar caixa de colisão
+            const boxSize = 9.0;
+            const boxHeight = 12.0;
             const boxCenter = inimigo.position.clone();
             const min = boxCenter.clone().add(new THREE.Vector3(-boxSize / 2, -boxHeight / 2, -boxSize / 2));
             const max = boxCenter.clone().add(new THREE.Vector3(boxSize / 2, boxHeight / 2, boxSize / 2));
@@ -36,8 +37,8 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicao = { x: 0, y: 0, z
             inimigo.userData.hp = 100;
             inimigo.userData.maxHp = 100;
             
-            // Criar barra de vida
-            const healthBar = new HealthBar(inimigo.userData.maxHp, 1.0, 15);
+            const healthBar = new HealthBar(inimigo.userData.maxHp, 3, 0.3);
+            healthBar.getObject().position.set(0, boxHeight/2 + 1, 0);
             inimigo.add(healthBar.getObject());
             inimigo.userData.healthBar = healthBar;
             
