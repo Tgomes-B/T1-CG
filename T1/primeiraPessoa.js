@@ -2,9 +2,9 @@
  * Configuração principal do jogo em primeira pessoa.
  * @module primeiraPessoa
  */
-import { adicionarInimigoCena } from './inimigo.js';
-import { createEnemy, loadEnemyOBJ, updateEnemyBehavior } from './enemy.js';
-import { setupAreaChave } from './areaChave.js';
+import { adicionarInimigoCena,updateEnemies } from './inimigo.js';
+import { createEnemy, loadEnemyOBJ, updateEnemyBehavior,updateEnemiesOBJ } from './enemy.js';
+import { setupAreaChave,criaChave } from './areaChave.js';
 import { setupArea2 as setupArea2 } from './areaElevada.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
@@ -110,7 +110,7 @@ function setupEnvironment() {
             }
         });
     });
-    
+    setupArea2(areas[1],scene);
     const posicoesArea2 = [
         { x: 100, y: 20, z: 100 },
         { x: 110, y: 20, z: 110 },
