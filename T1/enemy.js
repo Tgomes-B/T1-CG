@@ -44,6 +44,8 @@ export function loadEnemyOBJ(path, position = { x: 0, y: 0, z: 0 }, onLoad) {
                         child.userData.isEnemy = true;
                         child.userData.hp = obj.userData.hp;
                         child.userData.enemyRoot = obj;
+                        child.castShadow = true;
+                        child.receiveShadow = true;
                     }
                 });
 
@@ -79,9 +81,10 @@ export function createEnemy(position = { x: 0, y: 2, z: 0 }) {
     const material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
     const enemy = new THREE.Mesh(geometry, material);
     enemy.position.set(position.x, position.y, position.z);
-    boxHelper.position.set(position.x, position.y, position.z);
     enemy.name = "enemy";
     enemy.userData.isEnemy = true;
+    enemy.castShadow = true;
+    enemy.receiveShadow = true;
     return enemy;
 }
 

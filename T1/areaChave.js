@@ -9,6 +9,8 @@ export function criaChave(cor) {
         shininess: 100,
         specular: "rgb(255, 255, 255)"
     });
+    keyMesh.castShadow = true;
+    keyMesh.receiveShadow = true;
     let keyCSG = CSG.fromMesh(keyMesh);
 
     let cylinGeometry = new THREE.CylinderGeometry(0.60, 0.60, 2, 26);
@@ -35,6 +37,8 @@ export function criaChave(cor) {
 
     keyMesh = CSG.toMesh(keyCSG, new THREE.Matrix4());
     keyMesh.material = keyMaterial;
+    keyMesh.castShadow = true;
+    keyMesh.receiveShadow = true;
 
     //key.userData.isCollidable = true;
     
@@ -65,6 +69,12 @@ export function setupAreaChave(scene, area) {
 
     enemyPositions.forEach((pos) => {
         loadEnemyOBJ('images/sprites/skull/skull.obj', pos, (enemy) => {
+            enemy.traverse(child => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
             area.add(enemy);
             enemies.push(enemy);
 
@@ -115,5 +125,7 @@ export function criaBlocoChave(){
     const blocoMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(200, 200, 200)' });
     let bloco = new THREE.Mesh(blocoGeometry, blocoMaterial);
     bloco.position.set(45, 4, 0);
+    bloco.castShadow = true;
+    bloco.receiveShadow = true;
     return bloco;
 }

@@ -13,6 +13,7 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicao = { x: 0, y: 0, z
             inimigo.scale.set(0.015, 0.015, 0.015);
             inimigo.userData.isEnemy = true;
             inimigo.userData.isCollidable = true;
+            inimigo.traverse(child => { if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; } });
 
             // Aumentar altura da caixa de colisão
             const boxSize = 7.57;

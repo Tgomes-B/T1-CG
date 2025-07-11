@@ -35,11 +35,19 @@ export function setupArea2(area, scene) {
             torre.position.set(x, 5 + altura / 2, z);
             torre.name = "torre";
             torre.userData.isCollidable = true;
+            torre.castShadow = true;
+            torre.receiveShadow = true;
 
             area.add(torre);
             if(i == 6){
                 let chave = criaChave('yellow');
                 chave.position.set(x, 9, z);
+                chave.traverse(child => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
                 area.add(chave);
                 torre.translateY(10);
             }
@@ -48,6 +56,12 @@ export function setupArea2(area, scene) {
     let bloco = criaBlocoChave();
     bloco.name = 'bloco';
     bloco.position.set(100, 2, 0);
+    bloco.traverse(child => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
     scene.add(bloco);
     elevador(scene);
 }
@@ -66,6 +80,12 @@ function elevador(scene) {
 
     elevadorMesh.name = 'elevador';
     portaMesh.name = 'porta';
+    
+    // Enable shadows
+    portaMesh.castShadow = true;
+    portaMesh.receiveShadow = true;
+    elevadorMesh.castShadow = true;
+    elevadorMesh.receiveShadow = true;
 
     scene.add(elevadorMesh);
     scene.add(portaMesh);
