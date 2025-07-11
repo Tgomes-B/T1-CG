@@ -5,6 +5,7 @@
 import { adicionarInimigoCena } from './inimigo.js';
 import { createEnemy, loadEnemyOBJ, updateEnemyBehavior } from './enemy.js';
 import { setupAreaChave } from './areaChave.js';
+import { setupArea2 as setupArea2 } from './areaElevada.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
@@ -103,6 +104,7 @@ function setupEnvironment() {
     }, 0);
 
     areaChaveData = setupAreaChave(scene, areas[0]);
+    setupArea2(areas[1], scene);
 }
 
 /**
@@ -392,6 +394,8 @@ export function moveAnimate(delta) {
     const walkableSurfaces = scene.children.filter(obj =>
         obj.name === 'ground' ||
         obj.name === 'topo_colisao' ||
+        obj.name === 'elevador' ||
+        obj.name === 'porta' ||
         (obj.name && obj.name.startsWith('ramp'))
     );
     const surfaceIntersects = downRay.intersectObjects(walkableSurfaces, false);

@@ -2,10 +2,10 @@ import * as THREE from 'three';
 import { loadEnemyOBJ } from './enemy.js';
 import { CSG } from '../libs/other/CSGMesh.js';
 
-export function criaChave(scene, areas) {
+export function criaChave(cor) {
     let keyMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2));
     const keyMaterial = new THREE.MeshPhongMaterial({
-        color: 'gray',
+        color: cor,
         shininess: 100,
         specular: "rgb(255, 255, 255)"
     });
@@ -36,7 +36,6 @@ export function criaChave(scene, areas) {
     keyMesh = CSG.toMesh(keyCSG, new THREE.Matrix4());
     keyMesh.material = keyMaterial;
 
-    keyMesh.position.set(45, 6, 0);
     //key.userData.isCollidable = true;
     
     // Configura colisão para a chave
@@ -84,20 +83,19 @@ export function setupAreaChave(scene, area) {
 
     function showPilarComChave() {
         // Pilar
-        const pilarGeometry = new THREE.CylinderGeometry(2, 2, 7, 32);
-        const pilarMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(200, 200, 200)' });
-        pilar = new THREE.Mesh(pilarGeometry, pilarMaterial);
-        pilar.position.set(45, 1, 0);
+        
+        let pilar = criaPilarChave();
         area.add(pilar);
 
         // Chave
-        chave = criaChave(scene, [area]);
+        chave = criaChave('red');
         chave.position.set(0, 6, 0); // Em cima do pilar (posição relativa ao pilar)
         pilar.add(chave);
 
         // Guarda referência para animação no render principal
         chaveAnimada = chave;
         baseY = chave.position.y;
+        return pilar;
     }
     showPilarComChave();
     // Retorna referência para controle externo se quiser
@@ -111,4 +109,11 @@ export function setupAreaChave(scene, area) {
         getChaveAnimada: () => chaveAnimada,
         getBaseY: () => baseY
     };
+}
+export function criaPilarChave(){
+    const pilarGeometry = new THREE.CylinderGeometry(2, 2, 7, 32);
+    const pilarMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(200, 200, 200)' });
+    let pilar = new THREE.Mesh(pilarGeometry, pilarMaterial);
+    pilar.position.set(45, 1, 0);
+    return pilar;
 }
