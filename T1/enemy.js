@@ -34,6 +34,7 @@ export function loadEnemyOBJ(path, position = { x: 0, y: 0, z: 0 }, onLoad) {
                 obj.name = "enemy";
                 obj.userData.isEnemy = true;
                 obj.userData.hp = 20;
+                obj.userData.maxHp = 50;
                 obj.userData.enemyType = "obj";
                 obj.userData.fading = false;
                 obj.userData.isCollidable = true;
@@ -103,55 +104,54 @@ export function createEnemy(position = { x: 0, y: 2, z: 0 }) {
  * Atualiza o comportamento do inimigo
  */
 export function updateEnemyBehavior(enemy, player, scene, delta) {
-    const raycaster = new THREE.Raycaster();
-    const enemyPos = enemy.position.clone();
-    let playerDetected = false;
-    
-    // Verifica todas as direções
-    for(const direction of searchDirections) {
-        raycaster.set(enemyPos, direction.clone().normalize(), 0, ENEMY_DETECTION_RANGE);
-        const intersects = raycaster.intersectObjects(scene.children, true);
-        
-        if(intersects.length > 0) {
-            const firstHit = intersects[0];
-            
-            // Verifica se é o jogador (câmera ou objeto do jogador)
-            if(firstHit.object.isCamera || 
-               firstHit.object.name === "player" ||
-               firstHit.object.parent?.isCamera) {
-                
-                playerDetected = true;
-                
-                // Calcula direção normalizada para o jogador
-                const moveDirection = new THREE.Vector3()
-                    .subVectors(player.position, enemy.position)
-                    .normalize();
-                
-                // Aplica movimento suavizado
-                enemy.position.x += moveDirection.x * ENEMY_SPEED * delta * 60;
-                enemy.position.z += moveDirection.z * ENEMY_SPEED * delta * 60;
-                
-                // Atualiza a rotação para olhar para o jogador
-                enemy.lookAt(player.position);
-                break;
-            }
-        }
-        if (enemy.userData.hp !== undefined && enemy.userData.hp <= 0 && !enemy.userData.fading) {
-            enemy.userData.fading = true;
-            fadeOut(enemy, 500, () => {
-                if (enemy.parent) enemy.parent.remove(enemy);
-                if (enemy.userData.boxHelper && enemy.userData.boxHelper.parent) {
-                    enemy.userData.boxHelper.parent.remove(enemy.userData.boxHelper);
-                }
-            });
-        }
-        if (enemy.userData.boxHelper) {
-            enemy.userData.boxHelper.update();
-        }
+    // 1. Checa distância ao player
+    const dist = enemy.position.distanceTo(player.position);
+    const detectionRadius = 40; // ajuste conforme necessário
+
+    if (dist < detectionRadius) {
+        // 2. Move em direção ao player
+        const moveDirection = new THREE.Vector3()
+            .subVectors(player.position, enemy.position)
+            .setY(0)
+            .normalize();
+
+        enemy.position.x += moveDirection.x * ENEMY_SPEED * delta * 60;
+        enemy.position.z += moveDirection.z * ENEMY_SPEED * delta * 60;
+
+        // 3. Olha para o player
+        enemy.lookAt(player.position.x, enemy.position.y, player.position.z);
     }
 
-    // Comportamento alternativo se não detectar o jogador
-    if(!playerDetected) {
-        // Adicione aqui patrulha ou comportamento ocioso
+    // 4. Atualiza boxHelper se existir
+    if (enemy.userData.boxHelper) {
+        enemy.userData.boxHelper.update();
     }
+
+    // 5. Fade out se morrer
+    if (enemy.userData.hp !== undefined && enemy.userData.hp <= 0 && !enemy.userData.fading) {
+        enemy.userData.fading = true;
+        fadeOut(enemy, 500, () => {
+            if (enemy.parent) enemy.parent.remove(enemy);
+            if (enemy.userData.boxHelper && enemy.userData.boxHelper.parent) {
+                enemy.userData.boxHelper.parent.remove(enemy.userData.boxHelper);
+            }
+        });
+    }
+}
+/**
+ * Atualiza todos os inimigos OBJ na cena usando a heurística do enemy.js
+ * @param {THREE.Scene} scene
+ * @param {THREE.Object3D} player - geralmente controls.getObject()
+ * @param {number} delta
+ */
+export function updateEnemiesOBJ(scene, player, delta) {
+    scene.traverse(obj => {
+        if (
+            obj.userData &&
+            obj.userData.isEnemy &&
+            obj.userData.enemyType === "obj" // Só OBJ!
+        ) {
+            updateEnemyBehavior(obj, player, scene, delta);
+        }
+    });
 }

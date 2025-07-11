@@ -18,6 +18,7 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicoes = [{ x: 0, y: 0,
                 inimigo.scale.set(0.015, 0.015, 0.015);
                 inimigo.userData.isEnemy = true;
                 inimigo.userData.isCollidable = true;
+                inimigo.userData.enemyType = "glb";
 
                 // Aumentar altura da caixa de colisão
                 const boxSize = 7.57;
@@ -38,8 +39,8 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicoes = [{ x: 0, y: 0,
                 inimigo.userData.baseY = inimigo.position.y;
 
                 // Configurar HP e barra de vida
-                inimigo.userData.hp = 100;
-                inimigo.userData.maxHp = 100;
+                inimigo.userData.hp = 50;
+                inimigo.userData.maxHp = 50;
 
                 // Criar barra de vida
                 const healthBar = new HealthBar(inimigo.userData.maxHp, 1.0, 15);
@@ -73,5 +74,55 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicoes = [{ x: 0, y: 0,
                 console.error('Erro ao carregar o modelo GLB do inimigo:', erro);
             }
         );
+    });
+}
+
+export function updateEnemyBehaviorGLB(enemy, player, scene, delta) {
+    // Checa distância ao player
+    const dist = enemy.position.distanceTo(player.position);
+    const detectionRadius = enemy.userData.detectionRadius || 100;
+
+    if (dist < detectionRadius) {
+        // Move em direção ao player
+        const moveDirection = new THREE.Vector3()
+            .subVectors(player.position, enemy.position)
+            .setY(0)
+            .normalize();
+
+        enemy.position.x += moveDirection.x * 5 * delta;
+        enemy.position.z += moveDirection.z * 5 * delta;
+
+        // Olha para o player
+        enemy.lookAt(player.position.x, enemy.position.y, player.position.z);
+    }
+
+    // Atualiza collisionBox e boxHelper se existirem
+    if (enemy.userData.collisionBox) {
+        const boxSize = 7.57;
+        const boxHeight = 10;
+        const boxCenter = enemy.position.clone();
+        const min = boxCenter.clone().add(new THREE.Vector3(-boxSize / 2, -boxHeight / 2, -boxSize / 2));
+        const max = boxCenter.clone().add(new THREE.Vector3(boxSize / 2, boxHeight / 2, boxSize / 2));
+        enemy.userData.collisionBox.min.copy(min);
+        enemy.userData.collisionBox.max.copy(max);
+    }
+    if (enemy.userData.boxHelper) {
+        enemy.userData.boxHelper.updateMatrixWorld(true);
+    }
+}
+
+// Atualização dos inimigos GLB
+export function updateEnemies(scene, controls, delta) {
+    scene.traverse(obj => {
+        if (
+            obj.userData &&
+            obj.userData.isEnemy &&
+            obj.userData.enemyType === "glb" // Só GLB!
+        ) {
+            if (obj.userData.mixer) {
+                obj.userData.mixer.update(delta);
+            }
+            updateEnemyBehaviorGLB(obj, controls.getObject(), scene, delta);
+        }
     });
 }
