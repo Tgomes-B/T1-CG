@@ -88,24 +88,37 @@ function setupEnvironment() {
     ({ areas, ramp, ground } = criaAreasRampas(scene));
     walls = criaParedes(scene);
 
-    // Aguarda as torres serem criadas
-    setTimeout(() => {
-        const torresArea2 = areas[1].children.filter(obj => obj.name === "torre");
-        // Pegue 3 torres (exemplo: as 3 primeiras)
-        const torresParaInimigos = torresArea2.slice(0, 3);
-        torresParaInimigos.forEach(torre => {
-            const pos = {
-                x: torre.position.x,
-                y: torre.position.y + (torre.geometry.parameters.height / 2) + 2,
-                z: torre.position.z
-            };
-            adicionarInimigoCena(areas[1], 'images/sprites/teste/cacodemonanimations.glb', pos);
+    const enemiesArea1 = [];
+    const enemyPositions = [
+        { x: 65, y: 6, z: 0 },
+        { x: 55, y: 6, z: 10 },
+        { x: 35, y: 6, z: -10 },
+        { x: 55, y: 6, z: -10 },
+        { x: 35, y: 6, z: 10 }
+    ];
+    
+    // Carregamento assíncrono!
+    let loadedCount = 0;
+    enemyPositions.forEach((enemyPositions) => {
+        loadEnemyOBJ('images/sprites/skull/skull.obj', enemyPositions, (enemy) => {
+            scene.add(enemy);
+            enemiesArea1.push(enemy);
+            if (enemy.userData.boxHelper) scene.add(enemy.userData.boxHelper);
+            loadedCount++;
+            if (loadedCount === enemyPositions.length) {
+                areaChaveData = setupAreaChave(scene, areas[0], enemiesArea1);
+            }
         });
-    }, 0);
-
-    areaChaveData = setupAreaChave(scene, areas[0]);
-    setupArea2(areas[1], scene);
+    });
+    
+    const posicoesArea2 = [
+        { x: 100, y: 20, z: 100 },
+        { x: 110, y: 20, z: 110 },
+        { x: 120, y: 20, z: 120 }
+    ];
+    adicionarInimigoCena(scene, 'images/sprites/teste/cacodemonanimations.glb', posicoesArea2);
 }
+
 
 /**
  * Configura iluminação e colisões.
@@ -445,79 +458,8 @@ function render() {
         }
     });
 
-    // Atualiza animações dos inimigos
-    scene.traverse(obj => {
-        if (obj.userData && obj.userData.mixer) {
-            obj.userData.mixer.update(delta);
-        }
-    
-        if (obj.userData && obj.userData.isEnemy) {
-            const playerPos = controls.getObject().position;
-            const enemyPos = obj.position;
-            const dist = playerPos.distanceTo(enemyPos);
-
-            const boxSize = 7.57; // mesmo valor usado na criação
-            const boxHeight = 10; // Aumentar altura da caixa de colisão
-            const boxCenter = obj.position.clone();
-            const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
-            const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
-            if (
-                obj.userData &&
-                obj.userData.collisionBox instanceof THREE.Box3 &&
-                obj.userData.collisionBox.min && obj.userData.collisionBox.max
-            ) {
-                obj.userData.collisionBox.min.copy(min);
-                obj.userData.collisionBox.max.copy(max);
-            
-                // Atualiza o helper visual
-                if (
-                    obj.userData.boxHelper &&
-                    obj.userData.boxHelper.box instanceof THREE.Box3
-                ) {
-                    obj.userData.boxHelper.box.copy(obj.userData.collisionBox);
-                    obj.userData.boxHelper.updateMatrixWorld(true);
-                }
-            }
-            // Troca de estado: idle -> perseguir
-            if (obj.userData.state === "idle" && dist < obj.userData.detectionRadius) {
-                obj.userData.state = "perseguir";
-            }
-    
-            // Troca de estado: perseguir -> idle (desistir)
-            if (obj.userData.state === "perseguir" && dist > obj.userData.detectionRadius + 10) {
-                obj.userData.state = "idle";
-            }
-    
-            // Idle: flutuando
-            if (obj.userData.state === "idle") {
-                const targetY = obj.userData.baseY + Math.sin(performance.now() * 0.001) * 2;
-                obj.position.y = THREE.MathUtils.lerp(obj.position.y, targetY, 0.1);
-            }
-    
-            // Perseguir: vai atrás do player
-            if (obj.userData.state === "perseguir") {
-                // Movimento horizontal: direção XZ
-                const dir = new THREE.Vector3().subVectors(playerPos, enemyPos);
-                dir.y = 0; // Ignorar altura para movimento horizontal
-                const distance = dir.length();
-                
-                if (distance > 5) { // distância mínima para não grudar
-                    dir.normalize();
-                    obj.position.add(dir.multiplyScalar(5 * delta));
-                }
-                
-                // Movimento vertical: ajusta suavemente a altura do inimigo para a altura do jogador
-                const targetHeight = playerPos.y;
-                const heightDifference = targetHeight - obj.position.y;
-                const verticalSpeed = 0.05; // Velocidade de ajuste vertical
-                obj.position.y += heightDifference * verticalSpeed * delta * 60; // delta * 60 para taxa constante
-                
-                // Rotaciona para olhar para o player (horizontalmente)
-                const angle = Math.atan2(playerPos.x - enemyPos.x, playerPos.z - enemyPos.z);
-                obj.rotation.y = angle;
-            }
-        }
-    });
+    updateEnemies(scene, controls, delta);
+    updateEnemiesOBJ(scene, controls.getObject(), delta);
 
     if (controls.isLocked) {
         moveAnimate(delta);
