@@ -3,8 +3,8 @@
  * @module primeiraPessoa
  */
 import { adicionarInimigoCena } from './inimigo.js';
-import { createEnemy, loadEnemyOBJ, updateEnemyBehavior } from './enemy.js';
-import { setupAreaChave } from './areaChave.js';
+import { criaChave,setupAreaChave } from './areaChave.js';
+import { loadEnemyOBJ, updateEnemyBehavior } from './enemy.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
@@ -14,7 +14,6 @@ import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
 
 let stats, renderer, scene, camera, controls, clock;
-let areaChaveData;
 let spotLightHelper, areas, ramp, ground, walls;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
@@ -87,22 +86,33 @@ function setupEnvironment() {
     ({ areas, ramp, ground } = criaAreasRampas(scene));
     walls = criaParedes(scene);
 
-    // Aguarda as torres serem criadas
-    setTimeout(() => {
-        const torresArea2 = areas[1].children.filter(obj => obj.name === "torre");
-        // Pegue 3 torres (exemplo: as 3 primeiras)
-        const torresParaInimigos = torresArea2.slice(0, 3);
-        torresParaInimigos.forEach(torre => {
-            const pos = {
-                x: torre.position.x,
-                y: torre.position.y + (torre.geometry.parameters.height / 2) + 2,
-                z: torre.position.z
-            };
-            adicionarInimigoCena(areas[1], 'images/sprites/teste/cacodemonanimations.glb', pos);
-        });
-    }, 0);
+    /*if (areas && areas.length > 0) {
+        setupAreaChave(scene, areas[0]);
+    }*/
 
-    areaChaveData = setupAreaChave(scene, areas[0]);
+        const chave = criaChave(scene, areas);
+        scene.add(chave);
+    
+
+    /*const posicoesArea1 = [
+        { x: 65, y: 6, z: 0 },
+        { x: 55, y: 6, z: 10 },
+        { x: 35, y: 6, z: -10 },
+        { x: 55, y: 6, z: -10 },
+        { x: 35, y: 6, z: 10 }
+    ];
+    posicoesArea1.forEach(posicoesArea1 => {
+        loadEnemyOBJ('images/sprites/skull/skull.obj', posicoesArea1, (enemy) => {
+            scene.add(enemy);
+        });
+    });;*/
+
+    const posicoesArea2 = [
+        { x: 100, y: 20, z: 100 },
+        { x: 110, y: 20, z: 110 },
+        { x: 120, y: 20, z: 120 }
+    ];
+    adicionarInimigoCena(scene, 'images/sprites/teste/cacodemonanimations.glb', posicoesArea2);
 }
 
 /**
@@ -458,8 +468,16 @@ function render() {
             const boxCenter = obj.position.clone();
             const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
             const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
-            obj.userData.collisionBox.min.copy(min);
-            obj.userData.collisionBox.max.copy(max);
+            if (
+                obj.userData.collisionBox &&
+                obj.userData.collisionBox.min &&
+                obj.userData.collisionBox.max &&
+                typeof obj.userData.collisionBox.min.copy === "function" &&
+                typeof obj.userData.collisionBox.max.copy === "function"
+            ) {
+                obj.userData.collisionBox.min.copy(min);
+                obj.userData.collisionBox.max.copy(max);
+            }
             
             // Atualiza o helper visual
             if (obj.userData.boxHelper) {

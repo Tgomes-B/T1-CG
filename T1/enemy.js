@@ -24,20 +24,27 @@ export function loadEnemyOBJ(path, position = { x: 0, y: 0, z: 0 }, onLoad) {
     mtlLoader.load('skull.mtl', (materials) => {
         materials.preload();
         const loader = new OBJLoader();
-        loader.setMaterials(materials); // Aplica os materiais carregados
+        loader.setMaterials(materials);
         loader.setPath(assetPath);
         loader.load(
-            'skull.obj', // Use o nome do arquivo OBJ relativo ao assetPath
+            'skull.obj',
             (obj) => {
                 obj.position.set(position.x, position.y, position.z);
-                obj.scale.set(1, 1, 1); // Ajuste conforme necessário
+                obj.scale.set(1, 1, 1);
                 obj.name = "enemy";
                 obj.userData.isEnemy = true;
                 obj.userData.hp = 20;
                 obj.userData.enemyType = "obj";
                 obj.userData.fading = false;
                 obj.userData.isCollidable = true;
-                obj.userData.boundingBox = new THREE.Box3().setFromObject(obj);
+
+                // Cria uma collisionBox válida baseada no centro e tamanho padrão
+                const boxSize = 7.57;
+                const boxHeight = 10;
+                const boxCenter = obj.position.clone();
+                const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
+                const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
+                obj.userData.collisionBox = new THREE.Box3(min, max);
 
                 obj.traverse(child => {
                     if (child.isMesh) {
@@ -49,17 +56,12 @@ export function loadEnemyOBJ(path, position = { x: 0, y: 0, z: 0 }, onLoad) {
 
                 obj.updateMatrixWorld(true);
 
-                // Adicione o helper na cena, não como filho do obj
+                // Helper visual (opcional)
                 const boxHelper = new THREE.BoxHelper(obj, 0x00ff00);
                 obj.userData.boxHelper = boxHelper;
-                if (obj.parent) {
-                    obj.parent.add(boxHelper);
-                } else {
-                    // Adicione na cena depois de adicionar o obj
-                    setTimeout(() => {
-                        if (obj.parent) obj.parent.add(boxHelper);
-                    }, 0);
-                }
+                setTimeout(() => {
+                    if (obj.parent) obj.parent.add(boxHelper);
+                }, 0);
 
                 // Opcional: veja o centro do modelo
                 // obj.add(new THREE.AxesHelper(5));
@@ -79,9 +81,21 @@ export function createEnemy(position = { x: 0, y: 2, z: 0 }) {
     const material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
     const enemy = new THREE.Mesh(geometry, material);
     enemy.position.set(position.x, position.y, position.z);
-    boxHelper.position.set(position.x, position.y, position.z);
     enemy.name = "enemy";
     enemy.userData.isEnemy = true;
+
+    const boxSize = 7.57;
+    const boxHeight = 10;
+    const boxCenter = enemy.position.clone();
+    const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
+    const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
+    enemy.userData.collisionBox = new THREE.Box3(min, max);
+
+    // Se quiser o helper visual:
+    // const boxHelper = new THREE.BoxHelper(enemy, 0x00ff00);
+    // enemy.userData.boxHelper = boxHelper;
+    // (adicione boxHelper na cena depois de adicionar o enemy)
+
     return enemy;
 }
 
