@@ -86,8 +86,30 @@ function setupInitialCameraPosition() {
 function setupEnvironment() {
     ({ areas, ramp, ground } = criaAreasRampas(scene));
     walls = criaParedes(scene);
-        areaChaveData =  setupAreaChave(scene, areas[0]);
 
+    const enemiesArea1 = [];
+    const enemyPositions = [
+        { x: 65, y: 6, z: 0 },
+        { x: 55, y: 6, z: 10 },
+        { x: 35, y: 6, z: -10 },
+        { x: 55, y: 6, z: -10 },
+        { x: 35, y: 6, z: 10 }
+    ];
+    
+    // Carregamento assíncrono!
+    let loadedCount = 0;
+    enemyPositions.forEach((enemyPositions) => {
+        loadEnemyOBJ('images/sprites/skull/skull.obj', enemyPositions, (enemy) => {
+            scene.add(enemy);
+            enemiesArea1.push(enemy);
+            if (enemy.userData.boxHelper) scene.add(enemy.userData.boxHelper);
+            loadedCount++;
+            if (loadedCount === enemyPositions.length) {
+                areaChaveData = setupAreaChave(scene, areas[0], enemiesArea1);
+            }
+        });
+    });
+    
     const posicoesArea2 = [
         { x: 100, y: 20, z: 100 },
         { x: 110, y: 20, z: 110 },

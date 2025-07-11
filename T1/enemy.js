@@ -58,11 +58,8 @@ export function loadEnemyOBJ(path, position = { x: 0, y: 0, z: 0 }, onLoad) {
                 obj.updateMatrixWorld(true);
 
                 // Helper visual (opcional)
-                const boxHelper = new THREE.BoxHelper(obj, 0x00ff00);
+                const boxHelper = new THREE.BoxHelper(obj, 0x8000ff);
                 obj.userData.boxHelper = boxHelper;
-                setTimeout(() => {
-                    if (obj.parent) obj.parent.add(boxHelper);
-                }, 0);
 
                 // Opcional: veja o centro do modelo
                 // obj.add(new THREE.AxesHelper(5));
@@ -130,7 +127,7 @@ export function updateEnemyBehavior(enemy, player, scene, delta) {
     // 5. Fade out se morrer
     if (enemy.userData.hp !== undefined && enemy.userData.hp <= 0 && !enemy.userData.fading) {
         enemy.userData.fading = true;
-        fadeOut(enemy, 500, () => {
+        fadeOut(enemy, 1000, () => {
             if (enemy.parent) enemy.parent.remove(enemy);
             if (enemy.userData.boxHelper && enemy.userData.boxHelper.parent) {
                 enemy.userData.boxHelper.parent.remove(enemy.userData.boxHelper);

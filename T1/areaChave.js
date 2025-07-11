@@ -50,37 +50,23 @@ export function criaChave(scene, areas) {
  * @param {THREE.Scene} scene - Cena principal
  * @param {THREE.Object3D} area - Área onde tudo acontece (ex: areas[0])
  */
-export function setupAreaChave(scene, area) {
-    // 1. Cria 5 inimigos skull.obj em posições fixas ou aleatórias
-    const enemyPositions = [
-        { x: 65, y: 6, z: 0 },
-        { x: 55, y: 6, z: 10 },
-        { x: 35, y: 6, z: -10 },
-        { x: 55, y: 6, z: -10 },
-        { x: 35, y: 6, z: 10 }
-    ];
-    const enemies = [];
+export function setupAreaChave(scene, area, enemies) {
     let defeatedCount = 0;
     let pilar = null;
     let chave = null;
-
-    enemyPositions.forEach((pos) => {
-        loadEnemyOBJ('images/sprites/skull/skull.obj', pos, (enemy) => {
-            area.add(enemy);
-            enemies.push(enemy);
-
-            // Adicione um método para eliminar o inimigo
-            enemy.userData.eliminate = () => {
-                area.remove(enemy);
-                defeatedCount++;
-                if (defeatedCount === enemyPositions.length) {
-                    showPilarComChave();
-                }
-            };
-        });
-    });
     let chaveAnimada = null;
     let baseY = 0;
+
+    // Adicione um método para eliminar o inimigo
+    enemies.forEach((enemy) => {
+        enemy.userData.eliminate = () => {
+            area.remove(enemy);
+            defeatedCount++;
+            if (defeatedCount === enemies.length) {
+                showPilarComChave();
+            }
+        };
+    });
 
     function showPilarComChave() {
         // Pilar
