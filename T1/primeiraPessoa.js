@@ -5,7 +5,7 @@
 import { adicionarInimigoCena,updateEnemies, updateEnemyProjectiles } from './inimigo.js';
 import { createEnemy, loadEnemyOBJ, updateEnemyBehavior,updateEnemiesOBJ } from './enemy.js';
 import { setupAreaChave,criaChave } from './areaChave.js';
-import { setupArea2 as setupArea2 } from './areaElevada.js';
+import { moveElevador, setupArea2, movePorta} from './areaElevada.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
@@ -442,6 +442,7 @@ export function moveAnimate(delta) {
         obj.name === 'ground' ||
         obj.name === 'topo_colisao' ||
         obj.name === 'elevador' ||
+        obj.name === 'bloco' ||
         (obj.name && obj.name.startsWith('ramp'))
     );
     const surfaceIntersects = downRay.intersectObjects(walkableSurfaces, false);
@@ -471,6 +472,21 @@ export function moveAnimate(delta) {
         velocityY -= gravity * delta;
         playerObj.position.y += velocityY * delta;
     }
+    // ----- Animando a porta e o elevador -----
+    // 1. Animando a porta
+    // Raycast frontal para detectar a porta e o elevador
+    const frontRay = new THREE.Raycaster(
+        playerObj.position.clone(),
+        new THREE.Vector3(1, 0, 0),
+        0,
+        2
+    );
+    const portas = scene.children.filter(obj => obj.name === 'porta');
+    portas.forEach(porta => { movePorta(porta, frontRay); });
+
+    // 2. Animando o elevador
+    const elevadores = scene.children.filter(obj => obj.name === 'elevador');
+    elevadores.forEach(elevador => { moveElevador(elevador, downRay, frontRay); });
 }
 
 /**

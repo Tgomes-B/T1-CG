@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { criaBlocoChave, criaChave } from './areaChave.js';
+import { moveAnimate } from './primeiraPessoa.js';
 
 export function setupArea2(area, scene) {
     // Cria torres na área elevada
@@ -106,25 +107,78 @@ function elevador(scene) {
 
     scene.add(elevadorMesh);
     scene.add(portaMesh);
-    //movimentoElevador(elevadorMesh, portaMesh);
+
     elevadorMesh.userData.isCollidable = true;
     portaMesh.userData.isCollidable = true;
 }
 
-function movimentoElevador(elevadorMesh, portaMesh) {
-    // Animação do elevador e da porta
-    const downRay = new THREE.Raycaster(
-        playerObj.position.clone(),
-        new THREE.Vector3(0, -1, 0),
-        0,
-        4);
-    const portaColision = scene.children.filter(obj =>
-        obj.userData && obj.userData.isCollidable && obj.name === 'elevador'
-    );
+export function movePorta(porta, frontRay){
+    // Abaixa a porta ao detectar o raycast
+    const intersects = frontRay.intersectObject(porta, false);
+    if (intersects.length > 0 && !porta.userData.descendo) {
+        if (porta.userData.yInicial === undefined) {
+            porta.userData.yInicial = porta.position.y;
+        }
+        porta.userData.descendo = true;
+    }
+    // Se a porta está marcada para descer, faz a animação até o alvo
+    if (porta.userData.descendo) {
+        const yAlvo = porta.userData.yInicial - 11; 
+        if (porta.position.y > yAlvo) {
+            porta.position.y = THREE.MathUtils.lerp(porta.position.y, yAlvo, 0.1);
+        } else {
+            porta.position.y = yAlvo;
+            porta.userData.descendo = false;
+        }
+        // Atualiza a caixa de colisão da porta
+        if (porta.userData.collisionBox) {
+            porta.userData.collisionBox.setFromObject(porta);
+        }
+    }
+}
 
-    const portaIntersects = downRay.intersectObjects(portaColision, false);
+export function moveElevador(elevador, downRay, frontRay){
+    // Raycast frontal para descer
+    const frontIntersects = frontRay.intersectObject(elevador, false);
+    if (frontIntersects.length > 0 && !elevador.userData.descendo && !elevador.userData.subindo) {
+        if (elevador.userData.yInicial === undefined) {
+            elevador.userData.yInicial = elevador.position.y;
+        }
+        elevador.userData.descendo = true;
+        elevador.userData.subindo = false;
+    }
 
-    
+    // Raycast para baixo para subir
+    const downIntersects = downRay.intersectObject(elevador, false);
+    if (downIntersects.length > 0 && !elevador.userData.subindo && !elevador.userData.descendo) {
+        if (elevador.userData.yInicial === undefined) {
+            elevador.userData.yInicial = elevador.position.y;
+        }
+        elevador.userData.subindo = true;
+        elevador.userData.descendo = false;
+    }
 
+    // Animação de descida
+    if (elevador.userData.descendo) {
+        const yAlvo = elevador.userData.yInicial - 11; // ajuste a altura de descida
+        if (elevador.position.y > yAlvo + 0.1) {
+            elevador.position.y = THREE.MathUtils.lerp(elevador.position.y, yAlvo, 0.1);
+            elevador.userData.collisionBox.setFromObject(elevador);
+        } else {
+            elevador.position.y = yAlvo;
+            elevador.userData.descendo = false;
+        }
+    }
 
+    // Animação de subida
+    if (elevador.userData.subindo) {
+        const yAlvo = elevador.userData.yInicial;
+        if (elevador.position.y < yAlvo - 0.1) {
+            elevador.position.y = THREE.MathUtils.lerp(elevador.position.y, yAlvo, 0.1);
+            elevador.userData.collisionBox.setFromObject(elevador);
+        } else {
+            elevador.position.y = yAlvo;
+            elevador.userData.subindo = false;
+        }
+    }
 }
