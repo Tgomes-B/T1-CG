@@ -106,55 +106,63 @@ export function updateEnemyBehavior(enemy, player, scene, delta) {
 
     // Limites da área 1 (ajuste minY/maxY conforme necessário)
     const minX = -15, maxX = 105, minZ = -60, maxZ = 60, minY = 0, maxY = 10;
+    const safeMargin = 2;
+    const safeMinX = minX + safeMargin, safeMaxX = maxX - safeMargin;
+    const safeMinY = minY + safeMargin, safeMaxY = maxY - safeMargin;
+    const safeMinZ = minZ + safeMargin, safeMaxZ = maxZ - safeMargin;
+
+    let moveDirection = null;
 
     if (dist >= detectionRadius) {
         // Se chegou no alvo ou não tem alvo, sorteia novo alvo dentro da área (incluindo Y)
         if (
             !enemy.userData.idleTarget ||
             enemy.position.distanceTo(enemy.userData.idleTarget) < 1 ||
-            enemy.userData.idleTarget.x < minX || enemy.userData.idleTarget.x > maxX ||
-            enemy.userData.idleTarget.z < minZ || enemy.userData.idleTarget.z > maxZ ||
-            enemy.userData.idleTarget.y < minY || enemy.userData.idleTarget.y > maxY
+            enemy.userData.idleTarget.x < safeMinX || enemy.userData.idleTarget.x > safeMaxX ||
+            enemy.userData.idleTarget.z < safeMinZ || enemy.userData.idleTarget.z > safeMaxZ ||
+            enemy.userData.idleTarget.y < safeMinY || enemy.userData.idleTarget.y > safeMaxY
         ) {
             enemy.userData.idleTarget = new THREE.Vector3(
-                Math.random() * (maxX - minX) + minX,
-                Math.random() * (maxY - minY) + minY,
-                Math.random() * (maxZ - minZ) + minZ
+                Math.random() * (safeMaxX - safeMinX) + safeMinX,
+                Math.random() * (safeMaxY - safeMinY) + safeMinY,
+                Math.random() * (safeMaxZ - safeMinZ) + safeMinZ
             );
         }
         // Move em direção ao alvo idle, limitado dentro da área (incluindo Y)
-        const dir = new THREE.Vector3().subVectors(enemy.userData.idleTarget, enemy.position);
-        if (dir.length() > 0.1) {
-            dir.normalize();
-            enemy.position.add(dir.multiplyScalar(ENEMY_SPEED * delta * 30));
-            // Limita dentro da área
-            enemy.position.x = Math.max(minX, Math.min(maxX, enemy.position.x));
-            enemy.position.y = Math.max(minY, Math.min(maxY, enemy.position.y));
-            enemy.position.z = Math.max(minZ, Math.min(maxZ, enemy.position.z));
-            // Olha para onde está indo
-            enemy.traverse(child => {
-                if (child.isMesh) {
-                    child.lookAt(
-                        enemy.userData.idleTarget.x,
-                        enemy.userData.idleTarget.y,
-                        enemy.userData.idleTarget.z
-                    );
-                    // Ajuste a rotação do modelo se necessário (exemplo: gira 90 graus no eixo Y)
-                    child.rotateY(Math.PI / 2); // ajuste o valor conforme necessário para seu modelo
-                }
-            });
+        moveDirection = new THREE.Vector3().subVectors(enemy.userData.idleTarget, enemy.position);
+        if (moveDirection.length() > 0.1) {
+            moveDirection.normalize();
+            enemy.position.add(moveDirection.multiplyScalar(ENEMY_SPEED * delta * 30));
+            // Limita dentro da área segura
+            enemy.position.x = Math.max(safeMinX, Math.min(safeMaxX, enemy.position.x));
+            enemy.position.y = Math.max(safeMinY, Math.min(safeMaxY, enemy.position.y));
+            enemy.position.z = Math.max(safeMinZ, Math.min(safeMaxZ, enemy.position.z));
         }
     } else {
         // Persegue player normalmente (incluindo Y)
-        const moveDirection = new THREE.Vector3()
+        moveDirection = new THREE.Vector3()
             .subVectors(player.position, enemy.position)
             .normalize();
         enemy.position.x += moveDirection.x * ENEMY_SPEED * delta * 60;
         enemy.position.y += moveDirection.y * ENEMY_SPEED * delta * 60;
         enemy.position.z += moveDirection.z * ENEMY_SPEED * delta * 60;
-        enemy.lookAt(player.position.x, player.position.y, player.position.z);
+        // Limita dentro da área segura
+        enemy.position.x = Math.max(safeMinX, Math.min(safeMaxX, enemy.position.x));
+        enemy.position.y = Math.max(safeMinY, Math.min(safeMaxY, enemy.position.y));
+        enemy.position.z = Math.max(safeMinZ, Math.min(safeMaxZ, enemy.position.z));
     }
 
+    if (moveDirection && moveDirection.lengthSq() > 0.0001) {
+        // Calcula o ângulo no plano XZ
+        const angle = Math.atan2(moveDirection.x, moveDirection.z);
+    
+        enemy.traverse(child => {
+            if (child.isMesh) {
+                // Ajuste: troque Math.PI por Math.PI/2 ou -Math.PI/2 se necessário
+                child.rotation.y = angle ;
+            }
+        });
+    }
     if (enemy.userData.collisionBox) {
         const boxSize = 7.57;
         const boxHeight = 10;
@@ -170,7 +178,7 @@ export function updateEnemyBehavior(enemy, player, scene, delta) {
 
     if (enemy.userData.hp !== undefined && enemy.userData.hp <= 0 && !enemy.userData.fading) {
         enemy.userData.fading = true;
-        fadeOut(enemy, 1000, () => {
+        fadeOut(enemy, 500, () => {
             if (enemy.parent) enemy.parent.remove(enemy);
             if (enemy.userData.boxHelper && enemy.userData.boxHelper.parent) {
                 enemy.userData.boxHelper.parent.remove(enemy.userData.boxHelper);

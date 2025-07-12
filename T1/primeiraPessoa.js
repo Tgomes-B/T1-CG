@@ -2,7 +2,7 @@
  * Configuração principal do jogo em primeira pessoa.
  * @module primeiraPessoa
  */
-import { adicionarInimigoCena,updateEnemies } from './inimigo.js';
+import { adicionarInimigoCena,updateEnemies, updateEnemyProjectiles } from './inimigo.js';
 import { createEnemy, loadEnemyOBJ, updateEnemyBehavior,updateEnemiesOBJ } from './enemy.js';
 import { setupAreaChave,criaChave } from './areaChave.js';
 import { setupArea2 as setupArea2 } from './areaElevada.js';
@@ -35,7 +35,7 @@ const WEAPONS = {
     },
     chaingun: {
         name: "chaingun",
-        fireRate: 50, // ms (20 tiros por segundo)
+        fireRate: 100, // ms (20 tiros por segundo)
         showProjectile: false,
         sprite: null,
         spritesheet: "images/sprites/chaingun.png",
@@ -474,6 +474,7 @@ function render() {
         updateProjectiles(delta);
         updateEnemies(scene, controls, delta);
         updateEnemiesOBJ(scene, controls.getObject(), delta);
+        updateEnemyProjectiles(delta, controls.getObject());
     }
 
     if (areaChaveData && areaChaveData.getChaveAnimada()) {

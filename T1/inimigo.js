@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from '../build/jsm/loaders/GLTFLoader.js';
 import { HealthBar } from './healthbar.js'; // Importe a classe HealthBar
 
+export const enemyProjectiles = [];
+
 export function adicionarInimigoCena(cena, caminhoGLB, posicoes = [{ x: 0, y: 0, z: 0 }]) {
     if (!Array.isArray(posicoes)) posicoes = [posicoes];
 
@@ -14,8 +16,8 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicoes = [{ x: 0, y: 0,
             (gltf) => {
                 const inimigo = gltf.scene;
                 inimigo.position.set(posicao.x, posicao.y, posicao.z);
-                inimigo.scale.set(0.012, 0.012, 0.012);
-                inimigo.rotateY(0);
+                inimigo.scale.set(0.01, 0.01, 0.01);
+                inimigo.rotateY(-Math.PI / 2);
                 inimigo.userData.isEnemy = true;
                 inimigo.userData.isCollidable = true;
                 inimigo.userData.enemyType = "glb"; // Tipo GLB
@@ -78,53 +80,125 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicoes = [{ x: 0, y: 0,
     });
 }
 
+function spawnEnemyProjectile(enemy, player) {
+    const geometry = new THREE.SphereGeometry(0.3, 16, 16);
+    const material = new THREE.MeshBasicMaterial({ color: 0xffa500 }); // laranja
+    const projectile = new THREE.Mesh(geometry, material);
+    projectile.position.copy(enemy.position);
+    const direction = new THREE.Vector3(0, 0, 1).applyQuaternion(enemy.quaternion).normalize();
+
+    projectile.userData = {
+        velocity: direction.multiplyScalar(1.5),
+        isEnemyProjectile: true,
+        life: 3 // segundos de vida
+    };
+    enemy.parent.add(projectile); // Adiciona na mesma área do inimigo
+    enemyProjectiles.push(projectile);
+}
+
+export function updateEnemyProjectiles(delta, player) {
+    for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
+        const proj = enemyProjectiles[i];
+        proj.position.addScaledVector(proj.userData.velocity, delta * 10);
+        proj.userData.life -= delta;
+        // Colisão simples com player (pode melhorar)
+        if (proj.position.distanceTo(player.position) < 1) {
+            // Aqui você pode aplicar dano ao player
+            proj.parent.remove(proj);
+            enemyProjectiles.splice(i, 1);
+            continue;
+        }
+        // Remove projétil se acabar o tempo de vida
+        if (proj.userData.life <= 0) {
+            proj.parent.remove(proj);
+            enemyProjectiles.splice(i, 1);
+        }
+    }
+}
+
 function lookAtTarget(enemy, target) {
     enemy.lookAt(target.x, enemy.position.y, target.z);
 }
 export function updateEnemyBehaviorGLB(enemy, player, scene, delta) {
-    const dist = enemy.position.distanceTo(player.position);
-    const detectionRadius = enemy.userData.detectionRadius || 100;
 
     // Limites da área 2
     const minX = -5, maxX = 115, minZ = -60, maxZ = 60, minY = 10, maxY = 30;
+    const safeMargin = 2; // distância segura das bordas
 
-    if (dist >= detectionRadius) {
-        if (
-            !enemy.userData.idleTarget ||
-            enemy.position.distanceTo(enemy.userData.idleTarget) < 1 ||
-            enemy.userData.idleTarget.x < minX || enemy.userData.idleTarget.x > maxX ||
-            enemy.userData.idleTarget.z < minZ || enemy.userData.idleTarget.z > maxZ ||
-            enemy.userData.idleTarget.y < minY || enemy.userData.idleTarget.y > maxY
-        ) {
-            enemy.userData.idleTarget = new THREE.Vector3(
-                Math.random() * (maxX - minX) + minX,
-                Math.random() * (maxY - minY) + minY,
-                Math.random() * (maxZ - minZ) + minZ
-            );
+    // Limites seguros
+    const safeMinX = minX + safeMargin, safeMaxX = maxX - safeMargin;
+    const safeMinY = minY + safeMargin, safeMaxY = maxY - safeMargin;
+    const safeMinZ = minZ + safeMargin, safeMaxZ = maxZ - safeMargin;
+
+    // Timer de ataque
+    if (enemy.userData.attackTimer === undefined) enemy.userData.attackTimer = 0;
+    enemy.userData.attackTimer -= delta;
+    if (
+        enemy.userData.attackTimer <= 0 &&
+        enemy.userData.hasDetectedPlayer // só atira se estiver perseguindo
+    ) {
+        spawnEnemyProjectile(enemy, player);
+        enemy.userData.attackTimer = 2;
+    }
+
+    const distXZ = Math.sqrt(
+        Math.pow(enemy.position.x - player.position.x, 2) +
+        Math.pow(enemy.position.z - player.position.z, 2)
+    );
+    const deltaY = Math.abs(enemy.position.y - player.position.y);
+    const detectionRadius = enemy.userData.detectionRadius || 100;
+    const maxYDiff = 8; // altura máxima para detectar
+
+    if (distXZ < detectionRadius && deltaY < maxYDiff) {
+        enemy.userData.hasDetectedPlayer = true;
+        enemy.userData.lostPlayerTimer = 2;
+    } else if (enemy.userData.hasDetectedPlayer) {
+        enemy.userData.lostPlayerTimer -= delta;
+        if (enemy.userData.lostPlayerTimer <= 0) {
+            enemy.userData.hasDetectedPlayer = false;
         }
-        const dir = new THREE.Vector3().subVectors(enemy.userData.idleTarget, enemy.position);
-        if (dir.length() > 0.1) {
-            dir.normalize();
-            enemy.position.add(dir.multiplyScalar(5 * delta * 2));
-            // Limita dentro da área
-            enemy.position.x = Math.max(minX, Math.min(maxX, enemy.position.x));
-            enemy.position.y = Math.max(minY, Math.min(maxY, enemy.position.y));
-            enemy.position.z = Math.max(minZ, Math.min(maxZ, enemy.position.z));
-            // Faz o modelo inteiro olhar para onde está indo, considerando o vetor direção
-            lookAtTarget(enemy, enemy.userData.idleTarget, dir);
-        }
-    } else {
-        // Persegue player normalmente
+    }
+
+    if (enemy.userData.hasDetectedPlayer) {
         const moveDirection = new THREE.Vector3()
             .subVectors(player.position, enemy.position)
             .normalize();
         enemy.position.x += moveDirection.x * 5 * delta;
         enemy.position.y += moveDirection.y * 5 * delta;
         enemy.position.z += moveDirection.z * 5 * delta;
-        lookAtTarget(enemy, player.position, moveDirection);
-    }
 
-    // Atualiza collisionBox e boxHelper se existirem
+        // Limita dentro da área segura
+        enemy.position.x = Math.max(safeMinX, Math.min(safeMaxX, enemy.position.x));
+        enemy.position.y = Math.max(safeMinY, Math.min(safeMaxY, enemy.position.y));
+        enemy.position.z = Math.max(safeMinZ, Math.min(safeMaxZ, enemy.position.z));
+
+        lookAtTarget(enemy, player.position);
+    } else {
+        // Idle como antes...
+        if (
+            !enemy.userData.idleTarget ||
+            enemy.position.distanceTo(enemy.userData.idleTarget) < 1 ||
+            enemy.userData.idleTarget.x < safeMinX || enemy.userData.idleTarget.x > safeMaxX ||
+            enemy.userData.idleTarget.z < safeMinZ || enemy.userData.idleTarget.z > safeMaxZ ||
+            enemy.userData.idleTarget.y < safeMinY || enemy.userData.idleTarget.y > safeMaxY
+        ) {
+            enemy.userData.idleTarget = new THREE.Vector3(
+                Math.random() * (safeMaxX - safeMinX) + safeMinX,
+                Math.random() * (safeMaxY - safeMinY) + safeMinY,
+                Math.random() * (safeMaxZ - safeMinZ) + safeMinZ
+            );
+        }
+        const dir = new THREE.Vector3().subVectors(enemy.userData.idleTarget, enemy.position);
+        if (dir.length() > 0.1) {
+            dir.normalize();
+            enemy.position.add(dir.multiplyScalar(5 * delta * 2));
+            // Limita dentro da área segura
+            enemy.position.x = Math.max(safeMinX, Math.min(safeMaxX, enemy.position.x));
+            enemy.position.y = Math.max(safeMinY, Math.min(safeMaxY, enemy.position.y));
+            enemy.position.z = Math.max(safeMinZ, Math.min(safeMaxZ, enemy.position.z));
+            lookAtTarget(enemy, enemy.userData.idleTarget);
+        }
+    }
     if (enemy.userData.collisionBox) {
         const boxSize = 7.57;
         const boxHeight = 10;
@@ -137,6 +211,8 @@ export function updateEnemyBehaviorGLB(enemy, player, scene, delta) {
     if (enemy.userData.boxHelper) {
         enemy.userData.boxHelper.updateMatrixWorld(true);
     }
+
+    // console.log(enemy.userData.hasDetectedPlayer ? "Me viu!" : "Não me viu!");
 }
 
 // Atualização dos inimigos GLB

@@ -97,21 +97,21 @@ function shootProjectile() {
         });
         const hits = raycaster.intersectObjects(enemies, true);
         if (hits.length > 0) {
-            const enemy = hits[0].object;
-            if (enemy.userData.hp === undefined) enemy.userData.hp = 50;
-            enemy.userData.hp -= 2; // 2 HP por segundo
-            console.log(`Inimigo atingido! HP restante: ${enemy.userData.hp}`);
+            let enemy = hits[0].object;
+            let enemyRoot = enemy.userData.enemyRoot || enemy;
+            while (enemyRoot.parent && !enemyRoot.userData.isEnemy) {
+                enemyRoot = enemyRoot.parent;
+            }
+            if (enemyRoot.userData.hp === undefined) enemyRoot.userData.hp = 50;
+            enemyRoot.userData.hp -= 1;
+            console.log(`Inimigo atingido! HP restante: ${enemyRoot.userData.hp}`);
             if (enemyRoot.userData.hp <= 0) {
                 enemyRoot.userData.hp = 0;
                 fadeOut(enemyRoot, 250, () => {
-                    // Remove todas as meshes filhas do inimigo da cena
-                    enemyRoot.traverse(child => {
-                        if (child.isMesh) {
-                            scene.remove(child);
-                        }
-                    });
-                    scene.remove(enemyRoot);
-                    if (enemyRoot.userData.boxHelper) scene.remove(enemyRoot.userData.boxHelper);
+                    if (enemyRoot.parent) enemyRoot.parent.remove(enemyRoot);
+                    if (enemyRoot.userData.boxHelper && enemyRoot.userData.boxHelper.parent) {
+                        enemyRoot.userData.boxHelper.parent.remove(enemyRoot.userData.boxHelper);
+                    }
                     console.log("Inimigo eliminado!");
                 });
             }
@@ -173,19 +173,9 @@ export function updateProjectiles(delta) {
                     console.log(`Inimigo atingido! HP restante: ${enemyRoot.userData.hp}`);
                     if (enemyRoot.userData.hp <= 0) {
                         fadeOut(enemyRoot, 500, () => {
-                            // Remove todas as meshes filhas do inimigo da cena (caso estejam na cena)
-                            enemyRoot.traverse(child => {
-                                if (child.isMesh && scene.children.includes(child)) {
-                                    scene.remove(child);
-                                }
-                            });
-                            // Remove o group do inimigo
-                            if (scene.children.includes(enemyRoot)) {
-                                scene.remove(enemyRoot);
-                            }
-                            // Remove o boxHelper se existir
-                            if (enemyRoot.userData.boxHelper && scene.children.includes(enemyRoot.userData.boxHelper)) {
-                                scene.remove(enemyRoot.userData.boxHelper);
+                            if (enemyRoot.parent) enemyRoot.parent.remove(enemyRoot);
+                            if (enemyRoot.userData.boxHelper && enemyRoot.userData.boxHelper.parent) {
+                                enemyRoot.userData.boxHelper.parent.remove(enemyRoot.userData.boxHelper);
                             }
                             console.log("Inimigo eliminado!");
                         });
