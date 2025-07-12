@@ -3,7 +3,7 @@ import { loadEnemyOBJ } from './enemy.js';
 import { CSG } from '../libs/other/CSGMesh.js';
 
 export function criaChave(cor) {
-    let keyMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2));
+    let keyMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1));
     const keyMaterial = new THREE.MeshPhongMaterial({
         color: cor,
         shininess: 100,
@@ -13,7 +13,7 @@ export function criaChave(cor) {
     keyMesh.receiveShadow = true;
     let keyCSG = CSG.fromMesh(keyMesh);
 
-    let cylinGeometry = new THREE.CylinderGeometry(0.60, 0.60, 2, 26);
+    let cylinGeometry = new THREE.CylinderGeometry(0.30, 0.30, 2, 26);
     
     let cylinGeometryY = cylinGeometry.clone();
     let cylinMeshY = new THREE.Mesh(cylinGeometryY);
@@ -40,6 +40,8 @@ export function criaChave(cor) {
     keyMesh.castShadow = true;
     keyMesh.receiveShadow = true;
 
+    keyMesh.userData.isCollectable = true;
+    keyMesh.userData.collisionBox = new THREE.Box3().setFromObject(keyMesh);
     //key.userData.isCollidable = true;
     
     // Configura colisão para a chave
@@ -53,32 +55,53 @@ export function criaChave(cor) {
  * @param {THREE.Scene} scene - Cena principal
  * @param {THREE.Object3D} area - Área onde tudo acontece (ex: areas[0])
  */
-export function setupAreaChave(scene, area, enemies) {
+export function setupAreaChave(scene, area) {
+    // 1. Cria 5 inimigos skull.obj em posições fixas ou aleatórias
+    const enemyPositions = [
+        { x: 65, y: 6, z: 0 },
+        { x: 55, y: 6, z: 10 },
+        { x: 35, y: 6, z: -10 },
+        { x: 55, y: 6, z: -10 },
+        { x: 35, y: 6, z: 10 }
+    ];
+    const enemies = [];
     let defeatedCount = 0;
+    let pilar = null;
     let chave = null;
 
-    // Adicione o método de eliminação para cada inimigo já criado
-    enemies.forEach((enemy) => {
-        enemy.userData.eliminate = () => {
-            scene.remove(enemy);
-            defeatedCount++;
-            if (defeatedCount === enemies.length) {
-                showPilarComChave();
-            }
-        };
-    });
+    enemyPositions.forEach((pos) => {
+        loadEnemyOBJ('images/sprites/skull/skull.obj', pos, (enemy) => {
+            enemy.traverse(child => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+            area.add(enemy);
+            enemies.push(enemy);
 
+            // Adicione um método para eliminar o inimigo
+            enemy.userData.eliminate = () => {
+                area.remove(enemy);
+                defeatedCount++;
+                if (defeatedCount === enemyPositions.length) {
+                    showPilarComChave();
+                }
+            };
+        });
+    });
     let chaveAnimada = null;
     let baseY = 0;
 
     function showPilarComChave() {
         // Pilar
+        
         let bloco = criaBlocoChave();
         area.add(bloco);
 
         // Chave
         chave = criaChave('red');
-        chave.position.set(0, 6, 0); // Em cima do pilar (posição relativa ao pilar)
+        chave.position.set(0, 2, 0); // Em cima do pilar (posição relativa ao pilar)
         bloco.add(chave);
 
         // Guarda referência para animação no render principal
@@ -86,7 +109,8 @@ export function setupAreaChave(scene, area, enemies) {
         baseY = chave.position.y;
         return bloco;
     }
-
+    showPilarComChave();
+    // Retorna referência para controle externo se quiser
     return {
         enemies,
         eliminarInimigo: (enemy) => {
@@ -99,10 +123,10 @@ export function setupAreaChave(scene, area, enemies) {
     };
 }
 export function criaBlocoChave(){
-    const blocoGeometry = new THREE.BoxGeometry(2,4,2);
+    const blocoGeometry = new THREE.BoxGeometry(2,2,2);
     const blocoMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(200, 200, 200)' });
     let bloco = new THREE.Mesh(blocoGeometry, blocoMaterial);
-    bloco.position.set(45, 4, 0);
+    bloco.position.set(45, 2, 0);
     bloco.castShadow = true;
     bloco.receiveShadow = true;
     bloco.userData.isCollidable = true;

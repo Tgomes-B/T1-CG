@@ -474,18 +474,33 @@ export function moveAnimate(delta) {
         playerObj.position.y += velocityY * delta;
     }
     // ----- Animando a porta e o elevador -----
-    // 1. Animando a porta
-    // Raycast frontal para detectar a porta e o elevador
+    // 1- Raycast frontal para detectar a porta e o elevador
     const frontRay = new THREE.Raycaster(
         playerObj.position.clone(),
         new THREE.Vector3(1, 0, 0),
         0,
         2
     );
-    const portas = scene.children.filter(obj => obj.name === 'porta');
-    portas.forEach(porta => { movePorta(porta, frontRay); });
 
-    // 2. Animando o elevador
+    // 2- coletando a chave e permitindo que a porta se abra
+    if (areaChaveData && areaChaveData.getChaveAnimada()) {
+        const chave = areaChaveData.getChaveAnimada();
+        if (chave.userData.isCollectable) {
+            chave.userData.collisionBox.setFromObject(chave);
+            if (playerBox.intersectsBox(chave.userData.collisionBox)) {
+                chave.parent.remove(chave);
+                chave.userData.isCollectable = false;
+            }
+        }
+        // Abre a porta se tiver chave
+        if (!chave.userData.isCollectable) {
+            const portas = scene.children.filter(obj => obj.name === 'porta');
+            portas.forEach(porta => { movePorta(porta, frontRay); });
+            chave.userData.isCollectable = true;
+        }
+    }
+
+    // 3. Animando o elevador
     const elevadores = scene.children.filter(obj => obj.name === 'elevador');
     elevadores.forEach(elevador => { moveElevador(elevador, downRay, frontRay); });
 }
