@@ -219,7 +219,7 @@ export function updateEnemyBehavior(enemy, player, scene, delta) {
         safeMinX: 115,
         safeMaxX: 235,
         safeMinY: 4,
-        safeMaxY: 20,
+        safeMaxY: 30,
         safeMinZ: -215,
         safeMaxZ: -95
     };

@@ -94,7 +94,7 @@ function setupEnvironment() {
         safeMinX: 115,
         safeMaxX: 235,
         safeMinY: 4,
-        safeMaxY: 20,
+        safeMaxY: 30,
         safeMinZ: -215,
         safeMaxZ: -95
     };
@@ -109,12 +109,13 @@ function setupEnvironment() {
     const enemiesArea1 = [];
     const numEnemies = 5;
     const enemyPositions = [];
+    const margin = 3;
     
     for (let i = 0; i < numEnemies; i++) {
         enemyPositions.push({
-            x: Math.random() * (areaLimits.safeMaxX - areaLimits.safeMinX) + areaLimits.safeMinX,
-            y: Math.random() * (areaLimits.safeMaxY - areaLimits.safeMinY) + areaLimits.safeMinY,
-            z: Math.random() * (areaLimits.safeMaxZ - areaLimits.safeMinZ) + areaLimits.safeMinZ
+            x: Math.random() * (areaLimits.safeMaxX - areaLimits.safeMinX - 2 * margin) + areaLimits.safeMinX + margin,
+            y: Math.random() * (areaLimits.safeMaxY - areaLimits.safeMinY - 2 * margin) + areaLimits.safeMinY + margin,
+            z: Math.random() * (areaLimits.safeMaxZ - areaLimits.safeMinZ - 2 * margin) + areaLimits.safeMinZ + margin
         });
     }
     
