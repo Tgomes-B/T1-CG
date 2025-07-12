@@ -88,29 +88,52 @@ function setupEnvironment() {
     ({ areas, ramp, ground } = criaAreasRampas(scene));
     walls = criaParedes(scene);
 
-    const enemiesArea1 = [];
-    const enemyPositions = [
-        { x: 65, y: 9, z: 0 },
-        { x: 55, y: 7, z: 10 },
-        { x: 35, y: 8, z: -10 },
-        { x: 55, y: 7, z: -10 },
-        { x: 35, y: 8, z: 10 }
-    ];
+    const area1 = areas[0];
+    const area1Size = { x: 120, y: 4, z: 120 }; // BoxGeometry(120, 4, 120)
+    const areaLimits = {
+        safeMinX: 115,
+        safeMaxX: 235,
+        safeMinY: 4,
+        safeMaxY: 20,
+        safeMinZ: -215,
+        safeMaxZ: -95
+    };
     
-    // Carregamento assíncrono!
+    // Visualização da área de atuação (opcional)
+    const min = new THREE.Vector3(areaLimits.safeMinX, areaLimits.safeMinY, areaLimits.safeMinZ);
+    const max = new THREE.Vector3(areaLimits.safeMaxX, areaLimits.safeMaxY, areaLimits.safeMaxZ);
+    const box = new THREE.Box3(min, max);
+    const boxHelper = new THREE.Box3Helper(box, 0x00ff00);
+    scene.add(boxHelper);
+
+    const enemiesArea1 = [];
+    const numEnemies = 5;
+    const enemyPositions = [];
+    
+    for (let i = 0; i < numEnemies; i++) {
+        enemyPositions.push({
+            x: Math.random() * (areaLimits.safeMaxX - areaLimits.safeMinX) + areaLimits.safeMinX,
+            y: Math.random() * (areaLimits.safeMaxY - areaLimits.safeMinY) + areaLimits.safeMinY,
+            z: Math.random() * (areaLimits.safeMaxZ - areaLimits.safeMinZ) + areaLimits.safeMinZ
+        });
+    }
+    
     let loadedCount = 0;
-    enemyPositions.forEach((enemyPositions) => {
-        loadEnemyOBJ('images/sprites/skull/skull.obj', enemyPositions, (enemy) => {
-            areas[0].add(enemy);
+    enemyPositions.forEach((enemyPos) => {
+        loadEnemyOBJ('images/sprites/skull/skull.obj', enemyPos, (enemy) => {
+            enemy.position.set(enemyPos.x, enemyPos.y, enemyPos.z);
+            scene.add(enemy);
             enemiesArea1.push(enemy);
-            if (enemy.userData.boxHelper) areas[0].add(enemy.userData.boxHelper);
+            if (enemy.userData.boxHelper) scene.add(enemy.userData.boxHelper);
+    
             loadedCount++;
             if (loadedCount === enemyPositions.length) {
-                areaChaveData = setupAreaChave(scene, areas[0], enemiesArea1);
+                areaChaveData = setupAreaChave(scene, area1, enemiesArea1);
             }
         });
     });
-    setupArea2(areas[1],scene);
+
+    setupArea2(areas[1], scene);
     
 // Encontre as torres da área 2
     const torresArea2 = [];

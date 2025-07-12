@@ -53,47 +53,26 @@ export function criaChave(cor) {
  * @param {THREE.Scene} scene - Cena principal
  * @param {THREE.Object3D} area - Área onde tudo acontece (ex: areas[0])
  */
-export function setupAreaChave(scene, area) {
-    // 1. Cria 5 inimigos skull.obj em posições fixas ou aleatórias
-    const enemyPositions = [
-        { x: 65, y: 6, z: 0 },
-        { x: 55, y: 6, z: 10 },
-        { x: 35, y: 6, z: -10 },
-        { x: 55, y: 6, z: -10 },
-        { x: 35, y: 6, z: 10 }
-    ];
-    const enemies = [];
+export function setupAreaChave(scene, area, enemies) {
     let defeatedCount = 0;
-    let pilar = null;
     let chave = null;
 
-    enemyPositions.forEach((pos) => {
-        loadEnemyOBJ('images/sprites/skull/skull.obj', pos, (enemy) => {
-            enemy.traverse(child => {
-                if (child.isMesh) {
-                    child.castShadow = true;
-                    child.receiveShadow = true;
-                }
-            });
-            area.add(enemy);
-            enemies.push(enemy);
-
-            // Adicione um método para eliminar o inimigo
-            enemy.userData.eliminate = () => {
-                area.remove(enemy);
-                defeatedCount++;
-                if (defeatedCount === enemyPositions.length) {
-                    showPilarComChave();
-                }
-            };
-        });
+    // Adicione o método de eliminação para cada inimigo já criado
+    enemies.forEach((enemy) => {
+        enemy.userData.eliminate = () => {
+            scene.remove(enemy);
+            defeatedCount++;
+            if (defeatedCount === enemies.length) {
+                showPilarComChave();
+            }
+        };
     });
+
     let chaveAnimada = null;
     let baseY = 0;
 
     function showPilarComChave() {
         // Pilar
-        
         let bloco = criaBlocoChave();
         area.add(bloco);
 
@@ -107,8 +86,7 @@ export function setupAreaChave(scene, area) {
         baseY = chave.position.y;
         return bloco;
     }
-    showPilarComChave();
-    // Retorna referência para controle externo se quiser
+
     return {
         enemies,
         eliminarInimigo: (enemy) => {
@@ -127,6 +105,5 @@ export function criaBlocoChave(){
     bloco.position.set(45, 4, 0);
     bloco.castShadow = true;
     bloco.receiveShadow = true;
-    bloco.userData.isCollidable = true; 
     return bloco;
 }
