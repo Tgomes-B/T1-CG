@@ -3,6 +3,7 @@ import * as THREE from 'three';
 let camera, scene, controls;
 const projectileSpeed = 100;
 const projectiles = [];
+let areas = [];
 const ballGeometry = new THREE.SphereGeometry(0.1, 16, 16);
 
 let lastShotTime = 0;
@@ -17,11 +18,12 @@ let chaingunAnimInterval = null;
  * Também inicia/paralisa a animação da chaingun.
  * @returns {void}
  */
-export function setupShooting(_camera, _scene, _controls, _getCurrentWeapon) {
+export function setupShooting(_camera, _scene, _controls, _getCurrentWeapon,_areas) {
     camera = _camera;
     scene = _scene;
     controls = _controls;
     getCurrentWeapon = _getCurrentWeapon;
+    areas = _areas;
     if (getCurrentWeapon().name === "chaingun") stopChaingunAnimation();
     document.addEventListener('mousedown', (event) => {
         if (event.button !== 0 && event.button !== 2) return;
@@ -87,7 +89,12 @@ function shootProjectile() {
         const dir = new THREE.Vector3();
         camera.getWorldDirection(dir);
         const raycaster = new THREE.Raycaster(camera.getWorldPosition(new THREE.Vector3()), dir, 0, 200);
-        const enemies = scene.children.filter(obj => obj.userData?.isEnemy);
+        let enemies = [];
+        areas.forEach(area => {
+            area.children.forEach(obj => {
+                if (obj.userData?.isEnemy) enemies.push(obj);
+            });
+        });
         const hits = raycaster.intersectObjects(enemies, true);
         if (hits.length > 0) {
             const enemy = hits[0].object;
@@ -133,7 +140,12 @@ export function updateProjectiles(delta) {
         );
 
         // Filtra inimigos e objetos colidíveis
-        const collidables = scene.children.filter(obj => obj.userData?.isCollidable || obj.userData?.isEnemy);
+        let collidables = [];
+        areas.forEach(area => {
+            area.children.forEach(obj => {
+                if (obj.userData?.isCollidable || obj.userData?.isEnemy) collidables.push(obj);
+            });
+        });
         const intersects = raycaster.intersectObjects(collidables, true);
 
         // Checa distância máxima

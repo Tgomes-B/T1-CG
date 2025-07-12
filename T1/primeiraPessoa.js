@@ -3,8 +3,9 @@
  * @module primeiraPessoa
  */
 import { adicionarInimigoCena,updateEnemies } from './inimigo.js';
-import { criaChave,setupAreaChave } from './areaChave.js';
-import { loadEnemyOBJ, updateEnemyBehavior,updateEnemiesOBJ } from './enemy.js';
+import { createEnemy, loadEnemyOBJ, updateEnemyBehavior,updateEnemiesOBJ } from './enemy.js';
+import { setupAreaChave,criaChave } from './areaChave.js';
+import { setupArea2 as setupArea2 } from './areaElevada.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
@@ -100,22 +101,32 @@ function setupEnvironment() {
     let loadedCount = 0;
     enemyPositions.forEach((enemyPositions) => {
         loadEnemyOBJ('images/sprites/skull/skull.obj', enemyPositions, (enemy) => {
-            scene.add(enemy);
+            areas[0].add(enemy);
             enemiesArea1.push(enemy);
-            if (enemy.userData.boxHelper) scene.add(enemy.userData.boxHelper);
+            if (enemy.userData.boxHelper) areas[0].add(enemy.userData.boxHelper);
             loadedCount++;
             if (loadedCount === enemyPositions.length) {
                 areaChaveData = setupAreaChave(scene, areas[0], enemiesArea1);
             }
         });
     });
+    setupArea2(areas[1],scene);
     
-    const posicoesArea2 = [
-        { x: 100, y: 20, z: 100 },
-        { x: 110, y: 20, z: 110 },
-        { x: 120, y: 20, z: 120 }
-    ];
-    adicionarInimigoCena(scene, 'images/sprites/teste/cacodemonanimations.glb', posicoesArea2);
+// Encontre os pilares da área 2
+const pilaresArea2 = [];
+areas[1].traverse(obj => {
+    if (obj.name === "pilar") pilaresArea2.push(obj);
+});
+
+// Defina as posições dos inimigos GLB em cima dos pilares
+const posicoesArea2 = pilaresArea2.slice(0, 3).map(pilar => {
+    // Posição central do topo do pilar
+    return {
+        x: pilar.position.x,
+        y: pilar.position.y + (pilar.geometry ? pilar.geometry.parameters.height / 2 + 7 : 20), // 7 é altura do cacodemon, ajuste se necessário
+        z: pilar.position.z
+    };
+});
 }
 
 /**
@@ -132,7 +143,7 @@ function setupLightingAndCollision() {
 function setupGameElements() {
     setupCrosshair();
     createGun();
-    setupShooting(camera, scene, controls, () => currentWeapon);
+    setupShooting(camera, scene, controls, () => currentWeapon,areas);
 }
 
 /**

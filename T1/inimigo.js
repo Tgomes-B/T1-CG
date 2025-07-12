@@ -78,21 +78,34 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicoes = [{ x: 0, y: 0,
 }
 
 export function updateEnemyBehaviorGLB(enemy, player, scene, delta) {
-    // Checa distância ao player
     const dist = enemy.position.distanceTo(player.position);
     const detectionRadius = enemy.userData.detectionRadius || 100;
 
-    if (dist < detectionRadius) {
-        // Move em direção ao player
+    // Limites da área 2
+    const minX = -5, maxX = 115, minZ = -60, maxZ = 60, y = enemy.position.y;
+
+    if (dist >= detectionRadius) {
+        if (!enemy.userData.idleTarget || enemy.position.distanceTo(enemy.userData.idleTarget) < 1) {
+            enemy.userData.idleTarget = new THREE.Vector3(
+                Math.random() * (maxX - minX) + minX,
+                y,
+                Math.random() * (maxZ - minZ) + minZ
+            );
+        }
+        const dir = new THREE.Vector3().subVectors(enemy.userData.idleTarget, enemy.position).setY(0);
+        if (dir.length() > 0.1) {
+            dir.normalize();
+            enemy.position.add(dir.multiplyScalar(5 * delta * 2));
+            enemy.lookAt(enemy.userData.idleTarget.x, enemy.position.y, enemy.userData.idleTarget.z);
+        }
+    } else {
+        // Persegue player normalmente
         const moveDirection = new THREE.Vector3()
             .subVectors(player.position, enemy.position)
             .setY(0)
             .normalize();
-
         enemy.position.x += moveDirection.x * 5 * delta;
         enemy.position.z += moveDirection.z * 5 * delta;
-
-        // Olha para o player
         enemy.lookAt(player.position.x, enemy.position.y, player.position.z);
     }
 
