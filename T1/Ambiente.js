@@ -15,6 +15,7 @@ export function criaAreasRampas(scene) {
     ground.position.set(0, 0, 0);
     ground.rotation.x = -0.5 * Math.PI;
     ground.name = "ground";
+    ground.receiveShadow = true;
     scene.add(ground);
 
     const areaGeometry = new THREE.BoxGeometry(120, 10, 120);
@@ -49,6 +50,8 @@ export function criaAreasRampas(scene) {
         for (let i = 0; i < 8; i++) {
             degrau = new THREE.Mesh(degrauGeometry, degrauMaterial);
             degrau.position.set(i * comp + comp / 2 + posX, i * altura + altura / 2, posZ);
+            degrau.castShadow = true;
+            degrau.receiveShadow = true;
             scene.add(degrau);
         }
         
@@ -57,6 +60,8 @@ export function criaAreasRampas(scene) {
         ramp.rotation.y = angulo;
         ramp.position.set(rampX, rampY, posZ);
         ramp.name = 'ramp';
+        ramp.castShadow = true;
+        ramp.receiveShadow = true;
         scene.add(ramp);
     }
 
@@ -79,6 +84,8 @@ export function criaAreasRampas(scene) {
         mesh.position.set(areaX, areaY, areaZ);
         mesh.userData.isCollidable = true;
         mesh.name = 'topo_colisao';
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
         scene.add(mesh);
         return mesh;
     }
@@ -144,14 +151,14 @@ export function criaAreasRampas(scene) {
             criaEscada(115, posZ, comp, 130, 4, -0.1325, 2);
         }else if (i == 1) {
             areas[i].position.set(120, 5, posZ);
-            elevador(areas);
-            criaTorres(areas[i]);
         }else if (i == 2) {
             areas[i].position.set(130, 5, posZ);
             criaEscada(115, posZ, comp, 130, 10, -0.102 * Math.PI, 5);
         }
         
         areas[i].material = areaMaterial[i];
+        areas[i].castShadow = true;
+        areas[i].receiveShadow = true;
         posZ += 155;
         scene.add(areas[i]);
     }
@@ -171,6 +178,10 @@ export function criaPilares(area1){
         let pilarLat = new THREE.Mesh(pilarGeometry, pilarMaterial);
         pilar.position.set(Xcont, 17, -55);
         pilarLat.position.set(Xcont, 17, 55);
+        pilar.castShadow = true;
+        pilar.receiveShadow = true;
+        pilarLat.castShadow = true;
+        pilarLat.receiveShadow = true;
         area1.add(pilar);
         area1.add(pilarLat);
         Xcont = Xcont + 22;
@@ -180,6 +191,8 @@ export function criaPilares(area1){
     while (Zcont <= 35){
         let pilarFron = new THREE.Mesh(pilarGeometry, pilarMaterial);
         pilarFron.position.set(-10, 17, Zcont);
+        pilarFron.castShadow = true;
+        pilarFron.receiveShadow = true;
         area1.add(pilarFron);
         pilarFron.name = "pilar";
         if (Zcont == -15) {
@@ -191,28 +204,13 @@ export function criaPilares(area1){
     while (contBack <= 33){
         let pilarBack = new THREE.Mesh(pilarGeometry, pilarMaterial);
         pilarBack.position.set(100, 17, contBack);
+        pilarBack.castShadow = true;
+        pilarBack.receiveShadow = true;
         area1.add(pilarBack);
         pilarBack.name = "pilar";
         contBack += 22;
     }
     return area1;
-}
-function elevador(areas) {
-    const portaGeometry = new THREE.BoxGeometry(5, 10, 20);
-    const portaMaterial = new THREE.MeshLambertMaterial({ color: 'red' });
-    const portaMesh = new THREE.Mesh(portaGeometry, portaMaterial);
-
-    const elevadorGeometry = new THREE.BoxGeometry(15, 10, 20);
-    const elevadorMaterial = new THREE.MeshLambertMaterial({ color: 'blue' });
-    const elevadorMesh = new THREE.Mesh(elevadorGeometry, elevadorMaterial);
-
-    portaMesh.position.set(-2.5, 0, 0);
-    elevadorMesh.position.set(7.5, 0, 0);
-    areas[1].add(elevadorMesh);
-    elevadorMesh.userData.isCollidable = true;
-    //areas[1].add(portaMesh);
-
-    return elevadorMesh;
 }
 
 /**
@@ -270,164 +268,79 @@ function createWall(width, height, depth, position, name) {
 }
 }
 
-/**
- * Configura a iluminação da cena 3D
- * @param {THREE.Scene} scene - A cena a ser iluminada
- * @returns {THREE.SpotLightHelper} Helper visual para a spotlight
- */
 export function setupLighting(scene) {
+    // 1. Luz ambiente (mantida)
     const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
     scene.add(ambientLight);
 
+    // 2. Luz direcional principal (ajustada para maior altura)
     const directionalLight = createDirectionalLight();
-    const spotlight = createSpotlight();
-    const spotLightHelper = new THREE.SpotLightHelper(spotlight);
-    scene.add(spotLightHelper);
+    
+    // 3. Segunda luz direcional (preenchimento) - também ajustada para maior altura
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    fillLight.position.set(-100, 150, -30); // Altura aumentada para 150
+    fillLight.castShadow = false; // Sem sombras
 
-    buildLightingInterface(spotlight, directionalLight, spotLightHelper, scene);
+    scene.add(directionalLight);
+    scene.add(fillLight);
 
-    return spotLightHelper;
+    // Helper (opcional)
+    const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 5);
+    scene.add(directionalLightHelper);
 
-    /**
-     * Cria uma luz direcional com configurações padrão
-     * @private
-     * @returns {THREE.DirectionalLight} A luz direcional criada
-     */
+    // Atualização da GUI
+    buildLightingInterface(directionalLight, fillLight, directionalLightHelper, ambientLight, scene);
+
+    return directionalLightHelper;
+
     function createDirectionalLight() {
-        const light = new THREE.DirectionalLight(0xffffff, 0.6);
-        light.position.set(100, 100, 50);
+        const light = new THREE.DirectionalLight(0xffffff, 0.8);
+        light.position.set(100, 250, 30); // Altura aumentada para 250 (antes era 150)
+        
+        // Configurações de sombra
         light.castShadow = true;
-        light.shadow.mapSize.width = 2048;
-        light.shadow.mapSize.height = 2048;
+        light.shadow.mapSize.width = 4096;
+        light.shadow.mapSize.height = 4096;
         light.shadow.camera.near = 0.5;
         light.shadow.camera.far = 500;
         light.shadow.camera.left = -250;
         light.shadow.camera.right = 250;
         light.shadow.camera.top = 250;
         light.shadow.camera.bottom = -250;
-        scene.add(light);
+        
+        // Ajustes de bias para melhorar a qualidade das sombras
+        light.shadow.bias = -0.0001;
+        light.shadow.normalBias = 0.05;
+
         return light;
     }
 
-    /**
-     * Cria uma spotlight com configurações padrão
-     * @private
-     * @returns {THREE.SpotLight} A spotlight criada
-     */
-    function createSpotlight() {
-        const light = new THREE.SpotLight(0xffffff, 1);
-        light.position.set(0, 30, 0);
-        light.angle = Math.PI / 6;
-        light.penumbra = 0.2;
-        light.decay = 1.5;
-        light.distance = 150;
-        light.castShadow = true;
-        light.shadow.mapSize.width = 1024;
-        light.shadow.mapSize.height = 1024;
-        light.shadow.camera.near = 0.5;
-        light.shadow.camera.far = 200;
-        scene.add(light);
-        return light;
-    }
-
-    /**
-     * Constrói a interface gráfica para controle de iluminação
-     * @private
-     * @param {THREE.SpotLight} spotlight - Instância da spotlight
-     * @param {THREE.DirectionalLight} directionalLight - Instância da luz direcional
-     * @param {THREE.SpotLightHelper} spotLightHelper - Helper da spotlight
-     * @param {THREE.Scene} scene - Cena principal
-     */
-    function buildLightingInterface(spotlight, directionalLight, spotLightHelper, scene) {
-        const lightModes = {
-            ANTIGA: 'Antiga (Spotlight)',
-            NOVA: 'Nova (Direcional)'
-        };
-
+    function buildLightingInterface(directionalLight, fillLight, helper, ambientLight, scene) {
         const lightControls = {
-            modo: lightModes.NOVA,
-            intensidadeSpot: spotlight.intensity,
-            intensidadeDirecional: directionalLight.intensity,
+            intensidadePrincipal: directionalLight.intensity,
+            intensidadePreenchimento: fillLight.intensity,
+            intensidadeAmbiente: ambientLight.intensity,
             mostrarHelpers: true
         };
-
-        function setModoIluminacao(modo) {
-            spotlight.visible = (modo === lightModes.ANTIGA);
-            directionalLight.visible = (modo === lightModes.NOVA);
-        }
-
-        function setHelpers(ativo) {
-            spotLightHelper.visible = ativo;
-            scene.children.forEach(child => {
-                if (child instanceof THREE.PointLightHelper) {
-                    child.visible = ativo;
-                }
-            });
-        }
 
         const gui = new GUI({ width: 300 });
         const pasta = gui.addFolder('Controle de Iluminação');
         pasta.open();
         
-        pasta.add(lightControls, 'modo', [lightModes.ANTIGA, lightModes.NOVA])
-            .name('Modo de Iluminação')
-            .onChange(modo => setModoIluminacao(modo));
+        pasta.add(lightControls, 'intensidadePrincipal', 0, 2, 0.1)
+            .name('Intensidade Principal')
+            .onChange(val => directionalLight.intensity = val);
             
-        pasta.add(lightControls, 'intensidadeSpot', 0, 2, 0.1)
-            .name('Intensidade Spotlight')
-            .onChange(val => { spotlight.intensity = val; });
+        pasta.add(lightControls, 'intensidadePreenchimento', 0, 2, 0.1)
+            .name('Intensidade Preenchimento')
+            .onChange(val => fillLight.intensity = val);
             
-        pasta.add(lightControls, 'intensidadeDirecional', 0, 2, 0.1)
-            .name('Intensidade Direcional')
-            .onChange(val => { directionalLight.intensity = val; });
+        pasta.add(lightControls, 'intensidadeAmbiente', 0, 2, 0.1)
+            .name('Intensidade Ambiente')
+            .onChange(val => ambientLight.intensity = val);
             
         pasta.add(lightControls, 'mostrarHelpers')
             .name('Mostrar Helpers')
-            .onChange(val => setHelpers(val));
-
-        setModoIluminacao(lightControls.modo);
-        setHelpers(lightControls.mostrarHelpers);
-    }
-}
-
-function criaTorres(area) {
-    const base = 10;
-    const alturas = [22, 28, 19, 16, 27, 25, 21, 30, 18, 24, 29, 20, 17, 23, 26];
-    const espacoX = 90 / 4;
-    const espacoZ4 = (120 - base*4)/3;
-    const espacoZ3 = (120 - base*3)/4;
-    const iniZ4 = -60 + base/2;
-    const iniZ3 = -60 + base / 2 + espacoZ3;
-    const material = new THREE.MeshLambertMaterial({ color: 0x888888 });
-    const torresLinha = [4, 3, 4, 3];
-    let z = 0;
-
-    let i = 0;
-    for (let row = 0; row < torresLinha.length; row++) {
-        for (let col = 0; col < torresLinha[row]; col++) {
-            if (i >= alturas.length) break;
-            const altura = alturas[i++];
-            if(torresLinha[row] == 4){
-                z = iniZ4 + (espacoZ4 + base) * col;
-            }
-            else if(torresLinha[row] == 3){
-                z = iniZ3 + (espacoZ3 + base) * col;
-            }else{
-                break;
-            }
-            
-            let x = 30 + row * espacoX;
-            const geometry = new THREE.BoxGeometry(base, altura, base);  
-            const torre = new THREE.Mesh(geometry, material);
-
-            torre.position.set(x, 5 + altura / 2, z);
-            torre.name = "torre";
-            torre.userData.isCollidable = true;
-
-            area.add(torre);
-            if(alturas[i]==25){
-                // torre que guarda a chave
-            }
-        }
+            .onChange(val => helper.visible = val);
     }
 }

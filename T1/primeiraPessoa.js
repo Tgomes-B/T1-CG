@@ -129,6 +129,7 @@ const posicoesArea2 = pilaresArea2.slice(0, 3).map(pilar => {
 });
 }
 
+
 /**
  * Configura iluminação e colisões.
  */
@@ -347,7 +348,7 @@ function movementControls(key, value) {
  */
 export function moveAnimate(delta) {
     const playerObj = controls.getObject();
-    const alturaPlayer = 7;
+    const alturaPlayer = 2;
     const forward = controls.getDirection(new THREE.Vector3()).setY(0).normalize();
     const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
     const moveVec = new THREE.Vector3();
@@ -416,6 +417,7 @@ export function moveAnimate(delta) {
     const walkableSurfaces = scene.children.filter(obj =>
         obj.name === 'ground' ||
         obj.name === 'topo_colisao' ||
+        obj.name === 'elevador' ||
         (obj.name && obj.name.startsWith('ramp'))
     );
     const surfaceIntersects = downRay.intersectObjects(walkableSurfaces, false);

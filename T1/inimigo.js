@@ -4,21 +4,22 @@ import { GLTFLoader } from '../build/jsm/loaders/GLTFLoader.js';
 import { HealthBar } from './healthbar.js'; // Importe a classe HealthBar
 
 export function adicionarInimigoCena(cena, caminhoGLB, posicoes = [{ x: 0, y: 0, z: 0 }]) {
-    // Garante que posicoes é um array
+    
     if (!Array.isArray(posicoes)) posicoes = [posicoes];
 
     const loader = new GLTFLoader();
 
     posicoes.forEach(posicao => {
-        loader.load(
-            caminhoGLB,
-            (gltf) => {
-                const inimigo = gltf.scene;
-                inimigo.position.set(posicao.x, posicao.y, posicao.z);
-                inimigo.scale.set(0.015, 0.015, 0.015);
-                inimigo.userData.isEnemy = true;
-                inimigo.userData.isCollidable = true;
-                inimigo.userData.enemyType = "glb";
+    loader.load(
+        caminhoGLB,
+        (gltf) => {
+            const inimigo = gltf.scene;
+            inimigo.position.set(posicao.x, posicao.y, posicao.z);
+            inimigo.scale.set(0.015, 0.015, 0.015);
+            inimigo.userData.isEnemy = true;
+            inimigo.userData.isCollidable = true;
+            inimigo.userData.enemyType = "glb"; // Tipo GLB
+            inimigo.traverse(child => { if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; } });
 
                 // Aumentar altura da caixa de colisão
                 const boxSize = 7.57;

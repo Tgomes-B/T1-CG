@@ -53,6 +53,8 @@ export function loadEnemyOBJ(path, position = { x: 20, y: 0, z: 10 }, onLoad) {
                         child.userData.isEnemy = true;
                         child.userData.hp = obj.userData.hp;
                         child.userData.enemyRoot = obj;
+                        child.castShadow = true;
+                        child.receiveShadow = true;
                     }
                 });
 
@@ -98,9 +100,6 @@ export function createEnemy(position = { x: 0, y: 2, z: 0 }) {
     return enemy;
 }
 
-/**
- * Atualiza o comportamento do inimigo
- */
 export function updateEnemyBehavior(enemy, player, scene, delta) {
     const dist = enemy.position.distanceTo(player.position);
     const detectionRadius = 40;
