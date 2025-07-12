@@ -41,8 +41,8 @@ export function loadEnemyOBJ(path, position = { x: 20, y: 0, z: 10 }, onLoad) {
                 obj.userData.isCollidable = true;
 
                 // Cria uma collisionBox válida baseada no centro e tamanho padrão
-                const boxSize = 7.57;
-                const boxHeight = 10;
+                const boxSize = 5;
+                const boxHeight = 7;
                 const boxCenter = obj.position.clone();
                 const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
                 const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
@@ -85,8 +85,8 @@ export function createEnemy(position = { x: 0, y: 2, z: 0 }) {
     enemy.name = "enemy";
     enemy.userData.isEnemy = true;
 
-    const boxSize = 7.57;
-    const boxHeight = 10;
+    const boxSize = 5.0;
+    const boxHeight = 7.0;
     const boxCenter = enemy.position.clone();
     const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
     const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
@@ -100,12 +100,34 @@ export function createEnemy(position = { x: 0, y: 2, z: 0 }) {
     return enemy;
 }
 
+function willCollide(enemy, nextPos, scene) {
+    // Cria uma cópia da bounding box do inimigo na posição prevista
+    const boxSize = 5.0;
+    const boxHeight = 7.0;
+    const min = nextPos.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
+    const max = nextPos.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
+    const nextBox = new THREE.Box3(min, max);
+
+    let collided = false;
+    scene.traverse(obj => {
+        if (
+            obj !== enemy &&
+            obj.userData?.isCollidable &&
+            obj.userData?.collisionBox &&
+            nextBox.intersectsBox(obj.userData.collisionBox)
+        ) {
+            collided = true;
+        }
+    });
+    return collided;
+}
+
 export function updateEnemyBehavior(enemy, player, scene, delta) {
     const dist = enemy.position.distanceTo(player.position);
     const detectionRadius = 40;
 
     // Limites da área 1 (ajuste minY/maxY conforme necessário)
-    const minX = -15, maxX = 105, minZ = -60, maxZ = 60, minY = 0, maxY = 10;
+    const minX = -15, maxX = 105, minZ = -60, maxZ = 60, minY = 10, maxY = 20;
     const safeMargin = 2;
     const safeMinX = minX + safeMargin, safeMaxX = maxX - safeMargin;
     const safeMinY = minY + safeMargin, safeMaxY = maxY - safeMargin;
@@ -128,28 +150,26 @@ export function updateEnemyBehavior(enemy, player, scene, delta) {
                 Math.random() * (safeMaxZ - safeMinZ) + safeMinZ
             );
         }
-        // Move em direção ao alvo idle, limitado dentro da área (incluindo Y)
+        // Agora idleTarget está garantido!
         moveDirection = new THREE.Vector3().subVectors(enemy.userData.idleTarget, enemy.position);
         if (moveDirection.length() > 0.1) {
             moveDirection.normalize();
-            enemy.position.add(moveDirection.multiplyScalar(ENEMY_SPEED * delta * 30));
-            // Limita dentro da área segura
-            enemy.position.x = Math.max(safeMinX, Math.min(safeMaxX, enemy.position.x));
-            enemy.position.y = Math.max(safeMinY, Math.min(safeMaxY, enemy.position.y));
-            enemy.position.z = Math.max(safeMinZ, Math.min(safeMaxZ, enemy.position.z));
+            const nextPos = enemy.position.clone().add(moveDirection.clone().multiplyScalar(ENEMY_SPEED * delta * 30));
+            if (!willCollide(enemy, nextPos, scene)) {
+                enemy.position.copy(nextPos);
+                // Limita dentro da área segura
+                enemy.position.x = Math.max(safeMinX, Math.min(safeMaxX, enemy.position.x));
+                enemy.position.y = Math.max(safeMinY, Math.min(safeMaxY, enemy.position.y));
+                enemy.position.z = Math.max(safeMinZ, Math.min(safeMaxZ, enemy.position.z));
+            } else {
+                // Se colidir, sorteia um novo idleTarget imediatamente!
+                enemy.userData.idleTarget = new THREE.Vector3(
+                    Math.random() * (safeMaxX - safeMinX) + safeMinX,
+                    Math.random() * (safeMaxY - safeMinY) + safeMinY,
+                    Math.random() * (safeMaxZ - safeMinZ) + safeMinZ
+                );
+            }
         }
-    } else {
-        // Persegue player normalmente (incluindo Y)
-        moveDirection = new THREE.Vector3()
-            .subVectors(player.position, enemy.position)
-            .normalize();
-        enemy.position.x += moveDirection.x * ENEMY_SPEED * delta * 60;
-        enemy.position.y += moveDirection.y * ENEMY_SPEED * delta * 60;
-        enemy.position.z += moveDirection.z * ENEMY_SPEED * delta * 60;
-        // Limita dentro da área segura
-        enemy.position.x = Math.max(safeMinX, Math.min(safeMaxX, enemy.position.x));
-        enemy.position.y = Math.max(safeMinY, Math.min(safeMaxY, enemy.position.y));
-        enemy.position.z = Math.max(safeMinZ, Math.min(safeMaxZ, enemy.position.z));
     }
 
     if (moveDirection && moveDirection.lengthSq() > 0.0001) {
@@ -164,8 +184,8 @@ export function updateEnemyBehavior(enemy, player, scene, delta) {
         });
     }
     if (enemy.userData.collisionBox) {
-        const boxSize = 7.57;
-        const boxHeight = 10;
+        const boxSize = 5;
+        const boxHeight = 7;
         const boxCenter = enemy.position.clone();
         const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
         const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));

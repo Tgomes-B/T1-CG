@@ -127,5 +127,6 @@ export function criaBlocoChave(){
     bloco.position.set(45, 4, 0);
     bloco.castShadow = true;
     bloco.receiveShadow = true;
+    bloco.userData.isCollidable = true; 
     return bloco;
 }

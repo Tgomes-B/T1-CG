@@ -139,12 +139,17 @@ export function updateProjectiles(delta) {
             velocity.length()
         );
 
-        // Filtra inimigos e objetos colidíveis
         let collidables = [];
+        // 1. Adiciona filhos das áreas (como antes)
         areas.forEach(area => {
-            area.children.forEach(obj => {
+            area.traverse(obj => {
                 if (obj.userData?.isCollidable || obj.userData?.isEnemy) collidables.push(obj);
             });
+        });
+
+        // 2. Adiciona objetos colidíveis diretamente na cena (paredes, chão, etc.)
+        scene.traverse(obj => {
+            if (obj.userData?.isCollidable && !collidables.includes(obj)) collidables.push(obj);
         });
         const intersects = raycaster.intersectObjects(collidables, true);
 

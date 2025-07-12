@@ -38,6 +38,21 @@ export function setupArea2(area, scene) {
             torre.castShadow = true;
             torre.receiveShadow = true;
 
+            const min = new THREE.Vector3(
+                torre.position.x - base / 2,
+                torre.position.y - altura / 2,
+                torre.position.z - base / 2
+            );
+            const max = new THREE.Vector3(
+                torre.position.x + base / 2,
+                torre.position.y + altura / 2,
+                torre.position.z + base / 2
+            );
+            torre.userData.collisionBox = new THREE.Box3(min, max);
+            torre.userData.isCollidable = true;
+            torre.castShadow = true;
+            torre.receiveShadow = true;
+
             area.add(torre);
             if(i == 6){
                 let chave = criaChave('yellow');
@@ -84,8 +99,10 @@ function elevador(scene) {
     // Enable shadows
     portaMesh.castShadow = true;
     portaMesh.receiveShadow = true;
+    portaMesh.userData.isCollidable = true;
     elevadorMesh.castShadow = true;
     elevadorMesh.receiveShadow = true;
+    elevadorMesh.userData.isCollidable = true;
 
     scene.add(elevadorMesh);
     scene.add(portaMesh);

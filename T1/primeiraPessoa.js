@@ -90,11 +90,11 @@ function setupEnvironment() {
 
     const enemiesArea1 = [];
     const enemyPositions = [
-        { x: 65, y: 6, z: 0 },
-        { x: 55, y: 6, z: 10 },
-        { x: 35, y: 6, z: -10 },
-        { x: 55, y: 6, z: -10 },
-        { x: 35, y: 6, z: 10 }
+        { x: 65, y: 9, z: 0 },
+        { x: 55, y: 7, z: 10 },
+        { x: 35, y: 8, z: -10 },
+        { x: 55, y: 7, z: -10 },
+        { x: 35, y: 8, z: 10 }
     ];
     
     // Carregamento assíncrono!
@@ -121,7 +121,7 @@ function setupEnvironment() {
     // Defina as posições dos inimigos GLB em cima das torres
     const posicoesArea2 = torresArea2.slice(0, 3).map(torre => {
         return {
-            x: torre.position.x,
+            x: torre.position.x +12,
             y: torre.position.y + (torre.geometry ? torre.geometry.parameters.height / 2 + 7 : 20), // 7 é altura do cacodemon, ajuste se necessário
             z: torre.position.z
         };

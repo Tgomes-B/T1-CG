@@ -182,6 +182,8 @@ export function criaPilares(area1){
         pilar.receiveShadow = true;
         pilarLat.castShadow = true;
         pilarLat.receiveShadow = true;
+        pilar.userData.isCollidable = true; 
+        pilarLat.userData.isCollidable = true;
         area1.add(pilar);
         area1.add(pilarLat);
         Xcont = Xcont + 22;
@@ -193,6 +195,7 @@ export function criaPilares(area1){
         pilarFron.position.set(-10, 17, Zcont);
         pilarFron.castShadow = true;
         pilarFron.receiveShadow = true;
+        pilarFron.userData.isCollidable = true;
         area1.add(pilarFron);
         pilarFron.name = "pilar";
         if (Zcont == -15) {
@@ -206,6 +209,7 @@ export function criaPilares(area1){
         pilarBack.position.set(100, 17, contBack);
         pilarBack.castShadow = true;
         pilarBack.receiveShadow = true;
+        pilarBack.userData.isCollidable = true;
         area1.add(pilarBack);
         pilarBack.name = "pilar";
         contBack += 22;
