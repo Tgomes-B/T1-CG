@@ -135,14 +135,13 @@ function handleDash(enemy, toPlayer, scene, delta, dashParams) {
     if (!enemy.userData.dashActive && enemy.userData.dashTimer > dashParams.cooldown) {
         enemy.userData.dashActive = true;
         enemy.userData.dashTimeLeft = dashParams.duration;
-        enemy.userData.dashDir = toPlayer.clone().setY(0).normalize();
+        enemy.userData.dashDir = toPlayer.clone().normalize();
+        console.log("DashDir:", enemy.userData.dashDir);
         enemy.userData.dashTimer = 0;
-        console.log("Dash iniciado", enemy.userData.dashDir);
     }
     if (enemy.userData.dashActive) {
         const moveDir = enemy.userData.dashDir;
         const nextPos = enemy.position.clone().add(moveDir.clone().multiplyScalar(dashParams.speed * delta * 60));
-        console.log("Dash ativo. moveDir:", moveDir, "nextPos:", nextPos);
         if (!willCollide(enemy, nextPos, scene)) {
             enemy.position.copy(nextPos);
         } else {
@@ -151,14 +150,12 @@ function handleDash(enemy, toPlayer, scene, delta, dashParams) {
         enemy.userData.dashTimeLeft -= delta;
         if (enemy.userData.dashTimeLeft <= 0) {
             enemy.userData.dashActive = false;
-            console.log("Dash terminou");
         }
         rotateEnemyTo(enemy, moveDir);
     } else {
         // Aproxima normalmente enquanto espera o dash
-        const moveDir = toPlayer.clone().setY(0).normalize();
+        const moveDir = toPlayer.clone().normalize();
         const nextPos = enemy.position.clone().add(moveDir.clone().multiplyScalar(ENEMY_SPEED * delta * 60));
-        console.log("Aproximando normalmente. moveDir:", moveDir, "nextPos:", nextPos);
         if (!willCollide(enemy, nextPos, scene)) {
             enemy.position.copy(nextPos);
         } else {
@@ -206,9 +203,9 @@ function handleIdle(enemy, scene, delta, idleParams, areaLimits) {
 export function updateEnemyBehavior(enemy, player, scene, delta) {
     // Parâmetros do dash
     const dashParams = {
-        cooldown: 2,   // segundos entre dashes
-        duration: 0.25, // duração do dash em segundos
-        speed: 2.5     // velocidade do dash (ajuste conforme necessário)
+        cooldown: 15,   // segundos entre dashes
+        duration: 0.7, // duração do dash em segundos
+        speed: 6     // velocidade do dash (ajuste conforme necessário)
     };
     // Parâmetros do idle
     const idleParams = {

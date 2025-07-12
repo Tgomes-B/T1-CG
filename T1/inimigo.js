@@ -56,20 +56,6 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicoes = [{ x: 0, y: 0,
                 });
 
                 cena.add(inimigo);
-
-                // --- Animação ---
-                if (gltf.animations && gltf.animations.length > 0) {
-                    const mixer = new THREE.AnimationMixer(inimigo);
-                    const idleClip = gltf.animations.find(clip => clip.name.toLowerCase() === "idle");
-                    if (idleClip) {
-                        const action = mixer.clipAction(idleClip);
-                        action.play();
-                    } else {
-                        const action = mixer.clipAction(gltf.animations[0]);
-                        action.play();
-                    }
-                    inimigo.userData.mixer = mixer;
-                }
             },
             undefined,
             (erro) => {

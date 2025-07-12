@@ -176,7 +176,7 @@ export function updateProjectiles(delta) {
                 if (enemyRoot.userData?.isEnemy) {
                     if (enemyRoot.userData.hp === undefined) enemyRoot.userData.hp = 50;
                     enemyRoot.userData.hp -= 10;
-                    if (enemyRoot.userData.hp < 0) enemyRoot.userData.hp = 0; // <-- impede HP negativo
+                    if (enemyRoot.userData.hp < 0) enemyRoot.userData.hp = 0;s
                     console.log(`Inimigo atingido! HP restante: ${enemyRoot.userData.hp}`);
                     if (enemyRoot.userData.hp <= 0) {
                         fadeOut(enemyRoot, 250, () => {
