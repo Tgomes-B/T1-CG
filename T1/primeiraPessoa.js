@@ -112,22 +112,23 @@ function setupEnvironment() {
     });
     setupArea2(areas[1],scene);
     
-// Encontre os pilares da área 2
-const pilaresArea2 = [];
-areas[1].traverse(obj => {
-    if (obj.name === "pilar") pilaresArea2.push(obj);
-});
+// Encontre as torres da área 2
+    const torresArea2 = [];
+    areas[1].traverse(obj => {
+        if (obj.name === "torre") torresArea2.push(obj);
+    });
 
-// Defina as posições dos inimigos GLB em cima dos pilares
-const posicoesArea2 = pilaresArea2.slice(0, 3).map(pilar => {
-    // Posição central do topo do pilar
-    return {
-        x: pilar.position.x,
-        y: pilar.position.y + (pilar.geometry ? pilar.geometry.parameters.height / 2 + 7 : 20), // 7 é altura do cacodemon, ajuste se necessário
-        z: pilar.position.z
-    };
-});
+    // Defina as posições dos inimigos GLB em cima das torres
+    const posicoesArea2 = torresArea2.slice(0, 3).map(torre => {
+        return {
+            x: torre.position.x,
+            y: torre.position.y + (torre.geometry ? torre.geometry.parameters.height / 2 + 7 : 20), // 7 é altura do cacodemon, ajuste se necessário
+            z: torre.position.z
+        };
+    });
+    adicionarInimigoCena(areas[1], 'images/sprites/teste/cacodemonanimations.glb', posicoesArea2);
 }
+
 
 
 /**
@@ -468,18 +469,11 @@ function render() {
         }
     });
 
-    updateEnemies(scene, controls, delta);
-    updateEnemiesOBJ(scene, controls.getObject(), delta);
-
     if (controls.isLocked) {
         moveAnimate(delta);
         updateProjectiles(delta);
-
-                // Atualiza comportamento dos inimigos
-                const enemies = scene.children.filter(obj => obj.name === "enemy");
-                for(const enemy of enemies) {
-                    updateEnemyBehavior(enemy, controls.getObject(), scene, delta);
-                }
+        updateEnemies(scene, controls, delta);
+        updateEnemiesOBJ(scene, controls.getObject(), delta);
     }
 
     if (areaChaveData && areaChaveData.getChaveAnimada()) {

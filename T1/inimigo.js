@@ -4,22 +4,22 @@ import { GLTFLoader } from '../build/jsm/loaders/GLTFLoader.js';
 import { HealthBar } from './healthbar.js'; // Importe a classe HealthBar
 
 export function adicionarInimigoCena(cena, caminhoGLB, posicoes = [{ x: 0, y: 0, z: 0 }]) {
-    
     if (!Array.isArray(posicoes)) posicoes = [posicoes];
 
     const loader = new GLTFLoader();
 
     posicoes.forEach(posicao => {
-    loader.load(
-        caminhoGLB,
-        (gltf) => {
-            const inimigo = gltf.scene;
-            inimigo.position.set(posicao.x, posicao.y, posicao.z);
-            inimigo.scale.set(0.015, 0.015, 0.015);
-            inimigo.userData.isEnemy = true;
-            inimigo.userData.isCollidable = true;
-            inimigo.userData.enemyType = "glb"; // Tipo GLB
-            inimigo.traverse(child => { if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; } });
+        loader.load(
+            caminhoGLB,
+            (gltf) => {
+                const inimigo = gltf.scene;
+                inimigo.position.set(posicao.x, posicao.y, posicao.z);
+                inimigo.scale.set(0.012, 0.012, 0.012);
+                inimigo.rotateY(0);
+                inimigo.userData.isEnemy = true;
+                inimigo.userData.isCollidable = true;
+                inimigo.userData.enemyType = "glb"; // Tipo GLB
+                inimigo.traverse(child => { if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; } });
 
                 // Aumentar altura da caixa de colisão
                 const boxSize = 7.57;
@@ -78,36 +78,50 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicoes = [{ x: 0, y: 0,
     });
 }
 
+function lookAtTarget(enemy, target) {
+    enemy.lookAt(target.x, enemy.position.y, target.z);
+}
 export function updateEnemyBehaviorGLB(enemy, player, scene, delta) {
     const dist = enemy.position.distanceTo(player.position);
     const detectionRadius = enemy.userData.detectionRadius || 100;
 
     // Limites da área 2
-    const minX = -5, maxX = 115, minZ = -60, maxZ = 60, y = enemy.position.y;
+    const minX = -5, maxX = 115, minZ = -60, maxZ = 60, minY = 10, maxY = 30;
 
     if (dist >= detectionRadius) {
-        if (!enemy.userData.idleTarget || enemy.position.distanceTo(enemy.userData.idleTarget) < 1) {
+        if (
+            !enemy.userData.idleTarget ||
+            enemy.position.distanceTo(enemy.userData.idleTarget) < 1 ||
+            enemy.userData.idleTarget.x < minX || enemy.userData.idleTarget.x > maxX ||
+            enemy.userData.idleTarget.z < minZ || enemy.userData.idleTarget.z > maxZ ||
+            enemy.userData.idleTarget.y < minY || enemy.userData.idleTarget.y > maxY
+        ) {
             enemy.userData.idleTarget = new THREE.Vector3(
                 Math.random() * (maxX - minX) + minX,
-                y,
+                Math.random() * (maxY - minY) + minY,
                 Math.random() * (maxZ - minZ) + minZ
             );
         }
-        const dir = new THREE.Vector3().subVectors(enemy.userData.idleTarget, enemy.position).setY(0);
+        const dir = new THREE.Vector3().subVectors(enemy.userData.idleTarget, enemy.position);
         if (dir.length() > 0.1) {
             dir.normalize();
             enemy.position.add(dir.multiplyScalar(5 * delta * 2));
-            enemy.lookAt(enemy.userData.idleTarget.x, enemy.position.y, enemy.userData.idleTarget.z);
+            // Limita dentro da área
+            enemy.position.x = Math.max(minX, Math.min(maxX, enemy.position.x));
+            enemy.position.y = Math.max(minY, Math.min(maxY, enemy.position.y));
+            enemy.position.z = Math.max(minZ, Math.min(maxZ, enemy.position.z));
+            // Faz o modelo inteiro olhar para onde está indo, considerando o vetor direção
+            lookAtTarget(enemy, enemy.userData.idleTarget, dir);
         }
     } else {
         // Persegue player normalmente
         const moveDirection = new THREE.Vector3()
             .subVectors(player.position, enemy.position)
-            .setY(0)
             .normalize();
         enemy.position.x += moveDirection.x * 5 * delta;
+        enemy.position.y += moveDirection.y * 5 * delta;
         enemy.position.z += moveDirection.z * 5 * delta;
-        enemy.lookAt(player.position.x, enemy.position.y, player.position.z);
+        lookAtTarget(enemy, player.position, moveDirection);
     }
 
     // Atualiza collisionBox e boxHelper se existirem
