@@ -123,69 +123,137 @@ function willCollide(enemy, nextPos, scene) {
 }
 
 export function updateEnemyBehavior(enemy, player, scene, delta) {
-    const dist = enemy.position.distanceTo(player.position);
+    // Parâmetros
     const detectionRadius = 40;
+    const visionAngle = Math.PI / 3; // 60 graus
+    const idleChangeTime = 2.5;
+    const dashCooldown = 2.0; // segundos entre dashes
+    const dashDuration = 0.2; // duração do dash em segundos
+    const dashSpeed = 1.2; // velocidade do dash
 
-    // Limites da área 1 (ajuste minY/maxY conforme necessário)
-    const minX = -15, maxX = 105, minZ = -60, maxZ = 60, minY = 10, maxY = 20;
+    // Limites da área
+    const minX = -15, maxX = 105, minZ = -60, maxZ = 60, minY = 7, maxY = 20;
     const safeMargin = 2;
     const safeMinX = minX + safeMargin, safeMaxX = maxX - safeMargin;
     const safeMinY = minY + safeMargin, safeMaxY = maxY - safeMargin;
     const safeMinZ = minZ + safeMargin, safeMaxZ = maxZ - safeMargin;
 
-    let moveDirection = null;
+    // Estado do inimigo
+    if (!enemy.userData.state) enemy.userData.state = "idle";
+    if (!enemy.userData.idleTimer) enemy.userData.idleTimer = 0;
+    if (!enemy.userData.dashTimer) enemy.userData.dashTimer = 0;
+    if (!enemy.userData.dashActive) enemy.userData.dashActive = false;
+    if (!enemy.userData.dashDir) enemy.userData.dashDir = new THREE.Vector3();
 
-    if (dist >= detectionRadius) {
-        // Se chegou no alvo ou não tem alvo, sorteia novo alvo dentro da área (incluindo Y)
+    // Vetores
+    const toPlayer = new THREE.Vector3().subVectors(player.position, enemy.position);
+    const dist = toPlayer.length();
+
+    // Direção "frente" do inimigo (eixo Z local)
+    let forward = new THREE.Vector3(0, 0, 1);
+    enemy.getWorldDirection(forward);
+
+    // Ângulo entre frente do inimigo e player
+    const angleToPlayer = forward.angleTo(toPlayer.clone().setY(0).normalize());
+
+    // Estado: ver player?
+    let canSeePlayer = false;
+    if (dist < detectionRadius && angleToPlayer < visionAngle) {
+        canSeePlayer = true;
+    }
+
+    // Troca de estado
+    if (canSeePlayer) {
+        enemy.userData.state = "alert";
+    } else if (enemy.userData.state !== "idle" && !canSeePlayer) {
+        enemy.userData.state = "idle";
+        enemy.userData.idleTimer = 0;
+        enemy.userData.idleTarget = null;
+        enemy.userData.dashActive = false;
+        enemy.userData.dashTimer = 0;
+    }
+
+    // Lógica de dash
+    if (enemy.userData.state === "alert") {
+        enemy.userData.dashTimer += delta;
+        if (!enemy.userData.dashActive && enemy.userData.dashTimer > dashCooldown) {
+            // Inicia dash
+            enemy.userData.dashActive = true;
+            enemy.userData.dashTimeLeft = dashDuration;
+            enemy.userData.dashDir = toPlayer.clone().setY(0).normalize();
+            enemy.userData.dashTimer = 0;
+        }
+        if (enemy.userData.dashActive) {
+            // Executa dash
+            const moveDir = enemy.userData.dashDir;
+            const nextPos = enemy.position.clone().add(moveDir.clone().multiplyScalar(dashSpeed * delta * 60));
+            if (!willCollide(enemy, nextPos, scene)) {
+                enemy.position.copy(nextPos);
+            }
+            enemy.userData.dashTimeLeft -= delta;
+            if (enemy.userData.dashTimeLeft <= 0) {
+                enemy.userData.dashActive = false;
+            }
+            // Rotaciona para olhar para o player
+            const angle = Math.atan2(moveDir.x, moveDir.z);
+            enemy.traverse(child => {
+                if (child.isMesh) child.rotation.y = angle;
+            });
+        } else {
+            // Aproxima normalmente enquanto espera o dash
+            const moveDir = toPlayer.clone().setY(0).normalize();
+            const nextPos = enemy.position.clone().add(moveDir.clone().multiplyScalar(ENEMY_SPEED * delta * 60));
+            if (!willCollide(enemy, nextPos, scene)) {
+                enemy.position.copy(nextPos);
+            }
+            const angle = Math.atan2(moveDir.x, moveDir.z);
+            enemy.traverse(child => {
+                if (child.isMesh) child.rotation.y = angle;
+            });
+        }
+    } else {
+        // Idle: patrulha aleatória
+        enemy.userData.idleTimer += delta;
         if (
             !enemy.userData.idleTarget ||
             enemy.position.distanceTo(enemy.userData.idleTarget) < 1 ||
             enemy.userData.idleTarget.x < safeMinX || enemy.userData.idleTarget.x > safeMaxX ||
             enemy.userData.idleTarget.z < safeMinZ || enemy.userData.idleTarget.z > safeMaxZ ||
-            enemy.userData.idleTarget.y < safeMinY || enemy.userData.idleTarget.y > safeMaxY
+            enemy.userData.idleTarget.y < safeMinY || enemy.userData.idleTarget.y > safeMaxY ||
+            enemy.userData.idleTimer > idleChangeTime
         ) {
             enemy.userData.idleTarget = new THREE.Vector3(
                 Math.random() * (safeMaxX - safeMinX) + safeMinX,
                 Math.random() * (safeMaxY - safeMinY) + safeMinY,
                 Math.random() * (safeMaxZ - safeMinZ) + safeMinZ
             );
+            enemy.userData.idleTimer = 0;
         }
-        // Agora idleTarget está garantido!
-        moveDirection = new THREE.Vector3().subVectors(enemy.userData.idleTarget, enemy.position);
-        if (moveDirection.length() > 0.1) {
-            moveDirection.normalize();
-            const nextPos = enemy.position.clone().add(moveDirection.clone().multiplyScalar(ENEMY_SPEED * delta * 30));
+        const moveDir = new THREE.Vector3().subVectors(enemy.userData.idleTarget, enemy.position);
+        if (moveDir.length() > 0.1) {
+            moveDir.normalize();
+            const nextPos = enemy.position.clone().add(moveDir.clone().multiplyScalar(ENEMY_SPEED * delta * 30));
             if (!willCollide(enemy, nextPos, scene)) {
                 enemy.position.copy(nextPos);
-                // Limita dentro da área segura
                 enemy.position.x = Math.max(safeMinX, Math.min(safeMaxX, enemy.position.x));
                 enemy.position.y = Math.max(safeMinY, Math.min(safeMaxY, enemy.position.y));
                 enemy.position.z = Math.max(safeMinZ, Math.min(safeMaxZ, enemy.position.z));
             } else {
-                // Se colidir, sorteia um novo idleTarget imediatamente!
-                enemy.userData.idleTarget = new THREE.Vector3(
-                    Math.random() * (safeMaxX - safeMinX) + safeMinX,
-                    Math.random() * (safeMaxY - safeMinY) + safeMinY,
-                    Math.random() * (safeMaxZ - safeMinZ) + safeMinZ
-                );
+                enemy.userData.idleTarget = null;
             }
+        }
+        // Rotaciona para olhar para o idleTarget
+        if (moveDir.lengthSq() > 0.0001) {
+            const angle = Math.atan2(moveDir.x, moveDir.z);
+            enemy.traverse(child => {
+                if (child.isMesh) child.rotation.y = angle;
+            });
         }
     }
 
-    if (moveDirection && moveDirection.lengthSq() > 0.0001) {
-        // Calcula o ângulo no plano XZ
-        const angle = Math.atan2(moveDirection.x, moveDirection.z);
-    
-        enemy.traverse(child => {
-            if (child.isMesh) {
-                // Ajuste: troque Math.PI por Math.PI/2 ou -Math.PI/2 se necessário
-                child.rotation.y = angle ;
-            }
-        });
-    }
+    // Atualiza collisionBox
     if (enemy.userData.collisionBox) {
-        const boxSize = 5;
-        const boxHeight = 7;
+        const boxSize = 5, boxHeight = 7;
         const boxCenter = enemy.position.clone();
         const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
         const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
@@ -196,6 +264,7 @@ export function updateEnemyBehavior(enemy, player, scene, delta) {
         enemy.userData.boxHelper.updateMatrixWorld(true);
     }
 
+    // Morre se hp <= 0
     if (enemy.userData.hp !== undefined && enemy.userData.hp <= 0 && !enemy.userData.fading) {
         enemy.userData.fading = true;
         fadeOut(enemy, 500, () => {

@@ -35,7 +35,7 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicoes = [{ x: 0, y: 0,
                 cena.add(boxHelper);
                 inimigo.userData.boxHelper = boxHelper;
                 inimigo.userData.state = "idle";
-                inimigo.userData.detectionRadius = 100;
+                inimigo.userData.detectionRadius = 60;
                 inimigo.userData.moveType = "float";
                 inimigo.userData.moveDirection = 1;
                 inimigo.userData.baseY = inimigo.position.y;
@@ -166,7 +166,7 @@ export function updateEnemyBehaviorGLB(enemy, player, scene, delta) {
         Math.pow(enemy.position.z - player.position.z, 2)
     );
     const deltaY = Math.abs(enemy.position.y - player.position.y);
-    const detectionRadius = enemy.userData.detectionRadius || 100;
+    const detectionRadius = enemy.userData.detectionRadius;
     const maxYDiff = 8; // altura máxima para detectar
 
     if (distXZ < detectionRadius && deltaY < maxYDiff) {
