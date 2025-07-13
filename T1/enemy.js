@@ -20,10 +20,10 @@ for(let i = 0; i < 360; i += 3) {
 // enemy.js
 export function loadEnemyOBJ(path, position = { x: 20, y: 0, z: 10 }, onLoad) {
 
-    const assetPath = 'images/sprites/skull/';
+    const assetPath = 'images/';
 
     const mtlLoader = new MTLLoader();
-    mtlLoader.setPath(assetPath);
+    mtlLoader.setPath(assetPath + 'sprites/skull/');
     mtlLoader.load('skull.mtl', (materials) => {
         materials.preload();
         const loader = new OBJLoader();
@@ -57,11 +57,12 @@ export function loadEnemyOBJ(path, position = { x: 20, y: 0, z: 10 }, onLoad) {
                 obj.add(healthBarObj);
                 obj.userData.healthBar = healthBar;
 
-                // Cria collisionBox
+                // Cria uma collisionBox válida baseada no centro e tamanho padrão
                 const boxSize = 5;
                 const boxHeight = 7;
-                const min = obj.position.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
-                const max = obj.position.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
+                const boxCenter = obj.position.clone();
+                const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
+                const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
                 obj.userData.collisionBox = new THREE.Box3(min, max);
 
                 obj.traverse(child => {
