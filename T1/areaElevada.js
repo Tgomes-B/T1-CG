@@ -71,7 +71,7 @@ export function setupArea2(area, scene) {
     }
     let bloco = criaBlocoChave();
     bloco.name = 'bloco';
-    bloco.position.set(100, 2, 0);
+    //bloco.position.set(45, 2, 0);
     bloco.traverse(child => {
         if (child.isMesh) {
             child.castShadow = true;

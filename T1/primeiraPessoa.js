@@ -498,7 +498,6 @@ export function moveAnimate(delta) {
         if (!chave.userData.isCollectable) {
             const portas = scene.children.filter(obj => obj.name === 'porta');
             portas.forEach(porta => { movePorta(porta, frontRay); });
-            chave.userData.isCollectable = true;
         }
     }
 
@@ -508,7 +507,7 @@ export function moveAnimate(delta) {
         if (distancia < 3 && !blocoElevado.userData.chaveColocada) { // 3 é a distância de ativação
             // Cria a chave e posiciona em cima do bloco
             const chave = criaChave('red');
-            chave.position.set(100, 4, 0); // 2 = metade da altura do bloco, ajusta se necessário
+            chave.position.set(45, 4, 0); // 2 = metade da altura do bloco, ajusta se necessário
             scene.add(chave);
             blocoElevado.userData.chaveColocada = true;
             playerHasKey = false;
