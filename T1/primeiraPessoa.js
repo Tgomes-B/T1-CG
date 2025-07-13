@@ -16,6 +16,7 @@ import { setupCollision } from './colisao.js';
 
 let stats, renderer, scene, camera, controls, clock;
 let areaChaveData;
+let playerHasKey = false;
 let spotLightHelper, areas, ramp, ground, walls;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
@@ -490,6 +491,7 @@ export function moveAnimate(delta) {
             if (playerBox.intersectsBox(chave.userData.collisionBox)) {
                 chave.parent.remove(chave);
                 chave.userData.isCollectable = false;
+                playerHasKey = true;
             }
         }
         // Abre a porta se tiver chave
@@ -500,9 +502,30 @@ export function moveAnimate(delta) {
         }
     }
 
+    const blocoElevado = scene.getObjectByName('bloco');
+    if (playerHasKey && blocoElevado) {
+        const distancia = controls.getObject().position.distanceTo(blocoElevado.position);
+        if (distancia < 3 && !blocoElevado.userData.chaveColocada) { // 3 é a distância de ativação
+            // Cria a chave e posiciona em cima do bloco
+            const chave = criaChave('red');
+            chave.position.set(100, 4, 0); // 2 = metade da altura do bloco, ajusta se necessário
+            scene.add(chave);
+            blocoElevado.userData.chaveColocada = true;
+            playerHasKey = false;
+    
+            // Agora sim, libera a porta para abrir
+            const porta = scene.getObjectByName('porta');
+            if (porta) {
+                porta.userData.descendo = true;
+            }
+        }
+    }
+    
     // 3. Animando o elevador
     const elevadores = scene.children.filter(obj => obj.name === 'elevador');
     elevadores.forEach(elevador => { moveElevador(elevador, downRay, frontRay); });
+    const porta = scene.children.filter(obj => obj.name === 'porta')
+    porta.forEach(porta => { movePorta(porta, frontRay) });
 }
 
 /**

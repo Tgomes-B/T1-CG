@@ -101,9 +101,11 @@ function elevador(scene) {
     portaMesh.castShadow = true;
     portaMesh.receiveShadow = true;
     portaMesh.userData.isCollidable = true;
+    portaMesh.userData.descendo = false; 
     elevadorMesh.castShadow = true;
     elevadorMesh.receiveShadow = true;
     elevadorMesh.userData.isCollidable = true;
+
 
     scene.add(elevadorMesh);
     scene.add(portaMesh);
@@ -113,6 +115,10 @@ function elevador(scene) {
 }
 
 export function movePorta(porta, frontRay){
+    // Só permite descer se a chave foi colocada no bloco
+    const bloco = scene.getObjectByName('bloco');
+    if (!bloco || !bloco.userData.chaveColocada) return;
+
     // Abaixa a porta ao detectar o raycast
     const intersects = frontRay.intersectObject(porta, false);
     if (intersects.length > 0 && !porta.userData.descendo) {
@@ -130,10 +136,7 @@ export function movePorta(porta, frontRay){
             porta.position.y = yAlvo;
             porta.userData.descendo = false;
         }
-        // Atualiza a caixa de colisão da porta
-        if (porta.userData.collisionBox) {
-            porta.userData.collisionBox.setFromObject(porta);
-        }
+        // Atualiza a caixa de colisão da porta, se necessário
     }
 }
 

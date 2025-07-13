@@ -131,5 +131,6 @@ export function criaBlocoChave(){
     bloco.receiveShadow = true;
     bloco.userData.isCollidable = true;
     bloco.name = 'bloco';
+    bloco.userData.chaveColocada = false;
     return bloco;
 }
