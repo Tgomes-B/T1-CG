@@ -15,9 +15,8 @@ export function criaAreasRampas(scene) {
     ground.position.set(0, 0, 0);
     ground.rotation.x = -0.5 * Math.PI;
     ground.name = "ground";
+    ground.receiveShadow = true;
     scene.add(ground);
-    ground.receiveShadow = true; // Adicionar esta linha
-    ground.name = "ground";
 
     const areaGeometry = new THREE.BoxGeometry(120, 10, 120);
     const areaAzulGeometry = new THREE.BoxGeometry(120, 10, 310);
@@ -28,42 +27,38 @@ export function criaAreasRampas(scene) {
         new THREE.MeshLambertMaterial({ color: 'rgb(100, 123, 255)' })
     ];
 
-    let molde, areas = [], posZ = -155, comp = 30 / 8, ramp, rotY = -0.102 * Math.PI;
+    let molde, areas = [], posZ = -155, comp = 30 / 8, ramp, rotX = 1.5 * Math.PI;
     let boxMesh = new THREE.Mesh(new THREE.BoxGeometry(30, 10, 20));
     boxMesh.position.set(0, 0, 0);
     let boxCSG = CSG.fromMesh(boxMesh);
 
     const rampGeometry = new THREE.PlaneGeometry(31.62, 20);
     const rampMaterial = new THREE.MeshLambertMaterial({});
-    
 
     function updateObject(mesh) {
         mesh.matrixAutoUpdate = false;
         mesh.updateMatrix();
     }
 
-    function cortaArea(areaInteira, boxAuxiliar) {
-        return areaInteira.subtract(boxAuxiliar);
-    }
 
-    function criaEscada(posX, posZ, comp, rampX) {
+    function criaEscada(posX, posZ, comp, rampX, alt, angulo, rampY) {
         let degrau;
-        const alt = 10 / 8;
-        const degrauGeometry = new THREE.BoxGeometry(30 / 8, alt, 20);
+        let altura = alt / 8;
+        const degrauGeometry = new THREE.BoxGeometry(30 / 8, altura, 20);
         const degrauMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(96, 52, 255)' });
         
         for (let i = 0; i < 8; i++) {
             degrau = new THREE.Mesh(degrauGeometry, degrauMaterial);
-            degrau.position.set(i * comp + comp / 2 + posX, i * alt + alt / 2, posZ);
+            degrau.position.set(i * comp + comp / 2 + posX, i * altura + altura / 2, posZ);
             degrau.castShadow = true;
             degrau.receiveShadow = true;
             scene.add(degrau);
         }
         
         ramp = new THREE.Mesh(rampGeometry, rampMaterial);
-        ramp.rotation.x = 1.5 * Math.PI;
-        ramp.rotation.y = rotY;
-        ramp.position.set(rampX, 5, posZ);
+        ramp.rotation.x = rotX;
+        ramp.rotation.y = angulo;
+        ramp.position.set(rampX, rampY, posZ);
         ramp.name = 'ramp';
         ramp.castShadow = true;
         ramp.receiveShadow = true;
@@ -89,49 +84,76 @@ export function criaAreasRampas(scene) {
         mesh.position.set(areaX, areaY, areaZ);
         mesh.userData.isCollidable = true;
         mesh.name = 'topo_colisao';
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
         scene.add(mesh);
         return mesh;
     }
 
     for (let i = 0; i <= 3; i++) {
         let areaX, areaY, areaZ;
-                
-        if (i < 3) {
+        if( i == 0) {
+            const PrimAreaGeometry = new THREE.BoxGeometry(120, 4, 120);
+            molde = new THREE.Mesh(PrimAreaGeometry, areaMaterial[i]);
+            molde.position.set(45, 0, 0);
+            areaX = 130;
+            areaY = 2;
+            areaZ = posZ;
+
+            criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 4, 120], true);
+            criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 4, 120], true);
+            criaAreaColisao(areaX + 60, areaY, areaZ, [90, 4, 20]);
+        }else if (i == 1) {
+            molde = new THREE.Mesh(areaGeometry, areaMaterial[i]);
+            molde.position.set(55, 0, 0);
+            areaX = 130;
+            areaY = 5;
+            areaZ = posZ;
+
+            criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 10, 120], true);
+            criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 10, 120], true);
+            criaAreaColisao(areaX + 55, areaY, areaZ, [100, 10, 20]);
+        }else if (i == 2) {
             molde = new THREE.Mesh(areaGeometry, areaMaterial[i]);
             molde.position.set(45, 0, 0);
             areaX = 130;
             areaY = 5;
             areaZ = posZ;
 
-            criaAreaColisao(areaX + 45, areaY + 60 - 60, areaZ + 35, [50, 10, 120], true);
-            criaAreaColisao(areaX + 45, areaY + 60 - 60, areaZ - 35, [50, 10, 120], true);
-            criaAreaColisao(areaX + 60, areaY + 60 - 60, areaZ, [90, 10, 20]);
-        } else {
+            criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 10, 120], true);
+            criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 10, 120], true);
+            criaAreaColisao(areaX + 60, areaY, areaZ, [90, 10, 20]);
+        } else if (i == 3) {
             molde = new THREE.Mesh(areaAzulGeometry, areaMaterial[i]);
             molde.position.set(-45, 0, 0);
             areaX = -130;
             areaY = 5;
             areaZ = 0;
 
-            criaAreaColisao(areaX - 45, areaY + 155 - 155, areaZ + 82.5, [145, 10, 120], true);
-            criaAreaColisao(areaX - 45, areaY + 155 - 155, areaZ - 82.5, [145, 10, 120], true);
-            criaAreaColisao(areaX - 60, areaY + 155 - 155, areaZ, [90, 10, 20]);
+            criaAreaColisao(areaX - 45, areaY, areaZ + 82.5, [145, 10, 120], true);
+            criaAreaColisao(areaX - 45, areaY, areaZ - 82.5, [145, 10, 120], true);
+            criaAreaColisao(areaX - 60, areaY, areaZ, [90, 10, 20]);
         }
 
         updateObject(molde);
         let auxCSG = CSG.fromMesh(molde);
-        let objectCSG = cortaArea(auxCSG, boxCSG);
+        let objectCSG = auxCSG.subtract(boxCSG);
         areas[i] = CSG.toMesh(objectCSG, new THREE.Matrix4());
         
         if (i == 3) {
             areas[i].position.set(-130, 5, 0);
             comp = -1 * comp;
             posZ = 0;
-            rotY = rotY * -1;
-            criaEscada(-115, posZ, comp, -130);
-        } else if (i < 3) {
+            criaEscada(-115, posZ, comp, -130, 10, 0.102 * Math.PI, 5);
+        
+        }else if (i == 0) {
+            areas[i].position.set(130, 2, posZ);
+            criaEscada(115, posZ, comp, 130, 4, -0.1325, 2);
+        }else if (i == 1) {
+            areas[i].position.set(120, 5, posZ);
+        }else if (i == 2) {
             areas[i].position.set(130, 5, posZ);
-            criaEscada(115, posZ, comp, 130);
+            criaEscada(115, posZ, comp, 130, 10, -0.102 * Math.PI, 5);
         }
         
         areas[i].material = areaMaterial[i];
@@ -140,8 +162,130 @@ export function criaAreasRampas(scene) {
         posZ += 155;
         scene.add(areas[i]);
     }
-
+    criaPilares(scene, areas[0]);
+    
     return { areas, ramp, ground };
+}
+
+// Debug caixa de colisão
+const SHOW_COLLISION_BOXES = false;
+
+export function criaPilares(scene, area1) {
+    const pilarGeometry = new THREE.CylinderGeometry(4, 4, 30, 32);
+    const pilarMaterial = new THREE.MeshLambertMaterial({ 
+        color: 'rgb(200, 200, 200)',
+        transparent: true,
+        opacity: 0.9
+    });
+    
+    let Xcont = -10;
+    let Zcont = -35;
+    let contBack = -33;
+    
+    // Obtém a posição global da área
+    const areaPosition = new THREE.Vector3();
+    area1.getWorldPosition(areaPosition);
+    
+    // Cria um grupo para conter todos os pilares
+    const pillarsGroup = new THREE.Group();
+    pillarsGroup.name = "pillarsGroup";
+    
+    // Função para criar um pilar com colisão
+    function createPillar(x, y, z) {
+        const pilar = new THREE.Mesh(pilarGeometry, pilarMaterial.clone());
+        pilar.position.set(x, y, z);
+        pilar.castShadow = true;
+        pilar.receiveShadow = true;
+        pilar.userData.isCollidable = true;
+        pilar.name = "pilar";
+        
+        // Cria uma caixa de colisão mais precisa para o cilindro
+        const height = 30;
+        const radius = 4;
+        
+        // Cria uma caixa que aproxima o volume do cilindro
+        const boxSize = new THREE.Vector3(
+            radius * 2, // largura
+            height,     // altura
+            radius * 2  // profundidade
+        );
+        
+        // Cria e armazena a caixa de colisão
+        pilar.userData.collisionBox = new THREE.Box3(
+            new THREE.Vector3(-radius, -height/2, -radius),
+            new THREE.Vector3(radius, height/2, radius)
+        );
+        
+        // Atualiza a posição da caixa de colisão
+        pilar.updateMatrixWorld(true);
+        pilar.userData.collisionBox.applyMatrix4(pilar.matrixWorld);
+        
+        // Visualização de depuração das caixas de colisão
+        if (SHOW_COLLISION_BOXES) {
+            const boxHelper = new THREE.Box3Helper(pilar.userData.collisionBox, 0xffff00);
+            scene.add(boxHelper);
+            pilar.userData.boxHelper = boxHelper;
+        }
+        
+        return pilar;
+    }
+    
+    // Primeira fileira de pilares (frente e trás)
+    while (Xcont <= 114) {
+        // Pilares da frente
+        const frontPillar = createPillar(
+            areaPosition.x + Xcont, 
+            17, 
+            areaPosition.z - 55
+        );
+        pillarsGroup.add(frontPillar);
+        
+        // Pilares de trás
+        const backPillar = createPillar(
+            areaPosition.x + Xcont, 
+            17, 
+            areaPosition.z + 55
+        );
+        pillarsGroup.add(backPillar);
+        
+        Xcont += 22;
+    }
+    
+    // Pilares do lado esquerdo
+    while (Zcont <= 35) {
+        const leftPillar = createPillar(
+            areaPosition.x - 10,
+            17,
+            areaPosition.z + Zcont
+        );
+        pillarsGroup.add(leftPillar);
+        
+        if (Zcont === -15) {
+            Zcont += 30;
+        } else {
+            Zcont += 20;
+        }
+    }
+    
+    // Pilares do lado direito
+    while (contBack <= 33) {
+        const rightPillar = createPillar(
+            areaPosition.x + 100,
+            17,
+            areaPosition.z + contBack
+        );
+        pillarsGroup.add(rightPillar);
+        
+        contBack += 22;
+    }
+    
+    // Adiciona o grupo de pilares à cena
+    scene.add(pillarsGroup);
+    
+    // Atualiza todas as matrizes no grupo
+    pillarsGroup.updateMatrixWorld(true);
+    
+    return area1;
 }
 
 /**
@@ -198,13 +342,6 @@ function createWall(width, height, depth, position, name) {
   return wall;
 }
 }
-
-/**
- * Configura a iluminação da cena 3D
- * @param {THREE.Scene} scene - A cena a ser iluminada
- * @returns {THREE.SpotLightHelper} Helper visual para a spotlight
- */
-
 
 export function setupLighting(scene) {
     // 1. Luz ambiente (mantida)

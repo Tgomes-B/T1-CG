@@ -1,8 +1,11 @@
-/** 
+/**
  * Configuração principal do jogo em primeira pessoa.
  * @module primeiraPessoa
  */
-import { adicionarInimigoCena } from './inimigo.js';
+import { adicionarInimigoCena,updateEnemies, updateEnemyProjectiles } from './inimigo.js';
+import { createEnemy, loadEnemyOBJ, updateEnemyBehavior,updateEnemiesOBJ } from './enemy.js';
+import { setupAreaChave,criaChave } from './areaChave.js';
+import { setupArea2 as setupArea2 } from './areaElevada.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
@@ -10,9 +13,10 @@ import { initRenderer, onWindowResize } from "../libs/util/util.js";
 import { criaAreasRampas, criaParedes, setupLighting } from './Ambiente.js';
 import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
-import { CSS2DRenderer, CSS2DObject } from '../build/jsm/renderers/CSS2DRenderer.js';
+import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
 
 let stats, renderer, scene, camera, controls, clock;
+let areaChaveData;
 let spotLightHelper, areas, ramp, ground, walls;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
@@ -32,7 +36,7 @@ const WEAPONS = {
     },
     chaingun: {
         name: "chaingun",
-        fireRate: 50, // ms (20 tiros por segundo)
+        fireRate: 100, // ms (20 tiros por segundo)
         showProjectile: false,
         sprite: null,
         spritesheet: "images/sprites/chaingun.png",
@@ -57,6 +61,15 @@ function init() {
     setupControls();
     setupInitialCameraPosition();
     clock = new THREE.Clock();
+
+    // Inicializa o renderizador de labels (para barras de vida)
+    window.labelRenderer = new CSS2DRenderer();
+    window.labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    window.labelRenderer.domElement.style.position = 'absolute';
+    window.labelRenderer.domElement.style.top = '0';
+    window.labelRenderer.domElement.style.left = '0';
+    window.labelRenderer.domElement.style.pointerEvents = 'none';
+    document.body.appendChild(window.labelRenderer.domElement);
 
     setupEnvironment();
     setupLightingAndCollision();
@@ -84,14 +97,61 @@ function setupInitialCameraPosition() {
 function setupEnvironment() {
     ({ areas, ramp, ground } = criaAreasRampas(scene));
     walls = criaParedes(scene);
-    adicionarInimigoCena(scene, 'images/sprites/teste/cacodemonanimations.glb', { x: 100, y: 20, z: 100 });
+
+    const enemiesArea1 = [];
+    const enemyPositions = [
+        { x: 65, y: 9, z: 0 },
+        { x: 55, y: 7, z: 10 },
+        { x: 35, y: 8, z: -10 },
+        { x: 55, y: 7, z: -10 },
+        { x: 35, y: 8, z: 10 }
+    ];
+    
+    // Carregamento assíncrono!
+    let loadedCount = 0;
+    enemyPositions.forEach((enemyPositions) => {
+        loadEnemyOBJ('images/sprites/skull/skull.obj', enemyPositions, (enemy) => {
+            areas[0].add(enemy);
+            enemiesArea1.push(enemy);
+            if (enemy.userData.boxHelper) areas[0].add(enemy.userData.boxHelper);
+            loadedCount++;
+            if (loadedCount === enemyPositions.length) {
+                areaChaveData = setupAreaChave(scene, areas[0], enemiesArea1);
+            }
+        });
+    });
+    setupArea2(areas[1],scene);
+    
+// Encontre as torres da área 2
+    const torresArea2 = [];
+    areas[1].traverse(obj => {
+        if (obj.name === "torre") torresArea2.push(obj);
+    });
+
+    // Defina as posições dos inimigos GLB em cima das torres
+    const posicoesArea2 = torresArea2.slice(0, 3).map(torre => {
+        return {
+            x: torre.position.x +12,
+            y: torre.position.y + (torre.geometry ? torre.geometry.parameters.height / 2 + 7 : 20), // 7 é altura do cacodemon, ajuste se necessário
+            z: torre.position.z
+        };
+    });
+    adicionarInimigoCena(areas[1], 'images/sprites/teste/cacodemonanimations.glb', posicoesArea2);
 }
+
+
 
 /**
  * Configura iluminação e colisões.
  */
 function setupLightingAndCollision() {
-    setupCollision(scene);
+    // Set up initial collision boxes
+    const collidables = setupCollision(scene);
+    
+    // Update world matrices for all objects
+    scene.updateMatrixWorld(true);
+    
+    // Set up lighting
     spotLightHelper = setupLighting(scene);
 }
 
@@ -101,7 +161,7 @@ function setupLightingAndCollision() {
 function setupGameElements() {
     setupCrosshair();
     createGun();
-    setupShooting(camera, scene, controls, () => currentWeapon);
+    setupShooting(camera, scene, controls, () => currentWeapon,areas);
 }
 
 /**
@@ -299,7 +359,6 @@ function movementControls(key, value) {
         case 'ShiftLeft': moveDown = value; break;
     }
 }
-
 /**
  * Atualiza a posição do jogador e verifica colisões.
  * @param {number} delta - Tempo decorrido desde o último frame.
@@ -321,9 +380,13 @@ export function moveAnimate(delta) {
         moveVec.normalize();
     }
     
-    const collidables = scene.children.filter(obj =>
-        obj.userData && obj.userData.isCollidable && obj.name !== "camera"
-    );
+    // Get all collidable objects from the scene
+    const collidables = [];
+    scene.traverse(obj => {
+        if (obj.userData && obj.userData.isCollidable && obj.name !== "camera") {
+            collidables.push(obj);
+        }
+    });
     
     const originalPos = playerObj.position.clone();
     
@@ -335,6 +398,15 @@ export function moveAnimate(delta) {
         playerObj.position.clone(),
         new THREE.Vector3(0.3, alturaPlayer, 0.3)
     );
+    
+    // Update collision boxes for all collidable objects
+    collidables.forEach(obj => {
+        if (obj.geometry && !obj.geometry.boundingBox) {
+            obj.geometry.computeBoundingBox();
+        }
+        obj.updateMatrixWorld(); // Make sure the world matrix is up to date
+        obj.userData.collisionBox = new THREE.Box3().setFromObject(obj);
+    });
     
     if (collidables.some(obj => 
         obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)
@@ -425,75 +497,13 @@ export function moveAnimate(delta) {
     }
 }
 
-/**
- * Função para mover o inimigo com colisão
- */
-function moveEnemy(enemy, targetPos, delta, collidables) {
-    const enemySpeed = 10; // Velocidade aumentada
-    const enemySize = new THREE.Vector3(5.0, 7.0, 5.0); // Tamanho aumentado
-    
-    const originalPos = enemy.position.clone();
-    const dir = new THREE.Vector3().subVectors(targetPos, originalPos);
-    dir.y = 0; // Movimento apenas horizontal
-    
-    if (dir.length() === 0) return;
-    
-    dir.normalize();
-    
-    // Movimento completo
-    enemy.position.x = originalPos.x + dir.x * enemySpeed * delta;
-    enemy.position.z = originalPos.z + dir.z * enemySpeed * delta;
-    
-    // Criar caixa de colisão temporária para verificação
-    const enemyBox = new THREE.Box3().setFromCenterAndSize(
-        enemy.position.clone(),
-        enemySize
-    );
-    
-    if (collidables.some(obj => 
-        obj.userData.collisionBox && enemyBox.intersectsBox(obj.userData.collisionBox)
-    )) {
-        // Reverter movimento completo
-        enemy.position.x = originalPos.x;
-        enemy.position.z = originalPos.z;
-        
-        // Tentar movimento apenas em X
-        enemy.position.x = originalPos.x + dir.x * enemySpeed * delta;
-        enemyBox.setFromCenterAndSize(
-            enemy.position.clone(),
-            enemySize
-        );
-        
-        if (collidables.some(obj => 
-            obj.userData.collisionBox && enemyBox.intersectsBox(obj.userData.collisionBox)
-        )) {
-            enemy.position.x = originalPos.x;
-        }
-        
-        // Tentar movimento apenas em Z
-        enemy.position.z = originalPos.z + dir.z * enemySpeed * delta;
-        enemyBox.setFromCenterAndSize(
-            enemy.position.clone(),
-            enemySize
-        );
-        
-        if (collidables.some(obj => 
-            obj.userData.collisionBox && enemyBox.intersectsBox(obj.userData.collisionBox)
-        )) {
-            enemy.position.z = originalPos.z;
-        }
-    }
-}
 
 /**
  * Loop principal de renderização do jogo.
  */
-function render() {
+async function render() {
     stats.update();
-    let delta = clock.getDelta();
-    
-    // Limitar delta para evitar problemas quando o jogo está minimizado
-    if (delta > 0.1) delta = 0.1;
+    const delta = clock.getDelta();
 
     // Fazer barras de vida olharem para a câmera
     scene.traverse(obj => {
@@ -506,80 +516,37 @@ function render() {
             });
         }
     });
-    
-    // Atualiza animações dos inimigos
-    scene.traverse(obj => {
-        if (obj.userData && obj.userData.mixer) {
-            obj.userData.mixer.update(delta);
-        }
-    
-        if (obj.userData && obj.userData.isEnemy) {
-            const playerPos = controls.getObject().position;
-            const enemyPos = obj.position;
-            const dist = playerPos.distanceTo(enemyPos);
-
-            // Atualizar caixa de colisão do inimigo
-            const boxSize = 12.0; // Aumentado de 9 para 12
-            const boxHeight = 15.0; // Aumentado de 12 para 15
-            const boxCenter = obj.position.clone();
-            const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
-            const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
-            obj.userData.collisionBox.min.copy(min);
-            obj.userData.collisionBox.max.copy(max);
-            
-            // Atualiza o helper visual
-            if (obj.userData.boxHelper) {
-                obj.userData.boxHelper.box.copy(obj.userData.collisionBox);
-                obj.userData.boxHelper.updateMatrixWorld(true);
-            }
-            
-            // Troca de estado: idle -> perseguir
-            if (obj.userData.state === "idle" && dist < obj.userData.detectionRadius) {
-                obj.userData.state = "perseguir";
-                console.log("Inimigo agora está perseguindo!");
-            }
-    
-            // Troca de estado: perseguir -> idle (desistir)
-            if (obj.userData.state === "perseguir" && dist > obj.userData.detectionRadius + 10) {
-                obj.userData.state = "idle";
-                console.log("Inimigo parou de perseguir!");
-            }
-    
-            // Idle: flutuando
-            if (obj.userData.state === "idle") {
-                const targetY = obj.userData.baseY + Math.sin(performance.now() * 0.001) * 2;
-                obj.position.y = THREE.MathUtils.lerp(obj.position.y, targetY, 0.1);
-            }
-    
-            // Perseguir: vai atrás do player
-            if (obj.userData.state === "perseguir") {
-                // Obtém objetos colidíveis
-                const collidables = scene.children.filter(objColl => 
-                    objColl.userData && objColl.userData.isCollidable && 
-                    objColl.name !== "camera"
-                );
-                
-                // Usa função de movimento com colisão
-                moveEnemy(obj, playerPos, delta, collidables);
-                
-                // Movimento vertical: ajusta suavemente a altura do inimigo para a altura do jogador
-                const targetHeight = playerPos.y;
-                const heightDifference = targetHeight - obj.position.y;
-                const verticalSpeed = 0.05; // Velocidade de ajuste vertical
-                obj.position.y += heightDifference * verticalSpeed * delta * 60;
-                
-                // Rotaciona para olhar para o player (horizontalmente)
-                const angle = Math.atan2(playerPos.x - enemyPos.x, playerPos.z - enemyPos.z);
-                obj.rotation.y = angle;
-            }
-        }
-    });
 
     if (controls.isLocked) {
         moveAnimate(delta);
         updateProjectiles(delta);
+        updateEnemies(scene, controls, delta);
+        updateEnemiesOBJ(scene, controls.getObject(), delta);
+        updateEnemyProjectiles(delta, controls.getObject());
     }
-    
+
+    // Inicializa o renderizador de labels se ainda não existir
+    if (!window.labelRenderer) {
+        const LabelRenderer = (await import('../build/jsm/renderers/CSS2DRenderer.js')).CSS2DRenderer;
+        window.labelRenderer = new LabelRenderer();
+        window.labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        window.labelRenderer.domElement.style.position = 'absolute';
+        window.labelRenderer.domElement.style.top = '0px';
+        window.labelRenderer.domElement.style.pointerEvents = 'none';
+        document.getElementById('webgl-output').appendChild(window.labelRenderer.domElement);
+    }
+
+    // Atualiza o renderizador de labels se o jogo estiver rodando
+    if (window.labelRenderer && controls.isLocked) {
+        window.labelRenderer.render(scene, camera);
+    }
+
+    if (areaChaveData && areaChaveData.getChaveAnimada()) {
+        const chave = areaChaveData.getChaveAnimada();
+        const baseY = areaChaveData.getBaseY();
+        chave.position.y = baseY + Math.sin(performance.now() * 0.002) * 1.2; // 1.2 é a amplitude
+    }
+
     if (spotLightHelper) spotLightHelper.update();
     renderer.render(scene, camera);
     requestAnimationFrame(render);

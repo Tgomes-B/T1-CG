@@ -3,6 +3,7 @@ import * as THREE from 'three';
 let camera, scene, controls;
 const projectileSpeed = 100;
 const projectiles = [];
+let areas = [];
 const ballGeometry = new THREE.SphereGeometry(0.1, 16, 16);
 
 let lastShotTime = 0;
@@ -17,11 +18,12 @@ let chaingunAnimInterval = null;
  * Também inicia/paralisa a animação da chaingun.
  * @returns {void}
  */
-export function setupShooting(_camera, _scene, _controls, _getCurrentWeapon) {
+export function setupShooting(_camera, _scene, _controls, _getCurrentWeapon,_areas) {
     camera = _camera;
     scene = _scene;
     controls = _controls;
     getCurrentWeapon = _getCurrentWeapon;
+    areas = _areas;
     if (getCurrentWeapon().name === "chaingun") stopChaingunAnimation();
     document.addEventListener('mousedown', (event) => {
         if (event.button !== 0 && event.button !== 2) return;
@@ -86,14 +88,45 @@ function shootProjectile() {
         // Raycast para detectar inimigo
         const dir = new THREE.Vector3();
         camera.getWorldDirection(dir);
-        const raycaster = new THREE.Raycaster(camera.getWorldPosition(new THREE.Vector3()), dir, 0, 100);
-        const enemies = scene.children.filter(obj => obj.userData?.isEnemy);
+        const raycaster = new THREE.Raycaster(camera.getWorldPosition(new THREE.Vector3()), dir, 0, 200);
+        let enemies = [];
+        areas.forEach(area => {
+            area.children.forEach(obj => {
+                if (obj.userData?.isEnemy) enemies.push(obj);
+            });
+        });
         const hits = raycaster.intersectObjects(enemies, true);
         if (hits.length > 0) {
-            const enemy = hits[0].object;
-            const hpLeft = updateEnemyHealth(enemy, 2 * (weapon.fireRate / 1000)); // 2 HP por segundo
-            if (hpLeft <= 0) {
-                fadeOutEnemy(enemy);
+            let enemy = hits[0].object;
+            let enemyRoot = enemy.userData.enemyRoot || enemy;
+            while (enemyRoot.parent && !enemyRoot.userData.isEnemy) {
+                enemyRoot = enemyRoot.parent;
+            }
+            if (enemyRoot.userData.hp === undefined) enemyRoot.userData.hp = 50;
+            enemyRoot.userData.hp -= 1;
+            console.log(`Inimigo atingido! HP restante: ${enemyRoot.userData.hp}`);
+            
+            // Atualizar a barra de vida se existir
+            if (enemyRoot.userData.healthBar) {
+                enemyRoot.userData.healthBar.update(enemyRoot.userData.hp);
+            }
+            
+            if (enemyRoot.userData.hp <= 0) {
+                enemyRoot.userData.hp = 0;
+                fadeOut(enemyRoot, 250, () => {
+                    // Remove health bar if it exists
+                    if (enemyRoot.userData.healthBar) {
+                        const healthBarObj = enemyRoot.userData.healthBar.getObject();
+                        if (healthBarObj.parent) {
+                            healthBarObj.parent.remove(healthBarObj);
+                        }
+                    }
+                    if (enemyRoot.parent) enemyRoot.parent.remove(enemyRoot);
+                    if (enemyRoot.userData.boxHelper && enemyRoot.userData.boxHelper.parent) {
+                        enemyRoot.userData.boxHelper.parent.remove(enemyRoot.userData.boxHelper);
+                    }
+                    console.log("Inimigo eliminado!");
+                });
             }
         }
         return; // Não cria projétil!
@@ -119,8 +152,18 @@ export function updateProjectiles(delta) {
             velocity.length()
         );
 
-        // Filtra inimigos e objetos colidíveis
-        const collidables = scene.children.filter(obj => obj.userData?.isCollidable || obj.userData?.isEnemy);
+        let collidables = [];
+        // 1. Adiciona filhos das áreas (como antes)
+        areas.forEach(area => {
+            area.traverse(obj => {
+                if (obj.userData?.isCollidable || obj.userData?.isEnemy) collidables.push(obj);
+            });
+        });
+
+        // 2. Adiciona objetos colidíveis diretamente na cena (paredes, chão, etc.)
+        scene.traverse(obj => {
+            if (obj.userData?.isCollidable && !collidables.includes(obj)) collidables.push(obj);
+        });
         const intersects = raycaster.intersectObjects(collidables, true);
 
         // Checa distância máxima
@@ -132,23 +175,52 @@ export function updateProjectiles(delta) {
         // Condição para fade-out (colisão ou distância máxima)
         if ((intersects.length > 0 || distance > 750) && !projectile.userData.fading) {
             projectile.userData.fading = true;
-
+        
             if (intersects.length > 0) {
                 const hitObject = intersects[0].object;
-
+        
                 // Aplica dano se o objeto for um inimigo
-                if (hitObject.userData?.isEnemy) {
-                    const hpLeft = updateEnemyHealth(hitObject, 10); // Dano do launcher
-                    if (hpLeft <= 0) {
-                        fadeOutEnemy(hitObject);
+                let enemyRoot = hitObject.userData.enemyRoot || hitObject;
+                while (enemyRoot.parent && !enemyRoot.userData.isEnemy) {
+                    enemyRoot = enemyRoot.parent;
+                }
+                if (enemyRoot.userData?.isEnemy) {
+                    if (enemyRoot.userData.hp === undefined) enemyRoot.userData.hp = 50;
+                    enemyRoot.userData.hp -= 10;
+                    if (enemyRoot.userData.hp < 0) enemyRoot.userData.hp = 0; // <-- impede HP negativo
+                    console.log(`Inimigo atingido! HP restante: ${enemyRoot.userData.hp}`);
+                    
+                    // Atualizar a barra de vida se existir
+                    if (enemyRoot.userData.healthBar) {
+                        enemyRoot.userData.healthBar.update(enemyRoot.userData.hp);
+                    }
+                    
+                    if (enemyRoot.userData.hp <= 0) {
+                        fadeOut(enemyRoot, 500, () => {
+                            // Remove health bar if it exists
+                            if (enemyRoot.userData.healthBar) {
+                                const healthBarObj = enemyRoot.userData.healthBar.getObject();
+                                if (healthBarObj.parent) {
+                                    healthBarObj.parent.remove(healthBarObj);
+                                }
+                            }
+                            if (enemyRoot.parent) enemyRoot.parent.remove(enemyRoot);
+                            if (enemyRoot.userData.boxHelper && enemyRoot.userData.boxHelper.parent) {
+                                enemyRoot.userData.boxHelper.parent.remove(enemyRoot.userData.boxHelper);
+                            }
+                            console.log("Inimigo eliminado!");
+                        });
                     }
                 }
             }
-
+        
+            // Remove o projétil do array ANTES do fade para não atualizar mais
+            const idx = projectiles.indexOf(projectile);
+            if (idx !== -1) projectiles.splice(idx, 1);
+        
             // Remove o projétil com fade-out
             fadeOut(projectile, 250, () => {
-                const idx = projectiles.indexOf(projectile);
-                if (idx !== -1) projectiles.splice(idx, 1);
+                if (scene.children.includes(projectile)) scene.remove(projectile);
             });
             continue;
         }
@@ -165,30 +237,32 @@ export function updateProjectiles(delta) {
  * @param {function} onComplete - Função a ser chamada após o fade-out.
  */
 export function fadeOut(object, duration, onComplete) {
-    if (!object.material || !object.material.transparent) {
-        console.warn("O material do objeto precisa ter 'transparent: true'.");
-        return;
-    }
-
-    const startOpacity = object.material.opacity;
-    const fadeSpeed = startOpacity / duration;
-    object.userData.velocity.set(0, 0, 0); // Para o movimento do projétil
-
-    function animateFadeOut() {
-        if (object.material.opacity > 0) {
-            object.material.opacity -= fadeSpeed * 16.67; // Aproximadamente 60 FPS
-            requestAnimationFrame(animateFadeOut);
-        } else {
-            object.material.opacity = 0;
-            scene.remove(object);
-            if (onComplete) onComplete();
+    // Aplica fade em todos os meshes filhos se for um grupo
+    let faded = false;
+    object.traverse(child => {
+        if (child.material && 'opacity' in child.material) {
+            child.material.transparent = true;
+            const start = performance.now();
+            const initialOpacity = child.material.opacity !== undefined ? child.material.opacity : 1;
+            function animate() {
+                const now = performance.now();
+                const elapsed = now - start;
+                const t = Math.min(elapsed / duration, 1);
+                child.material.opacity = initialOpacity * (1 - t);
+                if (t < 1) {
+                    requestAnimationFrame(animate);
+                } else if (!faded) {
+                    faded = true;
+                    if (onComplete) onComplete();
+                }
+            }
+            animate();
         }
-    }
-    animateFadeOut();
+    });
 }
 
 /**
- * Inicia a animação do sprite da chaingun, alternando os frames del spritesheet.
+ * Inicia a animação do sprite da chaingun, alternando os frames do spritesheet.
  * Só anima se não estiver já animando.
  */
 function animateChaingunSprite() {
@@ -205,7 +279,7 @@ function animateChaingunSprite() {
 }
 
 /**
- * Para a animação del sprite da chaingun e retorna ao frame inicial.
+ * Para a animação do sprite da chaingun e retorna ao frame inicial.
  */
 function stopChaingunAnimation() {
     const weapon = getCurrentWeapon();
@@ -216,65 +290,3 @@ function stopChaingunAnimation() {
         weapon.spriteTexture.needsUpdate = true;
     }
 }
-
-// Função para atualizar a barra de vida
-function updateEnemyHealth(enemy, damage) {
-    if (enemy.userData.hp === undefined) enemy.userData.hp = 100;
-    enemy.userData.hp -= damage;
-    
-    // Atualizar barra de vida
-    if (enemy.userData.healthBar) {
-        enemy.userData.healthBar.update(enemy.userData.hp);
-    }
-    
-    return enemy.userData.hp;
-}
-
-// Função para fade-out do inimigo
-function fadeOutEnemy(enemy) {
-    const fadeSpeed = 0.05;
-    
-    const fade = () => {
-        if (enemy.material && enemy.material.opacity > 0) {
-            // Atualizar todos os materiais do inimigo
-            enemy.traverse(child => {
-                if (child.material) {
-                    child.material.opacity -= fadeSpeed;
-                }
-            });
-            
-            // Atualizar barra de vida
-            if (enemy.userData.healthBar) {
-                enemy.userData.healthBar.healthMaterial.opacity -= fadeSpeed;
-                enemy.userData.healthBar.background.material.opacity -= fadeSpeed;
-            }
-            
-            requestAnimationFrame(fade);
-        } else {
-            // Remover inimigo da cena
-            scene.remove(enemy);
-        }
-    };
-    
-    fade();
-}
-
-// Atualizar onde o dano é aplicado (dentro de shootProjectile e updateProjectiles)
-// Substituir o código existente de dano por:
-
-// Para chaingun (raycast):
-/*if (hits.length > 0) {
-    const enemy = hits[0].object;
-    const hpLeft = updateEnemyHealth(enemy, 2 * (weapon.fireRate / 1000));
-    if (hpLeft <= 0) {
-        fadeOutEnemy(enemy);
-    }
-}
-
-// Para launcher (projétil):
-if (hitObject.userData?.isEnemy) {
-    const hpLeft = updateEnemyHealth(hitObject, 10);
-    if (hpLeft <= 0) {
-        fadeOutEnemy(hitObject);
-    }
-}*/
