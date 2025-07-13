@@ -103,8 +103,20 @@ function shootProjectile() {
             if (enemyRoot.userData.hp === undefined) enemyRoot.userData.hp = 50;
             enemyRoot.userData.hp -= 1;
             console.log(`Inimigo atingido! HP restante: ${enemyRoot.userData.hp}`);
+            
+            // Atualiza a healthbar
+            if (enemyRoot.userData.healthBar) {
+                enemyRoot.userData.healthBar.update(enemyRoot.userData.hp);
+            }
+            
             if (enemyRoot.userData.hp <= 0) {
                 fadeOut(enemyRoot, 250, () => {
+                    // Remove a healthbar se existir
+                    if (enemyRoot.userData.healthBar) {
+                        enemyRoot.userData.healthBar.remove();
+                        enemyRoot.userData.healthBar = null;
+                    }
+                    
                     if (enemyRoot.userData.eliminate) {
                         enemyRoot.userData.eliminate();
                     } else {
@@ -173,12 +185,27 @@ export function updateProjectiles(delta) {
                     enemyRoot = enemyRoot.parent;
                 }
                 if (enemyRoot.userData?.isEnemy) {
-                    if (enemyRoot.userData.hp === undefined) enemyRoot.userData.hp = 50;
+                    if (enemyRoot.userData.hp === undefined) {
+                        enemyRoot.userData.hp = 50;
+                        enemyRoot.userData.maxHp = 50;
+                    }
                     enemyRoot.userData.hp -= 10;
                     if (enemyRoot.userData.hp < 0) enemyRoot.userData.hp = 0; 
                     console.log(`Inimigo atingido! HP restante: ${enemyRoot.userData.hp}`);
+                    
+                    // Atualiza a healthbar
+                    if (enemyRoot.userData.healthBar) {
+                        enemyRoot.userData.healthBar.update(enemyRoot.userData.hp);
+                    }
+                    
                     if (enemyRoot.userData.hp <= 0) {
                         fadeOut(enemyRoot, 250, () => {
+                            // Remove a healthbar se existir
+                            if (enemyRoot.userData.healthBar) {
+                                enemyRoot.userData.healthBar.remove();
+                                enemyRoot.userData.healthBar = null;
+                            }
+                            
                             if (enemyRoot.userData.eliminate) {
                                 enemyRoot.userData.eliminate();
                             } else {

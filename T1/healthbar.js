@@ -43,8 +43,8 @@ export class HealthBar {
     update(health) {
         this.currentHealth = health;
         const percent = Math.max(0, this.currentHealth / this.maxHealth);
-        this.bar.style.width = (percent * 100) + "%";
-    
+        this.bar.style.width = `${percent * 100}%`;
+        
         // Atualizar cor conforme a vida diminui
         if (percent > 0.6) {
             this.bar.style.backgroundColor = '#0f0'; // Verde
@@ -53,10 +53,23 @@ export class HealthBar {
         } else {
             this.bar.style.backgroundColor = '#f00'; // Vermelho
         }
-    
     }
     
     getObject() {
         return this.label;
+    }
+    
+    // Remove a barra de vida da cena e limpa os recursos
+    remove() {
+        if (this.label && this.label.element) {
+            // Remove o elemento DOM
+            if (this.label.element.parentNode) {
+                this.label.element.parentNode.removeChild(this.label.element);
+            }
+            // Remove o label da cena
+            if (this.label.parent) {
+                this.label.parent.remove(this.label);
+            }
+        }
     }
 }
