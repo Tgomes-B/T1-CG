@@ -58,8 +58,15 @@ export function setupAreaChave(scene, area, enemies) {
     let chave = null;
 
     // Adicione o método de eliminação para cada inimigo já criado
-    enemies.forEach((enemy) => {
+    enemies.forEach(enemy => {
         enemy.userData.eliminate = () => {
+            if (enemy.userData._eliminated) return;
+            enemy.userData._eliminated = true;
+
+            if (enemy.parent) enemy.parent.remove(enemy);
+            if (enemy.userData.boxHelper && enemy.userData.boxHelper.parent) {
+                enemy.userData.boxHelper.parent.remove(enemy.userData.boxHelper);
+            }
             scene.remove(enemy);
             defeatedCount++;
             if (defeatedCount === enemies.length) {

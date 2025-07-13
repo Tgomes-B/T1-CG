@@ -44,9 +44,18 @@ export function adicionarInimigoCena(cena, caminhoGLB, posicoes = [{ x: 0, y: 0,
                 inimigo.userData.hp = 50;
                 inimigo.userData.maxHp = 50;
 
-                // Criar barra de vida
-                const healthBar = new HealthBar(inimigo.userData.maxHp, 1.0, 15);
-                inimigo.add(healthBar.getObject());
+                const healthBar = new HealthBar(inimigo.userData.maxHp, 1.5);
+                const healthBarObj = healthBar.getObject();
+                
+                // *** CORREÇÃO PRINCIPAL ***
+                // Calcular altura real após carregamento
+                inimigo.updateMatrixWorld(true);
+                const bbox = new THREE.Box3().setFromObject(inimigo);
+                const heightOffset = (bbox.max.y - bbox.min.y) + 1;
+
+                healthBarObj.position.y = heightOffset;
+
+                inimigo.add(healthBarObj);
                 inimigo.userData.healthBar = healthBar;
 
                 inimigo.traverse((child) => {

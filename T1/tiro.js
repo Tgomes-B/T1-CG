@@ -90,10 +90,8 @@ function shootProjectile() {
         camera.getWorldDirection(dir);
         const raycaster = new THREE.Raycaster(camera.getWorldPosition(new THREE.Vector3()), dir, 0, 200);
         let enemies = [];
-        areas.forEach(area => {
-            area.children.forEach(obj => {
-                if (obj.userData?.isEnemy) enemies.push(obj);
-            });
+        scene.traverse(obj => {
+            if (obj.userData?.isEnemy) enemies.push(obj);
         });
         const hits = raycaster.intersectObjects(enemies, true);
         if (hits.length > 0) {
@@ -107,12 +105,13 @@ function shootProjectile() {
             console.log(`Inimigo atingido! HP restante: ${enemyRoot.userData.hp}`);
             if (enemyRoot.userData.hp <= 0) {
                 fadeOut(enemyRoot, 250, () => {
-                    if (enemyRoot.parent) enemyRoot.parent.remove(enemyRoot);
-                    if (enemyRoot.userData.boxHelper && enemyRoot.userData.boxHelper.parent) {
-                        enemyRoot.userData.boxHelper.parent.remove(enemyRoot.userData.boxHelper);
-                    }
                     if (enemyRoot.userData.eliminate) {
-                        enemyRoot.userData.eliminate(); // <-- ESSA LINHA FAZ O PILAR E A CHAVE APARECEREM!
+                        enemyRoot.userData.eliminate();
+                    } else {
+                        if (enemyRoot.parent) enemyRoot.parent.remove(enemyRoot);
+                        if (enemyRoot.userData.boxHelper && enemyRoot.userData.boxHelper.parent) {
+                            enemyRoot.userData.boxHelper.parent.remove(enemyRoot.userData.boxHelper);
+                        }
                     }
                     console.log("Inimigo eliminado!");
                 });
@@ -176,16 +175,17 @@ export function updateProjectiles(delta) {
                 if (enemyRoot.userData?.isEnemy) {
                     if (enemyRoot.userData.hp === undefined) enemyRoot.userData.hp = 50;
                     enemyRoot.userData.hp -= 10;
-                    if (enemyRoot.userData.hp < 0) enemyRoot.userData.hp = 0;s
+                    if (enemyRoot.userData.hp < 0) enemyRoot.userData.hp = 0; 
                     console.log(`Inimigo atingido! HP restante: ${enemyRoot.userData.hp}`);
                     if (enemyRoot.userData.hp <= 0) {
                         fadeOut(enemyRoot, 250, () => {
-                            if (enemyRoot.parent) enemyRoot.parent.remove(enemyRoot);
-                            if (enemyRoot.userData.boxHelper && enemyRoot.userData.boxHelper.parent) {
-                                enemyRoot.userData.boxHelper.parent.remove(enemyRoot.userData.boxHelper);
-                            }
                             if (enemyRoot.userData.eliminate) {
-                                enemyRoot.userData.eliminate(); 
+                                enemyRoot.userData.eliminate();
+                            } else {
+                                if (enemyRoot.parent) enemyRoot.parent.remove(enemyRoot);
+                                if (enemyRoot.userData.boxHelper && enemyRoot.userData.boxHelper.parent) {
+                                    enemyRoot.userData.boxHelper.parent.remove(enemyRoot.userData.boxHelper);
+                                }
                             }
                             console.log("Inimigo eliminado!");
                         });

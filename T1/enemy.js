@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { fadeOut } from './tiro.js';
 import { OBJLoader } from '../build/jsm/loaders/OBJLoader.js';
 import { MTLLoader } from '../build/jsm/loaders/MTLLoader.js';
+import { HealthBar } from './healthbar.js';
 
 // Configurações do inimigo
 const ENEMY_SEARCH_RAYS = 120; // 360° / 3
@@ -39,6 +40,21 @@ export function loadEnemyOBJ(path, position = { x: 0, y: 0, z: 0 }, onLoad) {
                 obj.userData.enemyType = "obj";
                 obj.userData.fading = false;
                 obj.userData.isCollidable = true;
+
+                 // Criar barra de vida
+                 const healthBar = new HealthBar(obj.userData.maxHp, 1.5);
+                const healthBarObj = healthBar.getObject();
+                
+                                // *** CORREÇÃO PRINCIPAL ***
+                // Calcular altura real após carregamento
+                obj.updateMatrixWorld(true);
+                const bbox = new THREE.Box3().setFromObject(obj);
+                const heightOffset = (bbox.max.y - bbox.min.y) + 1;
+                
+                healthBarObj.position.y = heightOffset;
+                
+                obj.add(healthBarObj);
+                obj.userData.healthBar = healthBar;
 
                 // Cria uma collisionBox válida baseada no centro e tamanho padrão
                 const boxSize = 5;

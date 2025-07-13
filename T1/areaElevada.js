@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { criaBlocoChave, criaChave } from './areaChave.js';
 import { moveAnimate } from './primeiraPessoa.js';
 
+const SHOW_COLLISION_BOXES = false;
+
 export function setupArea2(area, scene) {
     // Cria torres na área elevada
     const base = 10;
@@ -15,47 +17,65 @@ export function setupArea2(area, scene) {
     const torresLinha = [4, 3, 4, 3];
     let z = 0;
 
-    let i = 0;
+        // Função para criar uma torre com colisão
+        function createTower(x, y, z, width, height, depth) {
+            const geometry = new THREE.BoxGeometry(width, height, depth);
+            const tower = new THREE.Mesh(geometry, material.clone());
+            
+            tower.position.set(x, y, z);
+            tower.name = "torre";
+            tower.castShadow = true;
+            tower.receiveShadow = true;
+            tower.userData.isCollidable = true;
+    
+            // Cria caixa de colisão
+            const halfWidth = width / 2;
+            const halfHeight = height / 2;
+            const halfDepth = depth / 2;
+    
+            tower.userData.collisionBox = new THREE.Box3(
+                new THREE.Vector3(-halfWidth, -halfHeight, -halfDepth),
+                new THREE.Vector3(halfWidth, halfHeight, halfDepth)
+            );
+    
+            // Atualiza a posição da caixa de colisão
+            tower.updateMatrixWorld(true);
+            tower.userData.collisionBox.applyMatrix4(tower.matrixWorld);
+    
+            // Visualização de depuração das caixas de colisão
+            if (SHOW_COLLISION_BOXES) {
+                const boxHelper = new THREE.Box3Helper(tower.userData.collisionBox, 0x00ff00);
+                scene.add(boxHelper);
+                tower.userData.boxHelper = boxHelper;
+            }
+    
+            return tower;
+        }
+
+        let i = 0;
     for (let row = 0; row < torresLinha.length; row++) {
         for (let col = 0; col < torresLinha[row]; col++) {
             if (i >= alturas.length) break;
-            const altura = alturas[i++];
-            if(torresLinha[row] == 4){
+            const altura = alturas[i];
+            
+            if(torresLinha[row] === 4){
                 z = iniZ4 + (espacoZ4 + base) * col;
             }
-            else if(torresLinha[row] == 3){
+            else if(torresLinha[row] === 3){
                 z = iniZ3 + (espacoZ3 + base) * col;
-            }else{
+            } else {
                 break;
             }
             
-            let x = 30 + row * espacoX;
-            const geometry = new THREE.BoxGeometry(base, altura, base);  
-            const torre = new THREE.Mesh(geometry, material);
-
-            torre.position.set(x, 5 + altura / 2, z);
-            torre.name = "torre";
-            torre.userData.isCollidable = true;
-            torre.castShadow = true;
-            torre.receiveShadow = true;
-
-            const min = new THREE.Vector3(
-                torre.position.x - base / 2,
-                torre.position.y - altura / 2,
-                torre.position.z - base / 2
-            );
-            const max = new THREE.Vector3(
-                torre.position.x + base / 2,
-                torre.position.y + altura / 2,
-                torre.position.z + base / 2
-            );
-            torre.userData.collisionBox = new THREE.Box3(min, max);
-            torre.userData.isCollidable = true;
-            torre.castShadow = true;
-            torre.receiveShadow = true;
-
+            const x = 30 + row * espacoX;
+            const y = 5 + altura / 2;
+            
+            // Create the tower
+            const torre = createTower(x, y, z, base, altura, base);
             area.add(torre);
-            if(i == 6){
+
+            // Tratamento especial para a torre com a chave
+            if(i === 5) { 
                 let chave = criaChave('yellow');
                 chave.position.set(x, 9, z);
                 chave.traverse(child => {
@@ -66,7 +86,12 @@ export function setupArea2(area, scene) {
                 });
                 area.add(chave);
                 torre.translateY(10);
+                // Atualiza a caixa de colisão após mover a torre
+                torre.updateMatrixWorld(true);
+                torre.userData.collisionBox = new THREE.Box3().setFromObject(torre);
             }
+            
+            i++; // Move to next tower
         }
     }
     let bloco = criaBlocoChave();

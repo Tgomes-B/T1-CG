@@ -162,58 +162,129 @@ export function criaAreasRampas(scene) {
         posZ += 155;
         scene.add(areas[i]);
     }
-    criaPilares(areas[0]);
+    criaPilares(scene, areas[0]);
     
     return { areas, ramp, ground };
 }
 
-export function criaPilares(area1){
+// Debug caixa de colisão
+const SHOW_COLLISION_BOXES = false;
+
+export function criaPilares(scene, area1) {
     const pilarGeometry = new THREE.CylinderGeometry(4, 4, 30, 32);
-    const pilarMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(200, 200, 200)' });
+    const pilarMaterial = new THREE.MeshLambertMaterial({ 
+        color: 'rgb(200, 200, 200)',
+        transparent: true,
+        opacity: 0.9
+    });
+    
     let Xcont = -10;
     let Zcont = -35;
     let contBack = -33;
-    while (Xcont <= 114){
-        let pilar = new THREE.Mesh(pilarGeometry, pilarMaterial);
-        let pilarLat = new THREE.Mesh(pilarGeometry, pilarMaterial);
-        pilar.position.set(Xcont, 17, -55);
-        pilarLat.position.set(Xcont, 17, 55);
+    
+    // Obtém a posição global da área
+    const areaPosition = new THREE.Vector3();
+    area1.getWorldPosition(areaPosition);
+    
+    // Cria um grupo para conter todos os pilares
+    const pillarsGroup = new THREE.Group();
+    pillarsGroup.name = "pillarsGroup";
+    
+    // Função para criar um pilar com colisão
+    function createPillar(x, y, z) {
+        const pilar = new THREE.Mesh(pilarGeometry, pilarMaterial.clone());
+        pilar.position.set(x, y, z);
         pilar.castShadow = true;
         pilar.receiveShadow = true;
-        pilarLat.castShadow = true;
-        pilarLat.receiveShadow = true;
-        pilar.userData.isCollidable = true; 
-        pilarLat.userData.isCollidable = true;
-        area1.add(pilar);
-        area1.add(pilarLat);
-        Xcont = Xcont + 22;
+        pilar.userData.isCollidable = true;
         pilar.name = "pilar";
-        pilarLat.name = "pilar";
+        
+        // Cria uma caixa de colisão mais precisa para o cilindro
+        const height = 30;
+        const radius = 4;
+        
+        // Cria uma caixa que aproxima o volume do cilindro
+        const boxSize = new THREE.Vector3(
+            radius * 2, // largura
+            height,     // altura
+            radius * 2  // profundidade
+        );
+        
+        // Cria e armazena a caixa de colisão
+        pilar.userData.collisionBox = new THREE.Box3(
+            new THREE.Vector3(-radius, -height/2, -radius),
+            new THREE.Vector3(radius, height/2, radius)
+        );
+        
+        // Atualiza a posição da caixa de colisão
+        pilar.updateMatrixWorld(true);
+        pilar.userData.collisionBox.applyMatrix4(pilar.matrixWorld);
+        
+        // Visualização de depuração das caixas de colisão
+        if (SHOW_COLLISION_BOXES) {
+            const boxHelper = new THREE.Box3Helper(pilar.userData.collisionBox, 0xffff00);
+            scene.add(boxHelper);
+            pilar.userData.boxHelper = boxHelper;
+        }
+        
+        return pilar;
     }
-    while (Zcont <= 35){
-        let pilarFron = new THREE.Mesh(pilarGeometry, pilarMaterial);
-        pilarFron.position.set(-10, 17, Zcont);
-        pilarFron.castShadow = true;
-        pilarFron.receiveShadow = true;
-        pilarFron.userData.isCollidable = true;
-        area1.add(pilarFron);
-        pilarFron.name = "pilar";
-        if (Zcont == -15) {
+    
+    // Primeira fileira de pilares (frente e trás)
+    while (Xcont <= 114) {
+        // Pilares da frente
+        const frontPillar = createPillar(
+            areaPosition.x + Xcont, 
+            17, 
+            areaPosition.z - 55
+        );
+        pillarsGroup.add(frontPillar);
+        
+        // Pilares de trás
+        const backPillar = createPillar(
+            areaPosition.x + Xcont, 
+            17, 
+            areaPosition.z + 55
+        );
+        pillarsGroup.add(backPillar);
+        
+        Xcont += 22;
+    }
+    
+    // Pilares do lado esquerdo
+    while (Zcont <= 35) {
+        const leftPillar = createPillar(
+            areaPosition.x - 10,
+            17,
+            areaPosition.z + Zcont
+        );
+        pillarsGroup.add(leftPillar);
+        
+        if (Zcont === -15) {
             Zcont += 30;
-        }else{
+        } else {
             Zcont += 20;
         }
     }
-    while (contBack <= 33){
-        let pilarBack = new THREE.Mesh(pilarGeometry, pilarMaterial);
-        pilarBack.position.set(100, 17, contBack);
-        pilarBack.castShadow = true;
-        pilarBack.receiveShadow = true;
-        pilarBack.userData.isCollidable = true;
-        area1.add(pilarBack);
-        pilarBack.name = "pilar";
+    
+    // Pilares do lado direito
+    while (contBack <= 33) {
+        const rightPillar = createPillar(
+            areaPosition.x + 100,
+            17,
+            areaPosition.z + contBack
+        );
+        pillarsGroup.add(rightPillar);
+        
         contBack += 22;
     }
+    
+    // Adiciona o grupo de pilares à cena
+    scene.add(pillarsGroup);
+    
+    // Atualiza todas as matrizes no grupo
+    pillarsGroup.updateMatrixWorld(true);
+    
     return area1;
 }
 

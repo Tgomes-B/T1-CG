@@ -13,6 +13,7 @@ import { initRenderer, onWindowResize } from "../libs/util/util.js";
 import { criaAreasRampas, criaParedes, setupLighting } from './Ambiente.js';
 import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
+import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
 
 let stats, renderer, scene, camera, controls, clock;
 let areaChaveData;
@@ -61,6 +62,15 @@ function init() {
     setupInitialCameraPosition();
     clock = new THREE.Clock();
 
+    // Inicializa o renderizador de labels (para barras de vida)
+    window.labelRenderer = new CSS2DRenderer();
+    window.labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    window.labelRenderer.domElement.style.position = 'absolute';
+    window.labelRenderer.domElement.style.top = '0';
+    window.labelRenderer.domElement.style.left = '0';
+    window.labelRenderer.domElement.style.pointerEvents = 'none';
+    document.body.appendChild(window.labelRenderer.domElement);
+
     setupEnvironment();
     setupLightingAndCollision();
     setupGameElements();
@@ -89,7 +99,6 @@ function setupEnvironment() {
     walls = criaParedes(scene);
 
     const area1 = areas[0];
-    const area1Size = { x: 120, y: 4, z: 120 }; // BoxGeometry(120, 4, 120)
     const areaLimits = {
         safeMinX: 115,
         safeMaxX: 235,
@@ -109,8 +118,8 @@ function setupEnvironment() {
     const enemiesArea1 = [];
     const numEnemies = 5;
     const enemyPositions = [];
-    const margin = 3;
-    
+    const margin = 15; 
+
     for (let i = 0; i < numEnemies; i++) {
         enemyPositions.push({
             x: Math.random() * (areaLimits.safeMaxX - areaLimits.safeMinX - 2 * margin) + areaLimits.safeMinX + margin,
@@ -159,7 +168,13 @@ function setupEnvironment() {
  * Configura iluminação e colisões.
  */
 function setupLightingAndCollision() {
-    setupCollision(scene);
+    // Set up initial collision boxes
+    const collidables = setupCollision(scene);
+    
+    // Update world matrices for all objects
+    scene.updateMatrixWorld(true);
+    
+    // Set up lighting
     spotLightHelper = setupLighting(scene);
 }
 
@@ -493,7 +508,7 @@ export function moveAnimate(delta) {
 /**
  * Loop principal de renderização do jogo.
  */
-function render() {
+async function render() {
     stats.update();
     const delta = clock.getDelta();
 
@@ -516,6 +531,23 @@ function render() {
         updateEnemiesOBJ(scene, controls.getObject(), delta);
         updateEnemyProjectiles(delta, controls.getObject());
     }
+
+    // Inicializa o renderizador de labels se ainda não existir
+    if (!window.labelRenderer) {
+        const LabelRenderer = (await import('../build/jsm/renderers/CSS2DRenderer.js')).CSS2DRenderer;
+        window.labelRenderer = new LabelRenderer();
+        window.labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        window.labelRenderer.domElement.style.position = 'absolute';
+        window.labelRenderer.domElement.style.top = '0px';
+        window.labelRenderer.domElement.style.pointerEvents = 'none';
+        document.getElementById('webgl-output').appendChild(window.labelRenderer.domElement);
+    }
+
+    // Atualiza o renderizador de labels se o jogo estiver rodando
+    if (window.labelRenderer && controls.isLocked) {
+        window.labelRenderer.render(scene, camera);
+    }
+
 
     if (areaChaveData && areaChaveData.getChaveAnimada()) {
         const chave = areaChaveData.getChaveAnimada();
