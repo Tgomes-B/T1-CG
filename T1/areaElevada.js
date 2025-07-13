@@ -1,4 +1,4 @@
-// Debug flag - set to true to visualize collision boxes
+// Flag de depuração - defina como true para visualizar as caixas de colisão
 const SHOW_COLLISION_BOXES = false;
 
 import * as THREE from 'three';
@@ -21,7 +21,7 @@ export function setupArea2(area, scene) {
     const torresLinha = [4, 3, 4, 3];
     let z = 0;
 
-    // Function to create a tower with collision
+    // Função para criar uma torre com colisão
     function createTower(x, y, z, width, height, depth) {
         const geometry = new THREE.BoxGeometry(width, height, depth);
         const tower = new THREE.Mesh(geometry, material.clone());
@@ -32,7 +32,7 @@ export function setupArea2(area, scene) {
         tower.receiveShadow = true;
         tower.userData.isCollidable = true;
 
-        // Create collision box
+        // Cria caixa de colisão
         const halfWidth = width / 2;
         const halfHeight = height / 2;
         const halfDepth = depth / 2;
@@ -42,11 +42,11 @@ export function setupArea2(area, scene) {
             new THREE.Vector3(halfWidth, halfHeight, halfDepth)
         );
 
-        // Update the collision box position
+        // Atualiza a posição da caixa de colisão
         tower.updateMatrixWorld(true);
         tower.userData.collisionBox.applyMatrix4(tower.matrixWorld);
 
-        // Debug visualization of collision boxes
+        // Visualização de depuração das caixas de colisão
         if (SHOW_COLLISION_BOXES) {
             const boxHelper = new THREE.Box3Helper(tower.userData.collisionBox, 0x00ff00);
             scene.add(boxHelper);
@@ -78,7 +78,7 @@ export function setupArea2(area, scene) {
             const torre = createTower(x, y, z, base, altura, base);
             area.add(torre);
 
-            // Special handling for the tower with the key
+            // Tratamento especial para a torre com a chave
             if(i === 5) { 
                 let chave = criaChave('yellow');
                 chave.position.set(x, 9, z);
@@ -90,7 +90,7 @@ export function setupArea2(area, scene) {
                 });
                 area.add(chave);
                 torre.translateY(10);
-                // Update collision box after moving the tower
+                // Atualiza a caixa de colisão após mover a torre
                 torre.updateMatrixWorld(true);
                 torre.userData.collisionBox = new THREE.Box3().setFromObject(torre);
             }
@@ -99,7 +99,7 @@ export function setupArea2(area, scene) {
         }
     }
 
-    // Add the key block
+    // Adiciona o bloco da chave
     let bloco = criaBlocoChave();
     bloco.name = 'bloco';
     bloco.position.set(100, 2, 0);
@@ -112,7 +112,7 @@ export function setupArea2(area, scene) {
     });
     scene.add(bloco);
 
-    // Set up elevator
+    // Configura o elevador
     elevador(scene);
 }
 
@@ -139,7 +139,7 @@ function elevador(scene) {
     elevadorMesh.name = 'elevador';
     portaMesh.name = 'porta';
     
-    // Set up collision for elevator and door
+    // Configura colisão para o elevador e a porta
     [portaMesh, elevadorMesh].forEach(mesh => {
         mesh.castShadow = true;
         mesh.receiveShadow = true;
@@ -147,7 +147,7 @@ function elevador(scene) {
         mesh.updateMatrixWorld(true);
         mesh.userData.collisionBox = new THREE.Box3().setFromObject(mesh);
         
-        // Debug visualization
+        // Visualização de depuração
         if (SHOW_COLLISION_BOXES) {
             const boxHelper = new THREE.Box3Helper(mesh.userData.collisionBox, 0xff0000);
             scene.add(boxHelper);
