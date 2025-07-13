@@ -511,20 +511,13 @@ export function moveAnimate(delta) {
             scene.add(chave);
             blocoElevado.userData.chaveColocada = true;
             playerHasKey = false;
-    
-            // Agora sim, libera a porta para abrir
-            const porta = scene.getObjectByName('porta');
-            if (porta) {
-                porta.userData.descendo = true;
-            }
+            
         }
     }
     
     // 3. Animando o elevador
     const elevadores = scene.children.filter(obj => obj.name === 'elevador');
     elevadores.forEach(elevador => { moveElevador(elevador, downRay, frontRay); });
-    const porta = scene.children.filter(obj => obj.name === 'porta')
-    porta.forEach(porta => { movePorta(porta, frontRay) });
 }
 
 /**

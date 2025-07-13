@@ -57,7 +57,7 @@ export function setupArea2(area, scene) {
             area.add(torre);
             if(i == 6){
                 let chave = criaChave('yellow');
-                chave.position.set(x, 9, z);
+                chave.position.set(x, 7, z);
                 chave.traverse(child => {
                     if (child.isMesh) {
                         child.castShadow = true;
@@ -136,7 +136,7 @@ export function movePorta(porta, frontRay){
             porta.position.y = yAlvo;
             porta.userData.descendo = false;
         }
-        // Atualiza a caixa de colisão da porta, se necessário
+        porta.userData.collisionBox.setFromObject(porta);
     }
 }
 
