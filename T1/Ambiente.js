@@ -198,35 +198,21 @@ export function criaPilares(scene, area1) {
         pilar.receiveShadow = true;
         pilar.userData.isCollidable = true;
         pilar.name = "pilar";
-        
-        // Cria uma caixa de colisão mais precisa para o cilindro
+    
+        // Cria uma caixa de colisão em coordenadas globais
         const height = 30;
         const radius = 4;
-        
-        // Cria uma caixa que aproxima o volume do cilindro
-        const boxSize = new THREE.Vector3(
-            radius * 2, // largura
-            height,     // altura
-            radius * 2  // profundidade
-        );
-        
-        // Cria e armazena a caixa de colisão
-        pilar.userData.collisionBox = new THREE.Box3(
-            new THREE.Vector3(-radius, -height/2, -radius),
-            new THREE.Vector3(radius, height/2, radius)
-        );
-        
-        // Atualiza a posição da caixa de colisão
-        pilar.updateMatrixWorld(true);
-        pilar.userData.collisionBox.applyMatrix4(pilar.matrixWorld);
-        
-        // Visualização de depuração das caixas de colisão
+        const min = new THREE.Vector3(x - radius, y - height / 2, z - radius);
+        const max = new THREE.Vector3(x + radius, y + height / 2, z + radius);
+        pilar.userData.collisionBox = new THREE.Box3(min, max);
+    
+        // (Opcional) Visualização
         if (SHOW_COLLISION_BOXES) {
             const boxHelper = new THREE.Box3Helper(pilar.userData.collisionBox, 0xffff00);
             scene.add(boxHelper);
             pilar.userData.boxHelper = boxHelper;
         }
-        
+    
         return pilar;
     }
     

@@ -410,10 +410,13 @@ export function moveAnimate(delta) {
         new THREE.Vector3(0.3, alturaPlayer, 0.3)
     );
 
-    const collidables = scene.children.filter(obj =>
-        obj.userData && obj.userData.isCollidable && obj.name !== "camera"
-    );
-
+    let collidables = [];
+    scene.traverse(obj => {
+        if (obj.userData && obj.userData.isCollidable && obj.name !== "camera") {
+            collidables.push(obj);
+        }
+    });
+    console.log(collidables.map(o => o.name));
     let collided = collidables.some(obj =>
         obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)
     );

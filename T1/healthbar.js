@@ -43,8 +43,8 @@ export class HealthBar {
     update(health) {
         this.currentHealth = health;
         const percent = Math.max(0, this.currentHealth / this.maxHealth);
-        this.bar.style.width = `${percent * 100}%`;
-        
+        this.bar.style.width = (percent * 100) + "%";
+    
         // Atualizar cor conforme a vida diminui
         if (percent > 0.6) {
             this.bar.style.backgroundColor = '#0f0'; // Verde
@@ -53,6 +53,7 @@ export class HealthBar {
         } else {
             this.bar.style.backgroundColor = '#f00'; // Vermelho
         }
+    
     }
     
     getObject() {

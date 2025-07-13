@@ -27,28 +27,21 @@ export function setupArea2(area, scene) {
             tower.castShadow = true;
             tower.receiveShadow = true;
             tower.userData.isCollidable = true;
-    
-            // Cria caixa de colisão
+        
+            // Cria caixa de colisão em coordenadas globais
             const halfWidth = width / 2;
             const halfHeight = height / 2;
             const halfDepth = depth / 2;
-    
-            tower.userData.collisionBox = new THREE.Box3(
-                new THREE.Vector3(-halfWidth, -halfHeight, -halfDepth),
-                new THREE.Vector3(halfWidth, halfHeight, halfDepth)
-            );
-    
-            // Atualiza a posição da caixa de colisão
-            tower.updateMatrixWorld(true);
-            tower.userData.collisionBox.applyMatrix4(tower.matrixWorld);
-    
+            const min = new THREE.Vector3(x - halfWidth, y - halfHeight, z - halfDepth);
+            const max = new THREE.Vector3(x + halfWidth, y + halfHeight, z + halfDepth);
+        
             // Visualização de depuração das caixas de colisão
             if (SHOW_COLLISION_BOXES) {
                 const boxHelper = new THREE.Box3Helper(tower.userData.collisionBox, 0x00ff00);
                 scene.add(boxHelper);
                 tower.userData.boxHelper = boxHelper;
             }
-    
+        
             return tower;
         }
 
@@ -73,6 +66,10 @@ export function setupArea2(area, scene) {
             // Create the tower
             const torre = createTower(x, y, z, base, altura, base);
             area.add(torre);
+            
+            torre.updateMatrixWorld(true);
+            torre.userData.collisionBox = new THREE.Box3().setFromObject(torre);
+            torre.userData.isCollidable = true;
 
             // Tratamento especial para a torre com a chave
             if(i === 5) { 
