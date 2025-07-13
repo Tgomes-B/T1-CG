@@ -2,7 +2,29 @@
  * Configuração principal do jogo em primeira pessoa.
  * @module primeiraPessoa
  */
-import { adicionarInimigoCena,updateEnemies, updateEnemyProjectiles } from './inimigo.js';
+import { adicionarInimigoCena, updateEnemies, updateEnemyProjectiles } from './inimigo.js';
+
+/**
+ * Função auxiliar para percorrer recursivamente a cena e encontrar todos os objetos colidíveis
+ * @param {THREE.Object3D} object - O objeto atual a ser verificado
+ * @param {Array} result - Array para armazenar os objetos colidíveis encontrados
+ */
+function findCollidables(object, result = []) {
+    // Verifica se o objeto atual é colidível
+    if (object.userData && object.userData.isCollidable) {
+        result.push(object);
+    }
+    
+    // Se o objeto tiver filhos, verifica cada um deles recursivamente
+    if (object.children && object.children.length > 0) {
+        for (const child of object.children) {
+            findCollidables(child, result);
+        }
+    }
+    
+    return result;
+}
+
 import { createEnemy, loadEnemyOBJ, updateEnemyBehavior,updateEnemiesOBJ } from './enemy.js';
 import { setupAreaChave,criaChave } from './areaChave.js';
 import { moveElevador, setupArea2, movePorta} from './areaElevada.js';
@@ -17,6 +39,7 @@ import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
 
 let stats, renderer, scene, camera, controls, clock;
 let areaChaveData;
+let playerHasKey = false;
 let spotLightHelper, areas, ramp, ground, walls;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
@@ -410,15 +433,18 @@ export function moveAnimate(delta) {
         new THREE.Vector3(0.3, alturaPlayer, 0.3)
     );
 
-    let collidables = [];
-    scene.traverse(obj => {
-        if (obj.userData && obj.userData.isCollidable && obj.name !== "camera") {
-            collidables.push(obj);
-        }
-    });
-    console.log(collidables.map(o => o.name));
-    let collided = collidables.some(obj =>
-        obj.userData.collisionBox && playerBox.intersectsBox(obj.userData.collisionBox)
+    // Encontra todos os objetos colidíveis na cena, incluindo os que estão dentro de grupos
+    const collidables = [];
+    findCollidables(scene, collidables);
+    
+    // Filtra a câmera e objetos sem caixa de colisão
+    const validCollidables = collidables.filter(obj => 
+        obj.name !== "camera" && obj.userData.collisionBox
+    );
+    
+    // Verifica colisão com todos os objetos colidíveis
+    let collided = validCollidables.some(obj => 
+        playerBox.intersectsBox(obj.userData.collisionBox)
     );
 
     // 3. Se colidiu, tenta auto step (subir degrau/área)
@@ -432,8 +458,8 @@ export function moveAnimate(delta) {
                 playerObj.position.clone(),
                 new THREE.Vector3(0.3, alturaPlayer, 0.3)
             );
-            let collidedStep = collidables.some(obj =>
-                obj.userData.collisionBox && playerBoxStep.intersectsBox(obj.userData.collisionBox)
+            let collidedStep = validCollidables.some(obj =>
+                playerBoxStep.intersectsBox(obj.userData.collisionBox)
             );
             if (!collidedStep) {
                 stepped = true;
@@ -500,10 +526,43 @@ export function moveAnimate(delta) {
         0,
         2
     );
-    const portas = scene.children.filter(obj => obj.name === 'porta');
-    portas.forEach(porta => { movePorta(porta, frontRay); });
 
-    // 2. Animando o elevador
+    // 2- coletando a chave e permitindo que a porta se abra
+    if (areaChaveData && areaChaveData.getChaveAnimada()) {
+        const chave = areaChaveData.getChaveAnimada();
+        if (chave.userData.isCollectable) {
+            if (!chave.userData.collisionBox) {
+                chave.userData.collisionBox = new THREE.Box3();
+            }
+            chave.userData.collisionBox.setFromObject(chave);
+            if (playerBox.intersectsBox(chave.userData.collisionBox)) {
+                chave.parent.remove(chave);
+                chave.userData.isCollectable = false;
+                playerHasKey = true;
+            }
+        }
+        // Abre a porta se tiver chave
+        if (!chave.userData.isCollectable) {
+            const portas = scene.children.filter(obj => obj.name === 'porta');
+            portas.forEach(porta => { movePorta(porta, frontRay); });
+        }
+    }
+
+    const blocoElevado = scene.getObjectByName('bloco');
+    if (playerHasKey && blocoElevado) {
+        const distancia = controls.getObject().position.distanceTo(blocoElevado.position);
+        if (distancia < 3 && !blocoElevado.userData.chaveColocada) { // 3 é a distância de ativação
+            // Cria a chave e posiciona em cima do bloco
+            const chave = criaChave('red');
+            chave.position.set(45, 3, 0); // 2 = metade da altura do bloco, ajusta se necessário
+            scene.add(chave);
+            blocoElevado.userData.chaveColocada = true;
+            playerHasKey = false;
+            
+        }
+    }
+    
+    // 3. Animando o elevador
     const elevadores = scene.children.filter(obj => obj.name === 'elevador');
     elevadores.forEach(elevador => { moveElevador(elevador, downRay, frontRay); });
 }

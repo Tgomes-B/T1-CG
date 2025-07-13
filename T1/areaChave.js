@@ -3,7 +3,7 @@ import { loadEnemyOBJ } from './enemy.js';
 import { CSG } from '../libs/other/CSGMesh.js';
 
 export function criaChave(cor) {
-    let keyMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2));
+    let keyMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1));
     const keyMaterial = new THREE.MeshPhongMaterial({
         color: cor,
         shininess: 100,
@@ -13,7 +13,7 @@ export function criaChave(cor) {
     keyMesh.receiveShadow = true;
     let keyCSG = CSG.fromMesh(keyMesh);
 
-    let cylinGeometry = new THREE.CylinderGeometry(0.60, 0.60, 2, 26);
+    let cylinGeometry = new THREE.CylinderGeometry(0.30, 0.30, 2, 26);
     
     let cylinGeometryY = cylinGeometry.clone();
     let cylinMeshY = new THREE.Mesh(cylinGeometryY);
@@ -38,6 +38,7 @@ export function criaChave(cor) {
     keyMesh = CSG.toMesh(keyCSG, new THREE.Matrix4());
     keyMesh.material = keyMaterial;
     keyMesh.castShadow = true;
+    keyMesh.userData.isCollectable = true;
     keyMesh.receiveShadow = true;
 
     //key.userData.isCollidable = true;
@@ -85,7 +86,7 @@ export function setupAreaChave(scene, area, enemies) {
 
         // Chave
         chave = criaChave('red');
-        chave.position.set(0, 6, 0); // Em cima do pilar (posição relativa ao pilar)
+        chave.position.set(0, 3, 0); // Em cima do pilar (posição relativa ao pilar)
         bloco.add(chave);
 
         // Guarda referência para animação no render principal
@@ -109,7 +110,7 @@ export function criaBlocoChave(){
     const blocoGeometry = new THREE.BoxGeometry(2,4,2);
     const blocoMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(200, 200, 200)' });
     let bloco = new THREE.Mesh(blocoGeometry, blocoMaterial);
-    bloco.position.set(45, 4, 0);
+    bloco.position.set(45, 2, 0);
     bloco.castShadow = true;
     bloco.receiveShadow = true;
     bloco.userData.isCollidable = true;

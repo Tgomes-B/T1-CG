@@ -11,8 +11,8 @@ import * as THREE from 'three';
  * @param {Array} result - Array para armazenar os objetos colidíveis encontrados
  */
 function findCollidables(object, result = []) {
-    // Verifica se o objeto atual é um mesh e é colidível
-    if (object instanceof THREE.Mesh && object.userData && object.userData.isCollidable) {
+    // Verifica se o objeto atual é colidível
+    if (object.userData && object.userData.isCollidable) {
         result.push(object);
     }
     
