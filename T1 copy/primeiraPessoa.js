@@ -1,33 +1,7 @@
-/**
- * Configuração principal do jogo em primeira pessoa.
- * @module primeiraPessoa
- */
-import { adicionarInimigoCena, updateEnemies, updateEnemyProjectiles } from './inimigo.js';
-
-/**
- * Função auxiliar para percorrer recursivamente a cena e encontrar todos os objetos colidíveis
- * @param {THREE.Object3D} object - O objeto atual a ser verificado
- * @param {Array} result - Array para armazenar os objetos colidíveis encontrados
- */
-function findCollidables(object, result = []) {
-    // Verifica se o objeto atual é colidível
-    if (object.userData && object.userData.isCollidable) {
-        result.push(object);
-    }
-    
-    // Se o objeto tiver filhos, verifica cada um deles recursivamente
-    if (object.children && object.children.length > 0) {
-        for (const child of object.children) {
-            findCollidables(child, result);
-        }
-    }
-    
-    return result;
-}
-
-import { createEnemy, loadEnemyOBJ, updateEnemyBehavior,updateEnemiesOBJ } from './enemy.js';
-import { setupAreaChave,criaChave } from './areaChave.js';
-import { moveElevador, setupArea2, movePorta} from './areaElevada.js';
+import { adicionarInimigoCena } from './inimigo.js';
+import { loadEnemyOBJ } from './enemy.js';
+import { setupAreaChave, criaChave, recriarPilarComChave } from './areaChave.js';
+import { moveElevador, setupArea2, movePorta } from './areaElevada.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
@@ -37,10 +11,23 @@ import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
 import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
 
+// Função auxiliar para encontrar objetos colidíveis
+function findCollidables(object, result = []) {
+    if (object.userData && object.userData.isCollidable) {
+        result.push(object);
+    }
+    if (object.children && object.children.length > 0) {
+        for (const child of object.children) {
+            findCollidables(child, result);
+        }
+    }
+    return result;
+}
+
 let stats, renderer, scene, camera, controls, clock;
 let areaChaveData;
 let playerHasKey = false;
-let spotLightHelper, areas, ramp, ground, walls;
+let spotLightHelper, areas;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
 
@@ -51,28 +38,25 @@ const speed = 20;
 const WEAPONS = {
     launcher: {
         name: "launcher",
-        fireRate: 500, // ms
+        fireRate: 500,
         showProjectile: true,
         sprite: null,
-        spritesheet: null, // não precisa para lançador
-        create: createGun // Função para criar o modelo da arma
+        spritesheet: null,
+        create: createGun
     },
     chaingun: {
         name: "chaingun",
-        fireRate: 100, // ms (20 tiros por segundo)
+        fireRate: 100,
         showProjectile: false,
         sprite: null,
         spritesheet: "images/sprites/chaingun.png",
-        frames:3,
-        create: createChaingunSprite // Função para criar o sprite da chaingun
+        frames: 3,
+        create: createChaingunSprite
     }
 };
 let currentWeapon = WEAPONS.launcher;
-const weaponNames = Object.keys(WEAPONS); 
+const weaponNames = Object.keys(WEAPONS);
 
-/**
- * Inicializa a cena, câmera, controles e objetos do jogo.
- */
 function init() {
     stats = new Stats();
     renderer = initRenderer("rgb(70, 150, 240)");
@@ -85,7 +69,6 @@ function init() {
     setupInitialCameraPosition();
     clock = new THREE.Clock();
 
-    // Inicializa o renderizador de labels (para barras de vida)
     window.labelRenderer = new CSS2DRenderer();
     window.labelRenderer.setSize(window.innerWidth, window.innerHeight);
     window.labelRenderer.domElement.style.position = 'absolute';
@@ -100,9 +83,6 @@ function init() {
     setupEventListeners();
 }
 
-/**
- * Configura a posição inicial da câmera.
- */
 function setupInitialCameraPosition() {
     controls.getObject().position.set(10, 7, 1); 
     const lookAtTarget = new THREE.Vector3(0.5, 2, 1);
@@ -113,13 +93,9 @@ function setupInitialCameraPosition() {
     controls.getObject().rotation.y = Math.atan2(direction.x, direction.z);
 }
 
-/**
- * Configura o ambiente do jogo.
- * caminho antigo: images/sprites/2025.1_T2_Assets/cacodemon.glb
- */
 function setupEnvironment() {
-    ({ areas, ramp, ground } = criaAreasRampas(scene));
-    walls = criaParedes(scene);
+    ({ areas } = criaAreasRampas(scene));
+    criaParedes(scene);
 
     const area1 = areas[0];
     const areaLimits = {
@@ -130,13 +106,6 @@ function setupEnvironment() {
         safeMinZ: -215,
         safeMaxZ: -95
     };
-    
-    // Visualização da área de atuação (opcional)
-    const min = new THREE.Vector3(areaLimits.safeMinX, areaLimits.safeMinY, areaLimits.safeMinZ);
-    const max = new THREE.Vector3(areaLimits.safeMaxX, areaLimits.safeMaxY, areaLimits.safeMaxZ);
-    const box = new THREE.Box3(min, max);
-    const boxHelper = new THREE.Box3Helper(box, 0x00ff00);
-    scene.add(boxHelper);
 
     const enemiesArea1 = [];
     const numEnemies = 5;
@@ -158,7 +127,6 @@ function setupEnvironment() {
             scene.add(enemy);
             enemiesArea1.push(enemy);
             if (enemy.userData.boxHelper) scene.add(enemy.userData.boxHelper);
-    
             loadedCount++;
             if (loadedCount === enemyPositions.length) {
                 areaChaveData = setupAreaChave(scene, area1, enemiesArea1);
@@ -166,54 +134,35 @@ function setupEnvironment() {
         });
     });
 
-    setupArea2(areas[1], scene);
-    
-// Encontre as torres da área 2
+    setupArea2(scene);
+
     const torresArea2 = [];
-    areas[1].traverse(obj => {
+    scene.traverse(obj => {
         if (obj.name === "torre") torresArea2.push(obj);
     });
 
-    // Defina as posições dos inimigos GLB em cima das torres
     const posicoesArea2 = torresArea2.slice(0, 3).map(torre => {
         return {
-            x: torre.position.x +12,
-            y: torre.position.y + (torre.geometry ? torre.geometry.parameters.height / 2 + 7 : 20), // 7 é altura do cacodemon, ajuste se necessário
+            x: torre.position.x + 9,
+            y: torre.position.y + (torre.geometry ? torre.geometry.parameters.height / 2 + 7 : 20),
             z: torre.position.z
         };
     });
-    adicionarInimigoCena(areas[1], 'images/sprites/teste/cacodemonanimations.glb', posicoesArea2);
+    adicionarInimigoCena(scene, posicoesArea2);
 }
 
-
-
-/**
- * Configura iluminação e colisões.
- */
 function setupLightingAndCollision() {
-    // Set up initial collision boxes
-    const collidables = setupCollision(scene);
-    
-    // Update world matrices for all objects
+    setupCollision(scene);
     scene.updateMatrixWorld(true);
-    
-    // Set up lighting
     spotLightHelper = setupLighting(scene);
 }
 
-/**
- * Configura elementos do jogo como mira e arma.
- */
 function setupGameElements() {
     setupCrosshair();
     createGun();
-    setupShooting(camera, scene, controls, () => currentWeapon,areas);
+    setupShooting(camera, scene, controls, () => currentWeapon, areas);
 }
 
-/**
- * Cria e configura a câmera do jogo.
- * @returns {THREE.PerspectiveCamera} A câmera configurada.
- */
 function createCamera() {
     const cam = new THREE.PerspectiveCamera(
         45, 
@@ -228,9 +177,6 @@ function createCamera() {
     return cam;
 }
 
-/**
- * Configura os event listeners do jogo.
- */
 function setupEventListeners() {
     window.addEventListener('keydown', (event) => movementControls(event.code, true));
     window.addEventListener('keyup', (event) => movementControls(event.code, false));
@@ -239,29 +185,25 @@ function setupEventListeners() {
     window.addEventListener('keydown', (event) => {
         movementControls(event.code, true);
         if (event.code === "Digit1") {
-            currentWeaponIndex = 0; // Launcher
+            currentWeaponIndex = 0;
             switchWeaponByIndex(currentWeaponIndex);
         }
         if (event.code === "Digit2") {
-            currentWeaponIndex = 1; // Chaingun
+            currentWeaponIndex = 1;
             switchWeaponByIndex(currentWeaponIndex);
         }
     });
     
     window.addEventListener('wheel', (event) => {
-        if (event.deltaY < 0) { // Scroll up
+        if (event.deltaY < 0) {
             currentWeaponIndex = (currentWeaponIndex + 1) % weaponNames.length;
-        } else if (event.deltaY > 0) { // Scroll down
+        } else if (event.deltaY > 0) {
             currentWeaponIndex = (currentWeaponIndex - 1 + weaponNames.length) % weaponNames.length;
         }
         switchWeaponByIndex(currentWeaponIndex);
     });
-    
 }
 
-/**
- * Cria e configura a mira na tela.
- */
 function setupCrosshair() {
     let crosshair = document.getElementById('crosshair');
     if (!crosshair) {
@@ -271,7 +213,7 @@ function setupCrosshair() {
             position: 'fixed',
             width: '20px',
             height: '20px',
-            background: 'url(../T1/images/crosshair.png)',
+            background: 'url(images/crosshair.png)',
             backgroundSize: 'contain',
             backgroundRepeat: 'no-repeat',
             top: '50%',
@@ -288,28 +230,13 @@ function setupCrosshair() {
 }
 
 function switchWeaponByIndex(index) {
-    if (index < 0 || index >= weaponNames.length) {
-        console.error(`Índice de arma inválido: ${index}`);
-        return;
-    }
-
+    if (index < 0 || index >= weaponNames.length) return;
     const weaponName = weaponNames[index];
     const weapon = WEAPONS[weaponName];
-
-    if (!weapon) {
-        console.error(`Arma "${weaponName}" não encontrada.`);
-        return;
-    }
-
+    if (!weapon) return;
     if (currentWeapon.name === weaponName) return;
-
-    // Remove arma anterior
     removeCurrentWeaponVisual();
-
-    // Atualiza a arma atual
     currentWeapon = weapon;
-
-    // Cria o visual da nova arma
     currentWeapon.create();
 }
 
@@ -317,7 +244,7 @@ function createChaingunSprite() {
     const frames = WEAPONS.chaingun.frames;
     const texture = new THREE.TextureLoader().load(WEAPONS.chaingun.spritesheet);
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(1 / frames, 1); // 4 frames na horizontal
+    texture.repeat.set(1 / frames, 1);
     texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
 
@@ -328,22 +255,18 @@ function createChaingunSprite() {
     sprite.position.set(0, -1, -3);
     camera.add(sprite);
 
-    // Guarda referência para animação
     WEAPONS.chaingun.sprite = sprite;
     WEAPONS.chaingun.spriteTexture = texture;
     WEAPONS.chaingun.currentFrame = 0;
 }
+
 function removeCurrentWeaponVisual() {
-    // Remove mesh ou sprite da câmera
     const gun = camera.getObjectByName("launcher");
     if (gun) camera.remove(gun);
     const chaingunSprite = camera.getObjectByName("chaingun_sprite");
     if (chaingunSprite) camera.remove(chaingunSprite);
 }
 
-/**
- * Cria o modelo da arma do jogador
- */
 function createGun() {
     const gunGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 32);
     const gunMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
@@ -355,9 +278,6 @@ function createGun() {
     camera.add(gun);
 }
 
-/**
- * Configura os controles de movimento e bloqueio do ponteiro.
- */
 function setupControls() {
     const blocker = document.getElementById('blocker');
     const instructions = document.getElementById('instructions');
@@ -381,20 +301,6 @@ function setupControls() {
     scene.add(controls.getObject());
 }
 
-/**
- * Adiciona iluminação ambiente básica à cena.
- * @param {THREE.Scene} scene - A cena a ser iluminada.
- */
-function initDefaultBasicLight(scene) {
-    const light = new THREE.AmbientLight(0xffffff, 0.3);
-    scene.add(light);
-}
-
-/**
- * Atualiza os controles de movimento com base nas teclas pressionadas.
- * @param {string} key - Código da tecla pressionada.
- * @param {boolean} value - Se a tecla foi pressionada (true) ou solta (false).
- */
 function movementControls(key, value) {
     switch (key) {
         case 'KeyW': case 'ArrowUp': moveForward = value; break;
@@ -405,10 +311,7 @@ function movementControls(key, value) {
         case 'ShiftLeft': moveDown = value; break;
     }
 }
-/**
- * Atualiza a posição do jogador e verifica colisões.
- * @param {number} delta - Tempo decorrido desde o último frame.
- */
+
 export function moveAnimate(delta) {
     const playerObj = controls.getObject();
     const alturaPlayer = 2;
@@ -416,14 +319,12 @@ export function moveAnimate(delta) {
     const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
     const moveVec = new THREE.Vector3();
 
-    // 1. Calcula vetor de movimento
     if (moveForward) moveVec.add(forward);
     if (moveBackward) moveVec.add(forward.clone().negate());
     if (moveRight) moveVec.add(right);
     if (moveLeft) moveVec.add(right.clone().negate());
     if (moveVec.lengthSq() > 0) moveVec.normalize();
 
-    // 2. Tenta mover normalmente
     const originalPos = playerObj.position.clone();
     let tryPos = originalPos.clone().add(moveVec.clone().multiplyScalar(speed * delta));
     playerObj.position.copy(tryPos);
@@ -433,21 +334,16 @@ export function moveAnimate(delta) {
         new THREE.Vector3(0.3, alturaPlayer, 0.3)
     );
 
-    // Encontra todos os objetos colidíveis na cena, incluindo os que estão dentro de grupos
     const collidables = [];
     findCollidables(scene, collidables);
-    
-    // Filtra a câmera e objetos sem caixa de colisão
     const validCollidables = collidables.filter(obj => 
-        obj.name !== "camera" && obj.userData.collisionBox
+        obj.name !== "camera" && obj.userData.collisionBox && obj.userData.isCollidable
     );
     
-    // Verifica colisão com todos os objetos colidíveis
     let collided = validCollidables.some(obj => 
         playerBox.intersectsBox(obj.userData.collisionBox)
     );
 
-    // 3. Se colidiu, tenta auto step (subir degrau/área)
     if (collided) {
         let stepped = false;
         const maxStep = 1.5;
@@ -472,11 +368,9 @@ export function moveAnimate(delta) {
         }
     }
 
-    // 4. Movimento vertical manual (pulo/crouch)
-    if (moveUp) velocityY = speed; // Pulo
-    if (moveDown) velocityY = -speed; // Descida manual
+    if (moveUp) velocityY = speed;
+    if (moveDown) velocityY = -speed;
 
-    // 5. Alinha os pés ao chão/área usando raycast
     const downRay = new THREE.Raycaster(
         playerObj.position.clone(),
         new THREE.Vector3(0, -1, 0),
@@ -487,7 +381,8 @@ export function moveAnimate(delta) {
         obj.name === 'ground' ||
         obj.name === 'topo_colisao' ||
         obj.name === 'elevador' ||
-        obj.name === 'bloco' ||
+        obj.name === 'bloco1' ||
+        obj.name === 'bloco2'||
         (obj.name && obj.name.startsWith('ramp'))
     );
     const surfaceIntersects = downRay.intersectObjects(walkableSurfaces, false);
@@ -496,30 +391,22 @@ export function moveAnimate(delta) {
         const surfaceY = surfaceIntersects[0].point.y;
         const playerFeet = playerObj.position.y - (alturaPlayer / 2);
         const diff = surfaceY - playerFeet;
-    
         if (diff < 1.5) {
-            // Ajusta ao chão suavemente
-            if (velocityY < 0) {
-                velocityY = 0; // Zera a velocidade de queda
-            }
+            if (velocityY < 0) velocityY = 0;
             playerObj.position.y = THREE.MathUtils.lerp(
                 playerObj.position.y,
                 surfaceY + alturaPlayer,
-                0.1 // Taxa de suavização
+                0.1
             );
         } else {
-            // Aplica gravidade se estiver acima do chão
             velocityY -= gravity * delta;
             playerObj.position.y += velocityY * delta;
         }
     } else {
-        // Aplica gravidade se não houver interseção
         velocityY -= gravity * delta;
         playerObj.position.y += velocityY * delta;
     }
-    // ----- Animando a porta e o elevador -----
-    // 1. Animando a porta
-    // Raycast frontal para detectar a porta e o elevador
+
     const frontRay = new THREE.Raycaster(
         playerObj.position.clone(),
         new THREE.Vector3(1, 0, 0),
@@ -527,10 +414,9 @@ export function moveAnimate(delta) {
         2
     );
 
-    // 2- coletando a chave e permitindo que a porta se abra
-    if (areaChaveData && areaChaveData.getChaveAnimada()) {
+    if (areaChaveData && areaChaveData.getChaveAnimada && typeof areaChaveData.getChaveAnimada === "function") {
         const chave = areaChaveData.getChaveAnimada();
-        if (chave.userData.isCollectable) {
+        if (chave && chave.userData && chave.userData.isCollectable) {
             if (!chave.userData.collisionBox) {
                 chave.userData.collisionBox = new THREE.Box3();
             }
@@ -541,43 +427,33 @@ export function moveAnimate(delta) {
                 playerHasKey = true;
             }
         }
-        // Abre a porta se tiver chave
-        if (!chave.userData.isCollectable) {
+        if (chave && chave.userData && !chave.userData.isCollectable) {
             const portas = scene.children.filter(obj => obj.name === 'porta');
             portas.forEach(porta => { movePorta(porta, frontRay); });
         }
     }
 
-    const blocoElevado = scene.getObjectByName('bloco');
+    const blocoElevado = scene.getObjectByName('bloco1');
     if (playerHasKey && blocoElevado) {
         const distancia = controls.getObject().position.distanceTo(blocoElevado.position);
-        if (distancia < 3 && !blocoElevado.userData.chaveColocada) { // 3 é a distância de ativação
-            // Cria a chave e posiciona em cima do bloco
+        if (distancia < 3 && !blocoElevado.userData.chaveColocada) {
             const chave = criaChave('red');
-            chave.position.set(45, 3, 0); // 2 = metade da altura do bloco, ajusta se necessário
+            chave.position.set(45, 5, 0);
             scene.add(chave);
             blocoElevado.userData.chaveColocada = true;
             playerHasKey = false;
-            
         }
     }
-    
-    // 3. Animando o elevador
     const elevadores = scene.children.filter(obj => obj.name === 'elevador');
     elevadores.forEach(elevador => { moveElevador(elevador, downRay, frontRay); });
 }
 
-/**
- * Loop principal de renderização do jogo.
- */
-async function render() {
+function render() {
     stats.update();
     const delta = clock.getDelta();
 
-    // Fazer barras de vida olharem para a câmera
     scene.traverse(obj => {
         if (obj.userData && obj.userData.isEnemy) {
-            // Encontrar a barra de vida na hierarquia
             obj.traverse(child => {
                 if (child.userData && child.userData.isHealthBar) {
                     child.lookAt(camera.position);
@@ -589,42 +465,50 @@ async function render() {
     if (controls.isLocked) {
         moveAnimate(delta);
         updateProjectiles(delta);
-        updateEnemies(scene, controls, delta);
-        updateEnemiesOBJ(scene, controls.getObject(), delta);
-        updateEnemyProjectiles(delta, controls.getObject());
     }
 
-    // Inicializa o renderizador de labels se ainda não existir
-    if (!window.labelRenderer) {
-        const LabelRenderer = (await import('../build/jsm/renderers/CSS2DRenderer.js')).CSS2DRenderer;
-        window.labelRenderer = new LabelRenderer();
-        window.labelRenderer.setSize(window.innerWidth, window.innerHeight);
-        window.labelRenderer.domElement.style.position = 'absolute';
-        window.labelRenderer.domElement.style.top = '0px';
-        window.labelRenderer.domElement.style.pointerEvents = 'none';
-        document.getElementById('webgl-output').appendChild(window.labelRenderer.domElement);
-    }
-
-    // Atualiza o renderizador de labels se o jogo estiver rodando
     if (window.labelRenderer && controls.isLocked) {
         window.labelRenderer.render(scene, camera);
     }
 
+    if (areaChaveData && areaChaveData.animandoBloco && areaChaveData.blocoAnimado && areaChaveData.chaveAnimada) {
+        areaChaveData.tempoAnimacao += delta;
+        let t = Math.min(areaChaveData.tempoAnimacao / areaChaveData.duracaoAnimacao, 1);
 
-    if (areaChaveData && areaChaveData.getChaveAnimada()) {
-        const chave = areaChaveData.getChaveAnimada();
-        const baseY = areaChaveData.getBaseY();
-        chave.position.y = baseY + Math.sin(performance.now() * 0.002) * 1.2; // 1.2 é a amplitude
+        // EaseOutCubic
+        t = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    
+        // Interpolação entre posição inicial e final
+        const blocoY0 = -4;
+        const blocoY1 = 6;
+        areaChaveData.blocoAnimado.position.y = blocoY0 + (blocoY1 - blocoY0) * t;
+
+        //const chaveY0 = -5;
+        //const chaveY1 = 8;
+        //areaChaveData.chaveAnimada.position.y = chaveY0 + (chaveY1 - chaveY0) * t;
+
+        if (t >= 1) {
+            areaChaveData.animandoBloco = false;
+            areaChaveData.blocoAnimado.position.y = areaChaveData.posFinalBloco;
+            areaChaveData.blocoAnimado.userData.animacaoFinalizada = true;
+            areaChaveData.chaveAnimada.position.y = areaChaveData.posFinalChave;
+            recriarPilarComChave();
+        }
     }
+        if (
+            areaChaveData &&
+            !areaChaveData.animandoBloco &&
+            areaChaveData.chaveAnimada
+        ) {
+            const chave = areaChaveData.getChaveAnimada();
+            chave.position.y = 4 + Math.sin(performance.now() * 0.002) * 1.2;
+        }
 
     if (spotLightHelper) spotLightHelper.update();
     renderer.render(scene, camera);
     requestAnimationFrame(render);
 }
 
-/**
- * Função principal que inicia o jogo.
- */
 function main() {
     init();
     render();

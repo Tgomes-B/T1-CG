@@ -4,8 +4,30 @@ import { moveAnimate } from './primeiraPessoa.js';
 
 const SHOW_COLLISION_BOXES = false;
 
-export function setupArea2(area, scene) {
-    // Cria torres na área elevada
+// Função para criar uma torre
+function createTower(x, y, z, width, height, depth, material) {
+    const geometry = new THREE.BoxGeometry(width, height, depth);
+    const tower = new THREE.Mesh(geometry, material.clone());
+    tower.position.set(x+120, y, z);
+    tower.name = "torre";
+    tower.castShadow = true;
+    tower.receiveShadow = true;
+    tower.userData.isCollidable = true;
+    tower.userData.collisionBox = new THREE.Box3().setFromObject(tower);
+    return tower;
+}
+
+// Função para adicionar visualização da caixa de colisão
+function addCollisionHelper(obj, parent) {
+    if (SHOW_COLLISION_BOXES && obj.userData.collisionBox) {
+        const boxHelper = new THREE.Box3Helper(obj.userData.collisionBox, 0xff00ff);
+        parent.add(boxHelper);
+        obj.userData.boxHelper = boxHelper;
+    }
+}
+
+// Função para criar todas as torres na área elevada
+function createTowers(scene) {
     const base = 10;
     const alturas = [22, 28, 19, 16, 27, 25, 21, 30, 18, 24, 29, 20, 17, 23, 26];
     const espacoX = 90 / 4;
@@ -16,103 +38,56 @@ export function setupArea2(area, scene) {
     const material = new THREE.MeshLambertMaterial({ color: 0x888888 });
     const torresLinha = [4, 3, 4, 3];
     let z = 0;
+    let i = 0;
+    let torres = [];
 
-        // Função para criar uma torre com colisão
-        function createTower(x, y, z, width, height, depth) {
-            const geometry = new THREE.BoxGeometry(width, height, depth);
-            const tower = new THREE.Mesh(geometry, material.clone());
-            
-            tower.position.set(x, y, z);
-            tower.name = "torre";
-            tower.castShadow = true;
-            tower.receiveShadow = true;
-            tower.userData.isCollidable = true;
-        
-            // Cria caixa de colisão em coordenadas globais
-            const halfWidth = width / 2;
-            const halfHeight = height / 2;
-            const halfDepth = depth / 2;
-            const min = new THREE.Vector3(x - halfWidth, y - halfHeight, z - halfDepth);
-            const max = new THREE.Vector3(x + halfWidth, y + halfHeight, z + halfDepth);
-        
-            // Visualização de depuração das caixas de colisão
-            if (SHOW_COLLISION_BOXES) {
-                const boxHelper = new THREE.Box3Helper(tower.userData.collisionBox, 0x00ff00);
-                scene.add(boxHelper);
-                tower.userData.boxHelper = boxHelper;
-            }
-        
-            return tower;
-        }
-
-        let i = 0;
     for (let row = 0; row < torresLinha.length; row++) {
         for (let col = 0; col < torresLinha[row]; col++) {
             if (i >= alturas.length) break;
             const altura = alturas[i];
-            
-            if(torresLinha[row] === 4){
+
+            if (torresLinha[row] === 4) {
                 z = iniZ4 + (espacoZ4 + base) * col;
-            }
-            else if(torresLinha[row] === 3){
+            } else if (torresLinha[row] === 3) {
                 z = iniZ3 + (espacoZ3 + base) * col;
             } else {
                 break;
             }
-            
+
             const x = 30 + row * espacoX;
             const y = 5 + altura / 2;
 
-            const geometry = new THREE.BoxGeometry(base, altura, base);  
-            const torre = new THREE.Mesh(geometry, material);
+            const torre = createTower(x, y, z, base, altura, base, material);
+            scene.add(torre);
+            addCollisionHelper(torre, scene);
+            torres.push(torre);
 
-            torre.position.set(x, 5 + altura / 2, z);
-            torre.name = "torre";
-            torre.userData.isCollidable = true;
-            torre.castShadow = true;
-            torre.receiveShadow = true;
-
-            const min = new THREE.Vector3(
-                torre.position.x - base / 2,
-                torre.position.y - altura / 2,
-                torre.position.z - base / 2
-            );
-            const max = new THREE.Vector3(
-                torre.position.x + base / 2,
-                torre.position.y + altura / 2,
-                torre.position.z + base / 2
-            );
-            torre.userData.collisionBox = new THREE.Box3(min, max);
-            torre.userData.isCollidable = true;
-            torre.castShadow = true;
-            torre.receiveShadow = true;
-            
-            area.add(torre);
-            
-            torre.updateMatrixWorld(true);
-            torre.userData.collisionBox = new THREE.Box3().setFromObject(torre);
-            torre.userData.isCollidable = true;
-
-            // Tratamento especial para a torre com a chave
-            if(i === 6) { 
+            // Torre especial com chave
+            if (i === 6) {
                 let chave = criaChave('yellow');
-                chave.position.set(x, 7, z);
+                chave.position.set(x+120, 7, z);
                 chave.traverse(child => {
                     if (child.isMesh) {
                         child.castShadow = true;
                         child.receiveShadow = true;
                     }
                 });
-                area.add(chave);
+                scene.add(chave);
                 torre.translateY(10);
+                torre.userData.collisionBox.setFromObject(torre); 
             }
-            
-            i++; // Move to next tower
+
+            i++;
         }
     }
-    let bloco = criaBlocoChave();
+    return torres;
+}
+
+// Função para criar o bloco da chave
+function createBlocoChave(scene) {
+    let Bluck = 1
+    let bloco = criaBlocoChave(Bluck);
     bloco.name = 'bloco';
-    //bloco.position.set(100, 2, 0);
     bloco.traverse(child => {
         if (child.isMesh) {
             child.castShadow = true;
@@ -120,10 +95,11 @@ export function setupArea2(area, scene) {
         }
     });
     scene.add(bloco);
-    elevador(scene);
+    return bloco;
 }
 
-function elevador(scene) {
+// Função para criar o elevador e porta
+function createElevador(scene) {
     const portaGeometry = new THREE.BoxGeometry(5, 10, 20);
     const portaMaterial = new THREE.MeshLambertMaterial({ color: 'red' });
     const portaMesh = new THREE.Mesh(portaGeometry, portaMaterial);
@@ -137,29 +113,39 @@ function elevador(scene) {
 
     elevadorMesh.name = 'elevador';
     portaMesh.name = 'porta';
-    
-    // Enable shadows
+
     portaMesh.castShadow = true;
     portaMesh.receiveShadow = true;
     portaMesh.userData.isCollidable = true;
-    portaMesh.userData.descendo = false; 
+    portaMesh.userData.descendo = false;
+    portaMesh.userData.collisionBox = new THREE.Box3().setFromObject(portaMesh);
+
     elevadorMesh.castShadow = true;
     elevadorMesh.receiveShadow = true;
     elevadorMesh.userData.isCollidable = true;
+    elevadorMesh.userData.collisionBox = new THREE.Box3().setFromObject(elevadorMesh);
 
     scene.add(elevadorMesh);
     scene.add(portaMesh);
 
-    elevadorMesh.userData.isCollidable = true;
-    portaMesh.userData.isCollidable = true;
+    addCollisionHelper(portaMesh, scene);
+    addCollisionHelper(elevadorMesh, scene);
+
+    return { elevador: elevadorMesh, porta: portaMesh };
 }
 
+// Função principal para montar a área elevada
+export function setupArea2(scene) {
+    createTowers(scene);
+    createBlocoChave(scene);
+    createElevador(scene);
+}
+
+// (As funções movePorta e moveElevador permanecem iguais)
 export function movePorta(porta, frontRay){
-    // Só permite descer se a chave foi colocada no bloco
-    const bloco = scene.getObjectByName('bloco');
+    const bloco = porta.parent.getObjectByName('bloco');
     if (!bloco || !bloco.userData.chaveColocada) return;
 
-    // Abaixa a porta ao detectar o raycast
     const intersects = frontRay.intersectObject(porta, false);
     if (intersects.length > 0 && !porta.userData.descendo) {
         if (porta.userData.yInicial === undefined) {
@@ -167,11 +153,10 @@ export function movePorta(porta, frontRay){
         }
         porta.userData.descendo = true;
     }
-    // Se a porta está marcada para descer, faz a animação até o alvo
     if (porta.userData.descendo) {
-        const yAlvo = porta.userData.yInicial - 11; 
+        const yAlvo = porta.userData.yInicial - 11;
         if (porta.position.y > yAlvo) {
-            porta.position.y = THREE.MathUtils.lerp(porta.position.y, yAlvo, 0.1);
+            porta.position.y = THREE.MathUtils.lerp(porta.position.y, yAlvo, 0.03);
         } else {
             porta.position.y = yAlvo;
             porta.userData.descendo = false;
@@ -181,7 +166,6 @@ export function movePorta(porta, frontRay){
 }
 
 export function moveElevador(elevador, downRay, frontRay){
-    // Raycast frontal para descer
     const frontIntersects = frontRay.intersectObject(elevador, false);
     if (frontIntersects.length > 0 && !elevador.userData.descendo && !elevador.userData.subindo) {
         if (elevador.userData.yInicial === undefined) {
@@ -191,7 +175,6 @@ export function moveElevador(elevador, downRay, frontRay){
         elevador.userData.subindo = false;
     }
 
-    // Raycast para baixo para subir
     const downIntersects = downRay.intersectObject(elevador, false);
     if (downIntersects.length > 0 && !elevador.userData.subindo && !elevador.userData.descendo) {
         if (elevador.userData.yInicial === undefined) {
@@ -201,11 +184,10 @@ export function moveElevador(elevador, downRay, frontRay){
         elevador.userData.descendo = false;
     }
 
-    // Animação de descida
     if (elevador.userData.descendo) {
-        const yAlvo = elevador.userData.yInicial - 11; // ajuste a altura de descida
+        const yAlvo = elevador.userData.yInicial - 11;
         if (elevador.position.y > yAlvo + 0.1) {
-            elevador.position.y = THREE.MathUtils.lerp(elevador.position.y, yAlvo, 0.1);
+            elevador.position.y = THREE.MathUtils.lerp(elevador.position.y, yAlvo, 0.01);
             elevador.userData.collisionBox.setFromObject(elevador);
         } else {
             elevador.position.y = yAlvo;
@@ -213,11 +195,10 @@ export function moveElevador(elevador, downRay, frontRay){
         }
     }
 
-    // Animação de subida
     if (elevador.userData.subindo) {
         const yAlvo = elevador.userData.yInicial;
         if (elevador.position.y < yAlvo - 0.1) {
-            elevador.position.y = THREE.MathUtils.lerp(elevador.position.y, yAlvo, 0.1);
+            elevador.position.y = THREE.MathUtils.lerp(elevador.position.y, yAlvo, 0.01);
             elevador.userData.collisionBox.setFromObject(elevador);
         } else {
             elevador.position.y = yAlvo;

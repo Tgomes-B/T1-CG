@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { loadEnemyOBJ } from './enemy.js';
 import { CSG } from '../libs/other/CSGMesh.js';
 
 export function criaChave(cor) {
@@ -76,22 +75,34 @@ export function setupAreaChave(scene, area, enemies) {
         };
     });
 
+    let blocoAnimado = null;
+    let animandoBloco = false;
+    let tempoAnimacao = 0;
+    const duracaoAnimacao = 2.5; // segundos
+    let posFinalBloco = null;
+    let posFinalChave = null;
     let chaveAnimada = null;
-    let baseY = 0;
+    let baseY = 8;
 
     function showPilarComChave() {
-        // Pilar
-        let bloco = criaBlocoChave();
-        area.add(bloco);
-
-        // Chave
+        let Bluck = 2;
+        let bloco = criaBlocoChave(Bluck);
+        bloco.position.y = -4; // começa em -5
+        scene.add(bloco);
+    
         chave = criaChave('red');
-        chave.position.set(0, 3, 0); // Em cima do pilar (posição relativa ao pilar)
+        chave.position.set(0, 6, 0); // 6 é o topo do bloco (altura do bloco/2 + metade da chave)
         bloco.add(chave);
-
-        // Guarda referência para animação no render principal
+    
+        // Guarda referências para animar
+        blocoAnimado = bloco;
         chaveAnimada = chave;
-        baseY = chave.position.y;
+        animandoBloco = true;
+        tempoAnimacao = 0;
+        posFinalBloco = 6; // final desejado do bloco
+        posFinalChave = 6; // a chave sempre fica no topo do bloco
+        baseY = 6; // para flutuação depois
+    
         return bloco;
     }
 
@@ -102,18 +113,71 @@ export function setupAreaChave(scene, area, enemies) {
                 enemy.userData.eliminate();
             }
         },
+        get animandoBloco() { return animandoBloco; },
+        set animandoBloco(val) { animandoBloco = val; },
+        get blocoAnimado() { return blocoAnimado; },
+        get chaveAnimada() { return chaveAnimada; },
+        get tempoAnimacao() { return tempoAnimacao; },
+        set tempoAnimacao(val) { tempoAnimacao = val; },
+        duracaoAnimacao,
+        posFinalBloco,
+        posFinalChave,
         getChaveAnimada: () => chaveAnimada,
         getBaseY: () => baseY
     };
 }
-export function criaBlocoChave(){
+
+export function criaBlocoChave(Bluck){
     const blocoGeometry = new THREE.BoxGeometry(2,4,2);
     const blocoMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(200, 200, 200)' });
     let bloco = new THREE.Mesh(blocoGeometry, blocoMaterial);
-    bloco.position.set(45, 2, 0);
+    if (Bluck === 1) {
+        bloco.name = 'bloco1';
+        bloco.position.set(45, 2, 0);
+    } else {
+        bloco.name = 'bloco2';
+        bloco.position.set(175, 6, -155);
+    }
     bloco.castShadow = true;
     bloco.receiveShadow = true;
     bloco.userData.isCollidable = true;
-    bloco.name = 'bloco';
+    
+
+    // Cria uma caixa de colisão um pouco maior
+    const size = new THREE.Vector3(2.5, 5, 2.5); // aumente conforme desejar
+    bloco.userData.collisionBox = new THREE.Box3().setFromCenterAndSize(
+        bloco.position.clone(),
+        size
+    );
+
+    const boxHelper = new THREE.Box3Helper(bloco.userData.collisionBox, 0xff00ff);
+    bloco.userData.boxHelper = boxHelper;
+
     return bloco;
+}
+export function recriarPilarComChave() {
+    // Encontra o pilar antigo
+    const pilarAntigo = scene.getObjectByName('bloco2');
+    let chave = null;
+
+    // Se o pilar antigo existe, remove ele da cena e pega a chave dele
+    if (pilarAntigo) {
+        // Procura a chave como filho do pilar antigo
+        chave = pilarAntigo.children.find(child => child.userData && child.userData.isCollectable);
+        if (chave) {
+            pilarAntigo.remove(chave);
+        }
+        scene.remove(pilarAntigo);
+    }
+
+    // Cria um novo pilar
+    const novoPilar = criaBlocoChave(2);
+    novoPilar.position.y = 6; // posição final, ajuste se quiser animar
+    scene.add(novoPilar);
+
+    // Se havia uma chave, adiciona ao novo pilar
+    if (chave) {
+        chave.position.set(0, 6, 0); // posição relativa ao topo do pilar
+        novoPilar.add(chave);
+    }
 }
