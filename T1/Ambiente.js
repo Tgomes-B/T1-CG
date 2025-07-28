@@ -71,8 +71,7 @@ export function criaAreasRampas(scene) {
             new THREE.BoxGeometry(...dimensoes),
             new THREE.MeshBasicMaterial({ 
                 color: 0x00ff00, 
-                transparent: true, 
-                opacity: 0.5,
+                transparent: false, 
                 visible: false
             })
         );
@@ -174,8 +173,7 @@ export function criaPilares(scene, area1) {
     const pilarGeometry = new THREE.CylinderGeometry(4, 4, 30, 32);
     const pilarMaterial = new THREE.MeshLambertMaterial({ 
         color: 'rgb(200, 200, 200)',
-        transparent: true,
-        opacity: 0.9
+        transparent: false,
     });
     
     let Xcont = -10;
