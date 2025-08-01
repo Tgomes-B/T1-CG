@@ -1,7 +1,7 @@
 import { adicionarInimigoCena } from './inimigo.js';
 import { loadEnemyOBJ } from './enemy.js';
 import { setupAreaChave, criaChave, recriarPilarComChave } from './areaChave.js';
-import { moveElevador, setupArea2, movePorta } from './areaElevada.js';
+import { moveElevador, setupArea2, movePorta,setupCacodemonElimination } from './areaElevada.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
@@ -148,7 +148,12 @@ function setupEnvironment() {
             z: torre.position.z
         };
     });
-    adicionarInimigoCena(scene, posicoesArea2);
+    adicionarInimigoCena(scene, posicoesArea2, () => {
+        // Espera um frame para garantir que os inimigos estão na cena
+        setTimeout(() => {
+            setupCacodemonElimination(scene);
+        }, 0);
+    });
 }
 
 function setupLightingAndCollision() {
@@ -421,7 +426,14 @@ export function moveAnimate(delta) {
                 chave.userData.collisionBox = new THREE.Box3();
             }
             chave.userData.collisionBox.setFromObject(chave);
-            if (playerBox.intersectsBox(chave.userData.collisionBox)) {
+    
+            // Checa colisão com o pilar
+            const pilar = scene.getObjectByName('bloco2');
+            if (
+                pilar &&
+                pilar.userData.collisionBox &&
+                playerBox.intersectsBox(pilar.userData.collisionBox)
+            ) {
                 chave.parent.remove(chave);
                 chave.userData.isCollectable = false;
                 playerHasKey = true;
@@ -483,10 +495,6 @@ function render() {
         const blocoY1 = 6;
         areaChaveData.blocoAnimado.position.y = blocoY0 + (blocoY1 - blocoY0) * t;
 
-        //const chaveY0 = -5;
-        //const chaveY1 = 8;
-        //areaChaveData.chaveAnimada.position.y = chaveY0 + (chaveY1 - chaveY0) * t;
-
         if (t >= 1) {
             areaChaveData.animandoBloco = false;
             areaChaveData.blocoAnimado.position.y = areaChaveData.posFinalBloco;
@@ -503,6 +511,57 @@ function render() {
             const chave = areaChaveData.getChaveAnimada();
             chave.position.y = 4 + Math.sin(performance.now() * 0.002) * 1.2;
         }
+    
+        if (scene.userData.animandoTorre && scene.userData.torreEspecial && scene.userData.chaveAmarela) {
+            scene.userData.tempoAnimacaoTorre += delta;
+            let t = Math.min(scene.userData.tempoAnimacaoTorre / 2.5, 1);
+        
+            // EaseOutCubic (opcional)
+            t = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        
+            // Torre sobe
+            const y0 = scene.userData.torreEspecialY0;
+            const y1 = scene.userData.torreEspecialY1;
+            scene.userData.torreEspecial.position.y = y0 + (y1 - y0) * t;
+            scene.userData.torreEspecial.userData.collisionBox.setFromObject(scene.userData.torreEspecial);
+        
+            if (t >= 1) {
+                scene.userData.animandoTorre = false;
+                scene.userData.animandoChaveAmarela = true; // inicia animação da chave
+                scene.userData.tempoAnimacaoChaveAmarela = 0;
+            }
+        }
+        if (scene.userData.animandoChaveAmarela && scene.userData.chaveAmarela) {
+            scene.userData.tempoAnimacaoChaveAmarela += delta;
+            let t = Math.min(scene.userData.tempoAnimacaoChaveAmarela / 1.2, 1); // 1.2s para cair
+        
+            // Posição inicial: logo acima do topo da torre
+            // Posição final: topo da torre (altura/2)
+            const alturaTorre = scene.userData.torreEspecial.geometry.parameters.height;
+            const yTopo = alturaTorre - 25;
+            const yFinal = alturaTorre - 35;
+        
+            scene.userData.chaveAmarela.position.y = yTopo + (yFinal - yTopo) * t;
+        
+            if (t >= 1) {
+                scene.userData.animandoChaveAmarela = false;
+                scene.userData.chaveAmarela.position.y = yFinal;
+                scene.userData.chaveAmarelaFlutuando = true;
+            }
+        }
+        if (
+            scene.userData.chaveAmarela &&
+            scene.userData.chaveAmarelaFlutuando // só flutua se a flag estiver ativa
+        ) {
+            const torre = scene.userData.torreEspecial;
+            if (torre) {
+                const alturaTorre = torre.geometry.parameters.height;
+                const baseY = alturaTorre - 35; // baseY igual ao yFinal da animação de queda
+                scene.userData.chaveAmarela.position.y =
+                    baseY + Math.sin(performance.now() * 0.002) * 1.2;
+            }
+        }
+        
 
     if (spotLightHelper) spotLightHelper.update();
     renderer.render(scene, camera);

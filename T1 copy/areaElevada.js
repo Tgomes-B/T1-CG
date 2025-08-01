@@ -65,16 +65,25 @@ function createTowers(scene) {
             // Torre especial com chave
             if (i === 6) {
                 let chave = criaChave('yellow');
-                chave.position.set(x+120, 7, z);
+                chave.position.set(0, (altura -25), 0);
                 chave.traverse(child => {
                     if (child.isMesh) {
                         child.castShadow = true;
                         child.receiveShadow = true;
                     }
                 });
-                scene.add(chave);
-                torre.translateY(10);
+                torre.add(chave); 
                 torre.userData.collisionBox.setFromObject(torre); 
+            
+                // Para ver só a chave, deixe a torre visível e torne o material transparente:
+                // torre.material.transparent = true;
+                //torre.material.opacity = 0.1; // ou 0 para totalmente invisível
+            
+                // Se torre.visible = false, a chave também ficará invisível!
+                // torre.visible = false; // <-- remova ou comente esta linha
+            
+                scene.userData.torreEspecial = torre;
+                scene.userData.chaveAmarela = chave;
             }
 
             i++;
@@ -87,7 +96,6 @@ function createTowers(scene) {
 function createBlocoChave(scene) {
     let Bluck = 1
     let bloco = criaBlocoChave(Bluck);
-    bloco.name = 'bloco';
     bloco.traverse(child => {
         if (child.isMesh) {
             child.castShadow = true;
@@ -141,9 +149,40 @@ export function setupArea2(scene) {
     createElevador(scene);
 }
 
+export function setupCacodemonElimination(scene) {
+    let cacodemons = [];
+    scene.traverse(obj => {
+        if (obj.userData?.isEnemy && obj.name === "cacodemon") cacodemons.push(obj);
+    });
+    scene.userData.cacodemons = cacodemons;
+    console.log(cacodemons.length);
+    scene.userData.eliminados = 0;
+    cacodemons.forEach(caco => {
+        caco.userData.eliminate = () => {
+            if (caco.userData._eliminated) return;
+            caco.userData._eliminated = true;
+            scene.remove(caco);
+            scene.userData.eliminados++;
+            if (
+                scene.userData.eliminados === cacodemons.length &&
+                !scene.userData.animandoTorre &&
+                !scene.userData.torreEspecialAnimada
+            ) {
+                scene.userData.animandoTorre = true;
+                scene.userData.torreEspecialAnimada = true;
+                scene.userData.tempoAnimacaoTorre = 0;
+                scene.userData.torreEspecialY0 = scene.userData.torreEspecial.position.y;
+                scene.userData.torreEspecialY1 = scene.userData.torreEspecial.position.y + 10;
+                scene.userData.chaveAmarelaY0 = scene.userData.chaveAmarela.position.y;
+                scene.userData.chaveAmarelaY1 = scene.userData.chaveAmarela.position.y - 8;
+            }
+        };
+    });
+}
+
 // (As funções movePorta e moveElevador permanecem iguais)
 export function movePorta(porta, frontRay){
-    const bloco = porta.parent.getObjectByName('bloco');
+    const bloco = porta.parent.getObjectByName('bloco1');
     if (!bloco || !bloco.userData.chaveColocada) return;
 
     const intersects = frontRay.intersectObject(porta, false);

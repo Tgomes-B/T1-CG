@@ -133,10 +133,10 @@ export function criaBlocoChave(Bluck){
     let bloco = new THREE.Mesh(blocoGeometry, blocoMaterial);
     if (Bluck === 1) {
         bloco.name = 'bloco1';
-        bloco.position.set(45, 2, 0);
+        bloco.position.set(45, 0.5, 0);
     } else {
         bloco.name = 'bloco2';
-        bloco.position.set(175, 6, -155);
+        bloco.position.set(175, 2, -155);
     }
     bloco.castShadow = true;
     bloco.receiveShadow = true;
@@ -172,12 +172,19 @@ export function recriarPilarComChave() {
 
     // Cria um novo pilar
     const novoPilar = criaBlocoChave(2);
-    novoPilar.position.y = 6; // posição final, ajuste se quiser animar
+    novoPilar.position.y = 4; // posição final, ajuste se quiser animar
     scene.add(novoPilar);
+
+        // Atualiza a collisionBox do novo pilar
+        const size = new THREE.Vector3(2.5, 5, 2.5);
+        novoPilar.userData.collisionBox = new THREE.Box3().setFromCenterAndSize(
+            novoPilar.position.clone(),
+            size
+        );
 
     // Se havia uma chave, adiciona ao novo pilar
     if (chave) {
-        chave.position.set(0, 6, 0); // posição relativa ao topo do pilar
+        chave.position.set(0, 4, 0); // posição relativa ao topo do pilar
         novoPilar.add(chave);
     }
 }
