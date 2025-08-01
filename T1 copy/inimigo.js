@@ -3,14 +3,15 @@ import * as THREE from 'three';
 import { GLTFLoader } from '../build/jsm/loaders/GLTFLoader.js';
 import { HealthBar } from './healthbar.js'; 
 
-export const enemyProjectiles = []; //  pra qguardar os 3 da area 2
+export const enemyProjectiles = []; 
 
-export function adicionarInimigoCena(cena, posicoes = [{ x: 0, y: 0, z: 0 }]) {
+export function adicionarInimigoCena(cena, posicoes = [{ x: 0, y: 0, z: 0 }], onAllLoaded) {
     const assetPath = 'images/sprites/cacodemon.glb';    
 
     if (!Array.isArray(posicoes)) posicoes = [posicoes];
 
     const loader = new GLTFLoader();
+    let loaded = 0;
 
     posicoes.forEach(posicao => {
         loader.load(
@@ -32,6 +33,8 @@ export function adicionarInimigoCena(cena, posicoes = [{ x: 0, y: 0, z: 0 }]) {
                 inimigo.userData.baseY = inimigo.position.y;
                 inimigo.userData.hp = 50;
                 inimigo.userData.maxHp = 50;
+                inimigo.name = "cacodemon";
+                inimigo.userData.name = "cacodemon";
 
                 // Configurar HP e barra de vida
                 const healthBar = new HealthBar(inimigo.userData.maxHp, 1.5);
@@ -50,7 +53,7 @@ export function adicionarInimigoCena(cena, posicoes = [{ x: 0, y: 0, z: 0 }]) {
                 
                 inimigo.userData.collisionBox = bbox.clone();
 
-                //BoxHelper
+                //BoxHelpera
                 //const boxHelper = new THREE.BoxHelper(inimigo, 0xffff00); 
                 //inimigo.userData.boxHelper = boxHelper;
                 //cena.add(boxHelper)
@@ -62,6 +65,10 @@ export function adicionarInimigoCena(cena, posicoes = [{ x: 0, y: 0, z: 0 }]) {
                 });
                 
                 cena.add(inimigo);
+                loaded++;
+                if (loaded === posicoes.length && typeof onAllLoaded === "function") {
+                    onAllLoaded();
+                }
             },
             undefined,
             (erro) => {

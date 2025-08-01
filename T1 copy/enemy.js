@@ -56,6 +56,7 @@ export function loadEnemyOBJ(path, position = { x: 0, y: 0, z: 0 }, onLoad) {
                         child.userData.enemyRoot = obj;
                         child.castShadow = true;
                         child.receiveShadow = true;
+                        child.material.transparent = true;
                     }
                 });
 

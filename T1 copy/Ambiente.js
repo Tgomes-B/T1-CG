@@ -174,7 +174,7 @@ export function criaPilares(scene, area1) {
     const pilarGeometry = new THREE.CylinderGeometry(4, 4, 30, 32);
     const pilarMaterial = new THREE.MeshLambertMaterial({ 
         color: 'rgb(200, 200, 200)',
-        transparent: true,
+        transparent: false,
         opacity: 0.9
     });
     
