@@ -9,8 +9,20 @@ import { setupCollision } from './colisao.js';
  * @returns {Object} Objeto contendo as áreas, rampa e chão criados
  */
 export function criaAreasRampas(scene) {
+    const textureLoader = new THREE.TextureLoader();
+    const groundTexture = textureLoader.load('../assets/textures/darkcement.jpg');
+    groundTexture.offset.set(0.5, 0.5);
+    groundTexture.wrapS = THREE.RepeatWrapping;
+    groundTexture.wrapT = THREE.RepeatWrapping;
+    groundTexture.repeat.set(5, 5);
+
+    // Melhora a qualidade:
+    groundTexture.minFilter = THREE.LinearFilter;
+    groundTexture.magFilter = THREE.LinearFilter;
+    groundTexture.anisotropy = 8;
+    
     const planeGeometry = new THREE.PlaneGeometry(500, 500);
-    const planeMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(249, 223, 184)' });
+    const planeMaterial = new THREE.MeshLambertMaterial({ map: groundTexture });
     const ground = new THREE.Mesh(planeGeometry, planeMaterial);
     ground.position.set(0, 0, 0);
     ground.rotation.x = -0.5 * Math.PI;
@@ -280,24 +292,36 @@ export function criaPilares(scene, area1) {
  * @returns {Array} Array contendo as paredes criadas
  */
 export function criaParedes(scene) {
+    const textureLoader = new THREE.TextureLoader();
+    const wallTexture = textureLoader.load('../assets/textures/displacement/rockWall.jpg');
+    const wallDisplacement = textureLoader.load('../assets/textures/displacement/rockWall_Height.jpg');
+
+    wallTexture.wrapS = THREE.RepeatWrapping;
+    wallTexture.wrapT = THREE.RepeatWrapping;
+    wallTexture.repeat.set(10, 3); // Ajuste os valores conforme o visual desejado
+
+
     const wallThickness = 5;
     const wallHeight = 50;
     const wallLength = 500;
-    const wallMaterial = new THREE.MeshLambertMaterial({ 
-        color: 'rgba(255, 140, 0, 0.65)',
+    const wallMaterial = new THREE.MeshStandardMaterial({
+        map: wallTexture,
+        displacementMap: wallDisplacement,
+        displacementScale: 1.5, // ajuste para mais/menos relevo
+        color: 0xffffff,
         side: THREE.DoubleSide
-      });
+    });
     
     const walls = [];
     
     // Norte (topo)
-    const wallN = createWall(wallLength, wallHeight, wallThickness, [0, wallHeight/2, -250], 'wall0');
+    const wallN = createWall(wallLength, wallHeight, wallThickness, [0, wallHeight / 2, -250], 'wall0');
     // Sul (baixo)
-    const wallS = createWall(wallLength, wallHeight, wallThickness, [0, wallHeight/2, 250], 'wall1');
+    const wallS = createWall(wallLength, wallHeight, wallThickness, [0, wallHeight / 2, 250], 'wall1');
     // Oeste (esquerda)
-    const wallW = createWall(wallThickness, wallHeight, wallLength, [-250, wallHeight/2, 0], 'wall2');
+    const wallW = createWall(wallThickness, wallHeight, wallLength, [-250, wallHeight / 2, 0], 'wall2');
     // Leste (direita)
-    const wallE = createWall(wallThickness, wallHeight, wallLength, [250, wallHeight/2, 0], 'wall3');
+    const wallE = createWall(wallThickness, wallHeight, wallLength, [250, wallHeight / 2, 0], 'wall3');
 
     walls.push(wallN, wallS, wallW, wallE);
     walls.forEach(wall => scene.add(wall));
@@ -313,20 +337,44 @@ export function criaParedes(scene) {
      * @param {string} name - Nome identificador da parede
      * @returns {THREE.Mesh} A parede criada
      */
-// 2. Função createWall atualizada:
-function createWall(width, height, depth, position, name) {
-  const geometry = new THREE.BoxGeometry(width, height, depth);
-  const wall = new THREE.Mesh(geometry, wallMaterial);
-  wall.position.set(...position);
-  wall.name = name;
-  wall.userData.isCollidable = true;
-  
-  // Habilitar sombras
-  wall.castShadow = true;
-  wall.receiveShadow = true;
-  
-  return wall;
-}
+    // 2. Função createWall atualizada:
+    // ...código anterior...
+
+    function createWall(width, height, depth, position, name) {
+        const geometry = new THREE.BoxGeometry(width, height, depth, 128, 128, 128);
+
+        // Material liso para topo e base
+        const topTexture = textureLoader.load('../assets/textures/displacement/rockWall.jpg');
+        topTexture.wrapS = THREE.RepeatWrapping;
+        topTexture.wrapT = THREE.RepeatWrapping;
+        topTexture.repeat.set(1, 1);
+    
+        const topBottomMaterial = new THREE.MeshStandardMaterial({
+            map: topTexture,
+            color: 0xffffff,
+            roughness: 0.7,
+            metalness: 0.1,
+            side: THREE.DoubleSide
+        });
+
+        // Array de materiais: [right, left, top, bottom, front, back]
+        const wallMaterials = [
+            wallMaterial,         // right
+            wallMaterial,         // left
+            topBottomMaterial,    // top
+            topBottomMaterial,    // bottom
+            wallMaterial,         // front
+            wallMaterial          // back
+        ];
+
+        const wall = new THREE.Mesh(geometry, wallMaterials);
+        wall.position.set(...position);
+        wall.name = name;
+        wall.userData.isCollidable = true;
+        wall.castShadow = true;
+        wall.receiveShadow = true;
+        return wall;
+    }
 }
 
 export function setupLighting(scene) {
