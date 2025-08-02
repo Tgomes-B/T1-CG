@@ -113,7 +113,6 @@ function createObjects() {
 		ground.material.needsUpdate = true;
 	} );
 
-	
 	// Tower 1
 	const towerMass = 1000;
 	const towerHalfExtents = new THREE.Vector3( 2, 5, 2 );
@@ -160,8 +159,6 @@ function createObjects() {
 	convexBreaker.prepareBreakableObject( mountain, mountainMass, new THREE.Vector3(), new THREE.Vector3(), true );
 	createDebrisFromBreakableObject( mountain );
 }
-
-
 
 function createParalellepipedWithPhysics( sx, sy, sz, mass, pos, quat, material ) {
 
@@ -265,8 +262,6 @@ function createRandomColor() {
 	return Math.floor( Math.random() * ( 1 << 24 ) );
 }
 
-
-
 function createMaterial( color ) {
 	color = color || createRandomColor();
 	return new THREE.MeshPhongMaterial( { color: color } );
@@ -283,8 +278,8 @@ function initInput() {
 		raycaster.setFromCamera( mouseCoords, camera );
 
 		// Creates a ball and throws it
-		const ballMass = 20;
-		const ballRadius = 0.1;
+		const ballMass = 35;
+		const ballRadius = 0.4;
 
 		const ball = new THREE.Mesh( new THREE.SphereGeometry( ballRadius, 14, 10 ), ballMaterial );
 		ball.castShadow = true;
@@ -297,7 +292,7 @@ function initInput() {
 		const ballBody = createRigidBody( ball, ballShape, ballMass, pos, quat );
 
 		pos.copy( raycaster.ray.direction );
-		pos.multiplyScalar( 150 );
+		pos.multiplyScalar( 24 );
 		ballBody.setLinearVelocity( new Ammo.btVector3( pos.x, pos.y, pos.z ) );
 	} );
 }

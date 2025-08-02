@@ -37,38 +37,18 @@ render();
 
 function updateCamera()
 {
-    // 👉 Atualiza de fato a câmera a cada frame
-   camera.position.copy(camPos);
-   camera.lookAt(camLook);
+   // DICA: Atualize a câmera aqui!
 
-   message.changeMessage(
-      "Pos: { " + camPos.x.toFixed(2) + ", " + camPos.y.toFixed(2) + ", " + camPos.z.toFixed(2) + " }" +
-      " / LookAt: { " + camLook.x.toFixed(2) + ", " + camLook.y.toFixed(2) + ", " + camLook.z.toFixed(2) + " }"
-   );
+   message.changeMessage("Pos: {" + camPos.x + ", " + camPos.y + ", " + camPos.z + "} " + 
+                         "/ LookAt: {" + camLook.x + ", " + camLook.y + ", " + camLook.z + "}");
 }
 
 function keyboardUpdate() {
 
    keyboard.update();
-
-   const delta = 0.1; // unidades por frame — ajuste para calibrar a velocidade
-
-   // —————— POSIÇÃO da câmera ——————
-   if (keyboard.pressed("left"))     camPos.x -= delta;
-   if (keyboard.pressed("right"))    camPos.x += delta;
-   if (keyboard.pressed("up"))       camPos.z -= delta;
-   if (keyboard.pressed("down"))     camPos.z += delta;
-   if (keyboard.pressed("pageup"))   camPos.y += delta;
-   if (keyboard.pressed("pagedown")) camPos.y -= delta;
-
-   // —————— PONTO de lookAt ——————
-   if (keyboard.pressed("A"))        camLook.x -= delta;
-   if (keyboard.pressed("D"))        camLook.x += delta;
-   if (keyboard.pressed("W"))        camLook.z -= delta;
-   if (keyboard.pressed("S"))        camLook.z += delta;
-   if (keyboard.pressed("Q"))        camLook.y -= delta;
-   if (keyboard.pressed("E"))        camLook.y += delta;
-
+   
+   // DICA: Insira aqui seu código para mover a câmera
+   
    updateCamera();
 }
 

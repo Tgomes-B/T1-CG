@@ -10,6 +10,7 @@ import { criaAreasRampas, criaParedes, setupLighting } from './Ambiente.js';
 import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
 import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
+import { adicionarBossGLB } from './boss.js';
 
 // Função auxiliar para encontrar objetos colidíveis
 function findCollidables(object, result = []) {
@@ -154,6 +155,10 @@ function setupEnvironment() {
             setupCacodemonElimination(scene);
         }, 0);
     });
+
+    const posBoss = new THREE.Vector3(-180, 12, -180);
+    adicionarBossGLB(scene, '../0_assetsT3/objects/pain/painElemental.glb', posBoss);
+
 }
 
 function setupLightingAndCollision() {
