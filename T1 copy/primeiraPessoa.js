@@ -369,7 +369,7 @@ export function moveAnimate(delta) {
                 // --- Velocidade diferenciada ---
                 let moveSpeed;
                 if (isSkull) {
-                    moveSpeed = 13 * delta; // Skull: rápido, mas menos exagerado
+                    moveSpeed = obj.userData.dashing ? 20 * delta : 13 * delta; // Dash mais rápido
                 } else if (isBoss) {
                     moveSpeed = 7 * delta; // Boss: mais rápido que antes, ainda o mais lento
                 } else if (isCacodemon) {
@@ -377,9 +377,94 @@ export function moveAnimate(delta) {
                 } else {
                     moveSpeed = 8 * delta; // Default
                 }
+                // Para Skull: inicia dash se cooldown ok e linha reta livre
+                if (isSkull && !obj.userData.dashing && (!obj.userData.lastDash || performance.now() - obj.userData.lastDash > 1200)) {
+                    // Raycast entre Skull e player
+                    let dashDir = playerPos.clone().setY(obj.position.y).sub(obj.position).setY(0).normalize();
+                    let ray = new THREE.Raycaster(obj.position, dashDir, 0, dist);
+                    const collidables = [];
+                    findCollidables(scene, collidables);
+                    const validCollidables = collidables.filter(o => o !== obj && o.userData.collisionBox && o.userData.isCollidable);
+                    let intersects = ray.intersectObjects(validCollidables, true);
+                    if (intersects.length === 0) {
+                        obj.userData.dashing = true;
+                        obj.userData.lastDash = performance.now();
+                    }
+                }
+                // Cooldown após dash
+                if (isSkull && obj.userData.dashing && obj.userData.lastDash && performance.now() - obj.userData.lastDash > 300) {
+                    obj.userData.dashing = false;
+                }
                 // Move na direção do jogador (apenas XZ)
-                const direction = playerPos.clone().setY(obj.position.y).sub(obj.position).setY(0).normalize();
-                obj.position.add(direction.multiplyScalar(moveSpeed));
+                let direction = playerPos.clone().setY(obj.position.y).sub(obj.position).setY(0).normalize();
+                let nextPos = obj.position.clone().add(direction.clone().multiplyScalar(moveSpeed));
+                let moved = false;
+                // Coleta obstáculos do mapa (não considera outros inimigos)
+                const collidables = [];
+                findCollidables(scene, collidables);
+                const validCollidables = collidables.filter(o => o !== obj && o.userData.collisionBox && o.userData.isCollidable);
+                // Testa colisão na próxima posição
+                let tempBox = obj.userData.collisionBox.clone();
+                tempBox.translate(direction.clone().multiplyScalar(moveSpeed));
+                let collides = validCollidables.some(o => tempBox.intersectsBox(o.userData.collisionBox));
+                if (!collides) {
+                    obj.position.add(direction.multiplyScalar(moveSpeed));
+                    moved = true;
+                } else {
+                    // Se for voador, tenta subir/descer/lateralizar para contornar obstáculo
+                    if (isCacodemon || isBoss) {
+                        // Tenta subir até 3 unidades para passar por cima
+                        let tried = false;
+                        for (let dy = 1; dy <= 3; dy++) {
+                            let tempBoxUp = obj.userData.collisionBox.clone();
+                            tempBoxUp.translate(new THREE.Vector3(direction.x, dy, direction.z).multiplyScalar(moveSpeed));
+                            if (!validCollidables.some(o => tempBoxUp.intersectsBox(o.userData.collisionBox))) {
+                                obj.position.add(new THREE.Vector3(direction.x, dy, direction.z).multiplyScalar(moveSpeed));
+                                tried = true;
+                                moved = true;
+                                break;
+                            }
+                        }
+                        // Se não conseguiu subir, tenta descer até 3 unidades
+                        if (!tried) {
+                            for (let dy = -1; dy >= -3; dy--) {
+                                let tempBoxDown = obj.userData.collisionBox.clone();
+                                tempBoxDown.translate(new THREE.Vector3(direction.x, dy, direction.z).multiplyScalar(moveSpeed));
+                                if (!validCollidables.some(o => tempBoxDown.intersectsBox(o.userData.collisionBox))) {
+                                    obj.position.add(new THREE.Vector3(direction.x, dy, direction.z).multiplyScalar(moveSpeed));
+                                    tried = true;
+                                    moved = true;
+                                    break;
+                                }
+                            }
+                        }
+                        // Se não conseguiu subir/descer, tenta lateralizar (desviar para o lado)
+                        if (!tried) {
+                            let perp = new THREE.Vector3(-direction.z, 0, direction.x).normalize();
+                            for (let side = -1; side <= 1; side += 2) {
+                                let tempBoxSide = obj.userData.collisionBox.clone();
+                                tempBoxSide.translate(perp.clone().multiplyScalar(moveSpeed * side));
+                                if (!validCollidables.some(o => tempBoxSide.intersectsBox(o.userData.collisionBox))) {
+                                    obj.position.add(perp.clone().multiplyScalar(moveSpeed * side));
+                                    moved = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    // Lost Soul (Skull): dash só se linha reta estiver livre
+                    if (isSkull && obj.userData.dashing) {
+                        // Raycast entre Skull e player
+                        let ray = new THREE.Raycaster(obj.position, direction, 0, dist);
+                        let intersects = ray.intersectObjects(validCollidables, true);
+                        if (intersects.length === 0) {
+                            obj.position.add(direction.multiplyScalar(moveSpeed * 2)); // dash mais rápido
+                            moved = true;
+                        } else {
+                            obj.userData.dashing = false; // cancela dash se obstruído
+                        }
+                    }
+                }
                 // Atualiza caixa de colisão
                 if (obj.userData.collisionBox) {
                     obj.userData.collisionBox.setFromObject(obj);
