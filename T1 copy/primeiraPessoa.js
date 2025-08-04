@@ -354,9 +354,48 @@ export function moveAnimate(delta) {
                 // --- Ajuste de direção e altura ---
                 let targetY = playerPos.y;
                 if (isCacodemon) {
-                    targetY += 2.5; // Cacodemon sobe mais
+                    targetY += 5.0; // Cacodemon ainda mais acima do jogador
                 }
-                obj.position.y += (targetY - obj.position.y) * 0.15;
+                if (isSkull) {
+                    targetY += 1.2; // Skull (Lost Soul) ligeiramente mais alto
+                }
+                // Busca altura máxima possível entre obj.position.y e targetY sem atravessar bounding boxes, mas faz o movimento suave (lerp)
+                const collidablesY = [];
+                findCollidables(scene, collidablesY);
+                const validCollidablesY = collidablesY.filter(o => o !== obj && o.userData.collisionBox && o.userData.isCollidable);
+                // Calcula o próximo Y desejado (lerp)
+                let lerpFactor = 0.07;
+                if (isCacodemon || isBoss) {
+                    lerpFactor = 0.035; // Mais suave para Cacodemon/Boss
+                }
+                let desiredY = obj.position.y + (targetY - obj.position.y) * lerpFactor;
+                // Testa se pode mover para desiredY sem atravessar bounding boxes
+                let tempBoxY = obj.userData.collisionBox.clone();
+                tempBoxY.translate(new THREE.Vector3(0, desiredY - obj.position.y, 0));
+                let collidesY = validCollidablesY.some(o => tempBoxY.intersectsBox(o.userData.collisionBox));
+                if (!collidesY) {
+                    obj.position.y = desiredY;
+                } else {
+                    // Se colide, tenta se aproximar do máximo permitido na direção do targetY, mas sempre suavemente
+                    let directionY = Math.sign(targetY - obj.position.y);
+                    let stepY = 0.1 * directionY;
+                    let lastSafeY = obj.position.y;
+                    for (let i = 1; i <= 10; i++) {
+                        let tryY = obj.position.y + stepY * i;
+                        let tempBoxTry = obj.userData.collisionBox.clone();
+                        tempBoxTry.translate(new THREE.Vector3(0, tryY - obj.position.y, 0));
+                        let collidesTry = validCollidablesY.some(o => tempBoxTry.intersectsBox(o.userData.collisionBox));
+                        if (collidesTry) {
+                            break;
+                        }
+                        lastSafeY = tryY;
+                        if ((directionY > 0 && lastSafeY >= targetY) || (directionY < 0 && lastSafeY <= targetY)) {
+                            break;
+                        }
+                    }
+                    // Move suavemente até o máximo permitido sem colisão
+                    obj.position.y = lastSafeY;
+                }
 
                 // Gira inimigo para olhar para o player
                 const lookVec = playerPos.clone().sub(obj.position);
