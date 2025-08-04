@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CSG } from '../libs/other/CSGMesh.js';
 import GUI from '../libs/util/dat.gui.module.js';
+import { constroiHangar } from './areaHangar.js';
 import { setupCollision } from './colisao.js';
 
 /**
@@ -27,7 +28,7 @@ export function criaAreasRampas(scene) {
         new THREE.MeshLambertMaterial({ color: 'rgb(100, 123, 255)' })
     ];
 
-    let molde, areas = [], posZ = -155, comp = 30 / 8, ramp, rotX = 1.5 * Math.PI;
+    let molde, base, areas = [], posZ = -155, comp = 30 / 8, ramp, rotX = 1.5 * Math.PI;
     let boxMesh = new THREE.Mesh(new THREE.BoxGeometry(30, 10, 20));
     boxMesh.position.set(0, 0, 0);
     let boxCSG = CSG.fromMesh(boxMesh);
@@ -114,15 +115,15 @@ export function criaAreasRampas(scene) {
             criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 10, 120], true);
             criaAreaColisao(areaX + 55, areaY, areaZ, [100, 10, 20]);
         }else if (i == 2) {
-            molde = new THREE.Mesh(areaGeometry, areaMaterial[i]);
-            molde.position.set(45, 0, 0);
+            const TercAreaGeometry = new THREE.BoxGeometry(120, 0.1, 120);
+            base = new THREE.Mesh(TercAreaGeometry, areaMaterial[i]);
+            base.position.set(45, 0, 0);
             areaX = 130;
-            areaY = 5;
+            areaY = 0.05;
             areaZ = posZ;
 
-            criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 10, 120], true);
-            criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 10, 120], true);
-            criaAreaColisao(areaX + 60, areaY, areaZ, [90, 10, 20]);
+            criaAreaColisao(areaX + 45, areaY, areaZ, [120, 0.1, 120], true);
+            areas[i] = base;
         } else if (i == 3) {
             molde = new THREE.Mesh(areaAzulGeometry, areaMaterial[i]);
             molde.position.set(-45, 0, 0);
@@ -134,11 +135,12 @@ export function criaAreasRampas(scene) {
             criaAreaColisao(areaX - 45, areaY, areaZ - 82.5, [145, 10, 120], true);
             criaAreaColisao(areaX - 60, areaY, areaZ, [90, 10, 20]);
         }
-
-        updateObject(molde);
-        let auxCSG = CSG.fromMesh(molde);
-        let objectCSG = auxCSG.subtract(boxCSG);
-        areas[i] = CSG.toMesh(objectCSG, new THREE.Matrix4());
+        if(i !=2 ){
+            updateObject(molde);
+            let auxCSG = CSG.fromMesh(molde);
+            let objectCSG = auxCSG.subtract(boxCSG);
+            areas[i] = CSG.toMesh(objectCSG, new THREE.Matrix4());
+        }
         
         if (i == 3) {
             areas[i].position.set(-130, 5, 0);
@@ -152,15 +154,17 @@ export function criaAreasRampas(scene) {
         }else if (i == 1) {
             areas[i].position.set(120, 5, posZ);
         }else if (i == 2) {
-            areas[i].position.set(130, 5, posZ);
-            criaEscada(115, posZ, comp, 130, 10, -0.102 * Math.PI, 5);
+            areas[i].position.set(175, 0.05, posZ);
+            areas[i].add(constroiHangar());
         }
         
-        areas[i].material = areaMaterial[i];
-        areas[i].castShadow = true;
-        areas[i].receiveShadow = true;
-        posZ += 155;
-        scene.add(areas[i]);
+        
+            areas[i].material = areaMaterial[i];
+            areas[i].castShadow = true;
+            areas[i].receiveShadow = true;
+            posZ += 155;
+            scene.add(areas[i]);
+        
     }
     criaPilares(scene, areas[0]);
     
