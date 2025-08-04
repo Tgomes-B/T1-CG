@@ -218,9 +218,8 @@ export function criaPilares(scene, area1) {
     const lateralMaterial = new THREE.MeshStandardMaterial({
         map: texPillarArea1,
         displacementMap: texPillarArea1Displacement,
-        displacementScale: 1,
+        displacementScale: 1.8,
         color: 0xffffff,
-        metalness: 0.2,
         roughness: 0.7
     });
     const capMaterial = new THREE.MeshStandardMaterial({
@@ -231,7 +230,7 @@ export function criaPilares(scene, area1) {
 
     const pilarMaterials = [lateralMaterial, capMaterial, capMaterial];
     
-    let Xcont = -10;
+    let Xcont = -9;
     let Zcont = -35;
     let contBack = -33;
     
@@ -274,15 +273,15 @@ export function criaPilares(scene, area1) {
         // Pilares da frente
         const frontPillar = createPillar(
             areaPosition.x + Xcont, 
-            17, 
+            18.8,
             areaPosition.z - 55
         );
         pillarsGroup.add(frontPillar);
         
         // Pilares de trás
         const backPillar = createPillar(
-            areaPosition.x + Xcont, 
-            17, 
+            areaPosition.x + Xcont , 
+            18.8,
             areaPosition.z + 55
         );
         pillarsGroup.add(backPillar);
@@ -293,8 +292,8 @@ export function criaPilares(scene, area1) {
     // Pilares do lado esquerdo
     while (Zcont <= 35) {
         const leftPillar = createPillar(
-            areaPosition.x - 10,
-            17,
+            areaPosition.x - 10 ,
+            18.8,
             areaPosition.z + Zcont
         );
         pillarsGroup.add(leftPillar);
@@ -309,12 +308,11 @@ export function criaPilares(scene, area1) {
     // Pilares do lado direito
     while (contBack <= 33) {
         const rightPillar = createPillar(
-            areaPosition.x + 100,
-            17,
+            areaPosition.x + 100 ,
+            18.8,
             areaPosition.z + contBack
         );
         pillarsGroup.add(rightPillar);
-        
         contBack += 22;
     }
     
@@ -339,7 +337,8 @@ export function criaParedes(scene) {
 
     wallTexture.wrapS = THREE.RepeatWrapping;
     wallTexture.wrapT = THREE.RepeatWrapping;
-    wallTexture.repeat.set(10, 3); // Ajuste os valores conforme o visual desejado
+    wallTexture.repeat.set(50, 20); 
+    wallTexture.offset.set(0, 0.5); // Ajuste de offset para melhor visualização
 
     const wallThickness = 5;
     const wallHeight = 50;

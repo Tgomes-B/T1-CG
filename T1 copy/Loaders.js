@@ -34,12 +34,12 @@ export const texArea2Faces = [
 ];
 
 // --- Pilares da area 1 ---
-export const texPillarArea1 = textureLoader.load('./images/Textures/area1/romanPilar.png');
+export const texPillarArea1 = textureLoader.load('./images/Textures/area1/romanPillar.png');
 texPillarArea1.wrapS = THREE.RepeatWrapping;
 texPillarArea1.wrapT = THREE.RepeatWrapping;
-texPillarArea1.repeat.set(5,5);
+texPillarArea1.repeat.set(1,1);
 
-export const texPillarArea1Displacement = textureLoader.load('./images/Textures/area1/romanPilar_height.png');
+export const texPillarArea1Displacement = textureLoader.load('./images/Textures/area1/romanPilar_heigh.png');
 texPillarArea1Displacement.wrapS = THREE.RepeatWrapping;
 texPillarArea1Displacement.wrapT = THREE.RepeatWrapping;
-texPillarArea1.repeat.set(5,5);
+texPillarArea1.repeat.set(1,1);
