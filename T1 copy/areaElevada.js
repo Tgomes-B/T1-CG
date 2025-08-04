@@ -1,13 +1,24 @@
 import * as THREE from 'three';
 import { criaBlocoChave, criaChave } from './areaChave.js';
 import { moveAnimate } from './primeiraPessoa.js';
+import { texTowerRight, texTowerLeft, texTowerTop, texTowerBack, texTowerFront } from './Loaders.js';
 
 const SHOW_COLLISION_BOXES = false;
+
+// Array de materiais para as torres (ordem: right, left, top, bottom, front, back)
+const torreMaterials = [
+    new THREE.MeshLambertMaterial({ map: texTowerRight }),
+    new THREE.MeshLambertMaterial({ map: texTowerLeft }),
+    new THREE.MeshLambertMaterial({ map: texTowerTop }),
+    new THREE.MeshLambertMaterial({ map: texTowerTop }), // pode usar outra textura para o bottom se quiser
+    new THREE.MeshLambertMaterial({ map: texTowerFront }),
+    new THREE.MeshLambertMaterial({ map: texTowerBack })
+];
 
 // Função para criar uma torre
 function createTower(x, y, z, width, height, depth, material) {
     const geometry = new THREE.BoxGeometry(width, height, depth);
-    const tower = new THREE.Mesh(geometry, material.clone());
+    const tower = new THREE.Mesh(geometry, torreMaterials);
     tower.position.set(x+120, y, z);
     tower.name = "torre";
     tower.castShadow = true;
@@ -41,6 +52,8 @@ function createTowers(scene) {
     let i = 0;
     let torres = [];
 
+    const torresLevantadas = [0, 2, 4, 8, 12];
+
     for (let row = 0; row < torresLinha.length; row++) {
         for (let col = 0; col < torresLinha[row]; col++) {
             if (i >= alturas.length) break;
@@ -55,9 +68,13 @@ function createTowers(scene) {
             }
 
             const x = 30 + row * espacoX;
-            const y = 5 + altura / 2;
+            let y = 5 + altura / 2;
 
-            const torre = createTower(x, y, z, base, altura, base, material);
+            if (torresLevantadas.includes(i) && i !== 6) {
+                y += 15;
+            }
+
+            const torre = createTower(x, y, z, base, altura, base);
             scene.add(torre);
             addCollisionHelper(torre, scene);
             torres.push(torre);

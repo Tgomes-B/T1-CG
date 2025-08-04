@@ -24,7 +24,7 @@ function findCollidables(object, result = []) {
     }
     return result;
 }
-
+let isPaused = false;
 let stats, renderer, scene, camera, controls, clock;
 let areaChaveData;
 let playerHasKey = false;
@@ -42,8 +42,9 @@ const WEAPONS = {
         fireRate: 500,
         showProjectile: true,
         sprite: null,
-        spritesheet: null,
-        create: createGun
+        spritesheet: "images/sprites/rocketLauncher.png",
+        frames: 3,
+        create: createRocketLauncherSprite
     },
     chaingun: {
         name: "chaingun",
@@ -174,7 +175,7 @@ function setupLightingAndCollision() {
 
 function setupGameElements() {
     setupCrosshair();
-    createGun();
+    currentWeapon.create(); // Adiciona o sprite da arma inicial
     setupShooting(camera, scene, controls, () => currentWeapon, areas);
 }
 
@@ -255,6 +256,26 @@ function switchWeaponByIndex(index) {
     currentWeapon.create();
 }
 
+function createRocketLauncherSprite() {
+    const frames = WEAPONS.launcher.frames;
+    const texture = new THREE.TextureLoader().load(WEAPONS.launcher.spritesheet);
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1 / frames, 1); // Mostra só 1 frame
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(material);
+    sprite.name = "launcher";
+    sprite.scale.set(1.5, 2, 1.5);
+    sprite.position.set(0, -1, -3);
+    camera.add(sprite);
+
+    WEAPONS.launcher.sprite = sprite;
+    WEAPONS.launcher.spriteTexture = texture;
+    WEAPONS.launcher.currentFrame = 0;
+}
+
 function createChaingunSprite() {
     const frames = WEAPONS.chaingun.frames;
     const texture = new THREE.TextureLoader().load(WEAPONS.chaingun.spritesheet);
@@ -278,19 +299,10 @@ function createChaingunSprite() {
 function removeCurrentWeaponVisual() {
     const gun = camera.getObjectByName("launcher");
     if (gun) camera.remove(gun);
+    const rocketSprite = camera.getObjectByName("rocketlauncher_sprite");
+    if (rocketSprite) camera.remove(rocketSprite);
     const chaingunSprite = camera.getObjectByName("chaingun_sprite");
     if (chaingunSprite) camera.remove(chaingunSprite);
-}
-
-function createGun() {
-    const gunGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 32);
-    const gunMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
-    const gun = new THREE.Mesh(gunGeometry, gunMaterial);
-    gun.name = "launcher";
-    gun.position.set(0.01, -0.4, -1);
-    gun.rotation.x = -Math.PI / 2;
-    controls.getObject().add(gun);
-    camera.add(gun);
 }
 
 function setupControls() {

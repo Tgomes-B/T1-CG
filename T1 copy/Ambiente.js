@@ -1,8 +1,14 @@
 import * as THREE from 'three';
 import { CSG } from '../libs/other/CSGMesh.js';
 import GUI from '../libs/util/dat.gui.module.js';
-import { setupCollision } from './colisao.js';
-
+import {
+    texArea2Top,
+    texArea2Metallic,
+    texArea2Roughness,
+    texArea1,
+    texPillarArea1,
+    texPillarArea1Displacement,
+} from './Loaders.js';
 /**
  * Cria áreas, rampas e chão do ambiente 3D.
  * @param {THREE.Scene} scene - A cena onde os objetos serão adicionados
@@ -29,12 +35,36 @@ export function criaAreasRampas(scene) {
     ground.name = "ground";
     ground.receiveShadow = true;
     scene.add(ground);
+    
+    texArea2Top.wrapS = THREE.RepeatWrapping;
+    texArea2Top.wrapT = THREE.RepeatWrapping;
+    texArea2Top.repeat.set(1, 2); // ajuste conforme necessário
+    texArea2Top.offset.set(0.5, 0.5);
+    
+    const envMap = textureLoader.load('./images/SkyBoxT3/SkyBox2.png');
+    envMap.mapping = THREE.EquirectangularReflectionMapping;
+    
+    const area2Materials = new THREE.MeshStandardMaterial({
+        map: texArea2Top,
+        metalness: 0.8,
+        roughness: 4,
+        metalnessMap: texArea2Metallic,
+        roughnessMap: texArea2Roughness,
+        color: 0xffffff
+    });
+
+    const area1Material = new THREE.MeshStandardMaterial({
+        map: texArea1,
+        color: 0xffffff,
+        metalness: 0.5,
+        roughness: 0.7
+    });
 
     const areaGeometry = new THREE.BoxGeometry(120, 10, 120);
     const areaAzulGeometry = new THREE.BoxGeometry(120, 10, 310);
     const areaMaterial = [
-        new THREE.MeshLambertMaterial({ color: 'rgb(155, 249, 134)' }),
-        new THREE.MeshLambertMaterial({ color: 'rgb(210, 202, 55)' }),
+       area1Material,
+        area2Materials,
         new THREE.MeshLambertMaterial({ color: 'rgb(255, 100, 100)' }),
         new THREE.MeshLambertMaterial({ color: 'rgb(100, 123, 255)' })
     ];
@@ -151,7 +181,7 @@ export function criaAreasRampas(scene) {
         let auxCSG = CSG.fromMesh(molde);
         let objectCSG = auxCSG.subtract(boxCSG);
         areas[i] = CSG.toMesh(objectCSG, new THREE.Matrix4());
-        
+
         if (i == 3) {
             areas[i].position.set(-130, 5, 0);
             comp = -1 * comp;
@@ -184,11 +214,22 @@ const SHOW_COLLISION_BOXES = false;
 
 export function criaPilares(scene, area1) {
     const pilarGeometry = new THREE.CylinderGeometry(4, 4, 30, 32);
-    const pilarMaterial = new THREE.MeshLambertMaterial({ 
-        color: 'rgb(200, 200, 200)',
-        transparent: false,
-        opacity: 0.9
+
+    const lateralMaterial = new THREE.MeshStandardMaterial({
+        map: texPillarArea1,
+        displacementMap: texPillarArea1Displacement,
+        displacementScale: 1,
+        color: 0xffffff,
+        metalness: 0.2,
+        roughness: 0.7
     });
+    const capMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        metalness: 0.2,
+        roughness: 0.7
+    });
+
+    const pilarMaterials = [lateralMaterial, capMaterial, capMaterial];
     
     let Xcont = -10;
     let Zcont = -35;
@@ -204,7 +245,7 @@ export function criaPilares(scene, area1) {
     
     // Função para criar um pilar com colisão
     function createPillar(x, y, z) {
-        const pilar = new THREE.Mesh(pilarGeometry, pilarMaterial.clone());
+        const pilar = new THREE.Mesh(pilarGeometry, pilarMaterials);
         pilar.position.set(x, y, z);
         pilar.castShadow = true;
         pilar.receiveShadow = true;
@@ -300,7 +341,6 @@ export function criaParedes(scene) {
     wallTexture.wrapT = THREE.RepeatWrapping;
     wallTexture.repeat.set(10, 3); // Ajuste os valores conforme o visual desejado
 
-
     const wallThickness = 5;
     const wallHeight = 50;
     const wallLength = 500;
@@ -342,22 +382,25 @@ export function criaParedes(scene) {
 
     function createWall(width, height, depth, position, name) {
         const geometry = new THREE.BoxGeometry(width, height, depth, 128, 128, 128);
-
-        // Material liso para topo e base
-        const topTexture = textureLoader.load('../assets/textures/displacement/rockWall.jpg');
+    
+        // Crie uma nova textura para o topo/base desta parede
+        const topTexture = new THREE.TextureLoader().load('../assets/textures/displacement/rockWall.jpg');
         topTexture.wrapS = THREE.RepeatWrapping;
         topTexture.wrapT = THREE.RepeatWrapping;
-        topTexture.repeat.set(1, 1);
+    
+        // Ajuste o repeat conforme a orientação
+        if (width > depth) {
+            topTexture.repeat.set(width / 20, 1);
+        } else {
+            topTexture.repeat.set(1, depth / 20);
+        }
     
         const topBottomMaterial = new THREE.MeshStandardMaterial({
             map: topTexture,
             color: 0xffffff,
-            roughness: 0.7,
-            metalness: 0.1,
             side: THREE.DoubleSide
         });
-
-        // Array de materiais: [right, left, top, bottom, front, back]
+    
         const wallMaterials = [
             wallMaterial,         // right
             wallMaterial,         // left
@@ -366,7 +409,7 @@ export function criaParedes(scene) {
             wallMaterial,         // front
             wallMaterial          // back
         ];
-
+    
         const wall = new THREE.Mesh(geometry, wallMaterials);
         wall.position.set(...position);
         wall.name = name;

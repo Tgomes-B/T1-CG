@@ -54,6 +54,7 @@ function shootProjectile() {
     lastShotTime = currentTime;
 
     if (weapon.name === "launcher") {
+        animateLauncherSprite();
         // Cria o projétil
         const gun = controls.getObject().getObjectByName("launcher");
         if (!gun) {
@@ -282,6 +283,35 @@ function animateChaingunSprite() {
         weapon.spriteTexture.offset.x = weapon.currentFrame / frames;
         weapon.spriteTexture.needsUpdate = true;
     }, weapon.fireRate);
+}
+let launcherAnimInterval = null;
+
+function animateLauncherSprite() {
+    const weapon = getCurrentWeapon();
+    const frames = weapon.frames;
+    if (!weapon.sprite || !weapon.spriteTexture) return;
+
+    if (launcherAnimInterval) return;
+
+    let frame = 0;
+    const normalDelay = 50; // ms entre frames normais
+    const extraDelay = 180; // ms extra entre os dois últimos frames
+
+    function nextFrame() {
+        weapon.spriteTexture.offset.x = frame / frames;
+        weapon.spriteTexture.needsUpdate = true;
+        frame++;
+        if (frame < frames) {
+            // Se está indo do penúltimo para o último frame, use o delay extra
+            const delay = (frame === frames - 1) ? extraDelay : normalDelay;
+            launcherAnimInterval = setTimeout(nextFrame, delay);
+        } else {
+            launcherAnimInterval = null;
+            weapon.spriteTexture.offset.x = 0; // Volta para o primeiro frame
+            weapon.spriteTexture.needsUpdate = true;
+        }
+    }
+    nextFrame();
 }
 
 /**
