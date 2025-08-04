@@ -22,9 +22,11 @@ export function loadEnemyOBJ(path, position = { x: 0, y: 0, z: 0 }, onLoad) {
                 obj.userData.isEnemy = true;
                 obj.userData.hp = 20;
                 obj.userData.maxHp = 50;
-                obj.userData.enemyType = "obj";
+                obj.userData.enemyType = "skull";
                 obj.userData.fading = false;
                 obj.userData.isCollidable = true;
+                obj.userData.state = "idle";
+obj.userData.detectionRadius = 60;
 
                 const healthBar = new HealthBar(obj.userData.maxHp, 1.5);
                 const healthBarObj = healthBar.getObject();

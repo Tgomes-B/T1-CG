@@ -328,6 +328,74 @@ function movementControls(key, value) {
 }
 
 export function moveAnimate(delta) {
+    //Lógica de perseguição
+    scene.traverse(obj => {
+        if (obj.userData && obj.userData.isEnemy && obj.userData.state) {
+            // Identificação de tipo
+            const isSkull = obj.name === "enemy" || obj.userData.name === "enemy" || obj.userData.enemyType === "skull";
+            const isBoss = obj.userData.enemyType === "boss" || obj.userData.tipo === "boss";
+            const isCacodemon = obj.name === "cacodemon" || obj.userData.enemyType === "cacodemon";
+
+            // Calcula distância
+            const playerObj = controls.getObject();
+            const enemyPos = obj.position.clone();
+            const playerPos = playerObj.position.clone();
+            const dist = enemyPos.distanceTo(playerPos);
+            // Detecção e mudança de estado
+            if (obj.userData.state === "idle" && dist <= obj.userData.detectionRadius) {
+                obj.userData.state = "pursuing";
+            }
+            // Se player fugiu demais, volta para idle
+            if (obj.userData.state === "pursuing" && dist > (obj.userData.detectionRadius * 1.5)) {
+                obj.userData.state = "idle";
+            }
+            // Perseguição
+            if (obj.userData.state === "pursuing") {
+                // --- Ajuste de direção e altura ---
+                let targetY = playerPos.y;
+                if (isCacodemon) {
+                    targetY += 2.5; // Cacodemon sobe mais
+                }
+                obj.position.y += (targetY - obj.position.y) * 0.15;
+
+                // Gira inimigo para olhar para o player
+                const lookVec = playerPos.clone().sub(obj.position);
+                let targetYaw = Math.atan2(lookVec.x, lookVec.z);
+                if (isBoss) {
+                    targetYaw -= Math.PI / 2; // Boss: gira 90 graus para a ESQUERDA
+                }
+                obj.rotation.y += (targetYaw - obj.rotation.y) * 0.25;
+
+                // --- Velocidade diferenciada ---
+                let moveSpeed;
+                if (isSkull) {
+                    moveSpeed = 13 * delta; // Skull: rápido, mas menos exagerado
+                } else if (isBoss) {
+                    moveSpeed = 7 * delta; // Boss: mais rápido que antes, ainda o mais lento
+                } else if (isCacodemon) {
+                    moveSpeed = 10 * delta; // Cacodemon: mais rápido que antes
+                } else {
+                    moveSpeed = 8 * delta; // Default
+                }
+                // Move na direção do jogador (apenas XZ)
+                const direction = playerPos.clone().setY(obj.position.y).sub(obj.position).setY(0).normalize();
+                obj.position.add(direction.multiplyScalar(moveSpeed));
+                // Atualiza caixa de colisão
+                if (obj.userData.collisionBox) {
+                    obj.userData.collisionBox.setFromObject(obj);
+                }
+                // Barra de hp segue o inimigo
+                obj.traverse(child => {
+                    if (child.userData && child.userData.isHealthBar && child instanceof THREE.Object3D) {
+                        child.position.x = 0;
+                        child.position.z = 0;
+                        child.position.y = obj.userData.baseY + (obj.userData.healthBarOffsetY || 7);
+                    }
+                });
+            }
+        }
+    });
+
     const playerObj = controls.getObject();
     const alturaPlayer = 2;
     const forward = controls.getDirection(new THREE.Vector3()).setY(0).normalize();
