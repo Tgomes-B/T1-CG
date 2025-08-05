@@ -341,20 +341,37 @@ export function moveAnimate(delta) {
             const enemyPos = obj.position.clone();
             const playerPos = playerObj.position.clone();
             const dist = enemyPos.distanceTo(playerPos);
+
+            // Salva posição original do Cacodemon se ainda não salva
+            if (isCacodemon && !obj.userData.originalPosition) {
+                obj.userData.originalPosition = obj.position.clone();
+            }
+
             // Detecção e mudança de estado
             if (obj.userData.state === "idle" && dist <= obj.userData.detectionRadius) {
                 obj.userData.state = "pursuing";
+                if (isCacodemon) {
+                    obj.userData.cacoMovePhase = 0;
+                    obj.userData.cacoMoveTimer = 0;
+                    obj.userData.cacoLateralDir = Math.random() < 0.5 ? -1 : 1;
+                }
             }
             // Se player fugiu demais, volta para idle
             if (obj.userData.state === "pursuing" && dist > (obj.userData.detectionRadius * 1.5)) {
                 obj.userData.state = "idle";
+                if (isCacodemon && obj.userData.originalPosition) {
+                    obj.userData.returning = true;
+                }
             }
             // Perseguição
             if (obj.userData.state === "pursuing") {
                 // --- Ajuste de direção e altura ---
                 let targetY = playerPos.y;
                 if (isCacodemon) {
-                    targetY += 5.0; // Cacodemon ainda mais acima do jogador
+                    // Oscilação vertical (respiração)
+                    const now = performance.now() * 0.001;
+                    const osc = Math.sin(now * 2 * Math.PI / 2.5) * 3; // ±3 unidades, ciclo ~2.5s
+                    targetY += 5.0 + osc; // Cacodemon sempre acima e oscilando
                 }
                 if (isSkull) {
                     targetY += 1.2; // Skull (Lost Soul) ligeiramente mais alto
@@ -397,22 +414,137 @@ export function moveAnimate(delta) {
                     obj.position.y = lastSafeY;
                 }
 
-                // Gira inimigo para olhar para o player
-                const lookVec = playerPos.clone().sub(obj.position);
-                let targetYaw = Math.atan2(lookVec.x, lookVec.z);
-                if (isBoss) {
-                    targetYaw -= Math.PI / 2; // Boss: gira 90 graus para a ESQUERDA
+                // --- Padrão de movimento especial do Cacodemon ---
+                let moveSpeed;
+                if (isCacodemon) {
+                    moveSpeed = 8 * delta; // Velocidade padrão de combate
+
+                    // Parâmetro de distância preferida
+                    const preferredDistance = 24; // unidades (preferência por ficar mais longe)
+                    const distanceToPlayer = obj.position.clone().setY(0).distanceTo(playerPos.clone().setY(0));
+
+                    // Ciclo de movimento Doom 2
+                    if (!obj.userData.cacoMovePhase && obj.userData.cacoMovePhase !== 0) obj.userData.cacoMovePhase = 0;
+                    if (!obj.userData.cacoMoveTimer) obj.userData.cacoMoveTimer = 0;
+                    if (!obj.userData.cacoLateralDir) obj.userData.cacoLateralDir = Math.random() < 0.5 ? -1 : 1;
+                    // Definir duração do movimento para cada ciclo
+                    if (!obj.userData.cacoMoveDuration || obj.userData.cacoMovePhase === 0) {
+                        obj.userData.cacoMoveDuration = 0.7 + Math.random() * 0.8; // 0.7 a 1.5s
+                    }
+                    // Escolher tipo de movimento
+                    if (!obj.userData.cacoMoveType || obj.userData.cacoMovePhase === 0) {
+                        if (distanceToPlayer < preferredDistance - 2) {
+                            obj.userData.cacoMoveType = 2; // recuo
+                        } else if (distanceToPlayer > preferredDistance + 2) {
+                            obj.userData.cacoMoveType = 3; // aproxima (único caso em que pode avançar)
+                        } else {
+                            // Se está na faixa ideal, só lateral (75%) ou trás (25%)
+                            obj.userData.cacoMoveType = Math.random() < 0.25 ? 2 : 1; // 1: lateral, 2: trás
+                        }
+                    }
+
+                    obj.userData.cacoMoveTimer += delta;
+                    // Fases: 0-virar para lado/trás, 1-mover lateral/trás, 2-parar para atirar, 3-girar para player
+                    let moveVec = new THREE.Vector3();
+                    if (obj.userData.cacoMovePhase === 0) {
+                        if (obj.userData.cacoMoveType === 2) {
+                            // Vai para trás, olhar para trás do vetor player
+                            let backDir = obj.position.clone().setY(0).sub(playerPos.clone().setY(0)).normalize();
+                            let yaw = Math.atan2(backDir.x, backDir.z);
+                            obj.rotation.y += (yaw - obj.rotation.y) * 0.3;
+                            moveVec.copy(backDir);
+                        } else {
+                            // Vai para o lado (lateral), olhar para o lado
+                            let perp = new THREE.Vector3(-(playerPos.z - obj.position.z), 0, playerPos.x - obj.position.x).normalize().multiplyScalar(obj.userData.cacoLateralDir);
+                            let yaw = Math.atan2(perp.x, perp.z);
+                            obj.rotation.y += (yaw - obj.rotation.y) * 0.3;
+                            moveVec.copy(perp);
+                        }
+                        if (obj.userData.cacoMoveTimer > 0.2 + Math.random() * 0.2) {
+                            obj.userData.cacoMovePhase = 1;
+                            obj.userData.cacoMoveTimer = 0;
+                        }
+                    } else if (obj.userData.cacoMovePhase === 1) {
+                        if (obj.userData.cacoMoveType === 2) {
+                            // Movimento para trás (mais longo e rápido)
+                            let backDir = obj.position.clone().setY(0).sub(playerPos.clone().setY(0)).normalize();
+                            obj.position.add(backDir.multiplyScalar(moveSpeed * 2.2));
+                            moveVec.copy(backDir);
+                        } else {
+                            // Movimento lateral mais longo
+                            let perp = new THREE.Vector3(-(playerPos.z - obj.position.z), 0, playerPos.x - obj.position.x).normalize().multiplyScalar(obj.userData.cacoLateralDir);
+                            obj.position.add(perp.multiplyScalar(moveSpeed * 1.6));
+                            moveVec.copy(perp);
+                        }
+                        // Olhar para onde está se movendo
+                        let yaw = Math.atan2(moveVec.x, moveVec.z);
+                        obj.rotation.y += (yaw - obj.rotation.y) * 0.4;
+                        if (obj.userData.cacoMoveTimer > (obj.userData.cacoMoveType === 2 ? 0.55 : 0.35) + Math.random() * 0.15) {
+                            obj.userData.cacoMovePhase = 2;
+                            obj.userData.cacoMoveTimer = 0;
+                        }
+                    } else if (obj.userData.cacoMovePhase === 2) {
+                        // Gira rapidamente para o player para atirar
+                        let toPlayer = playerPos.clone().setY(0).sub(obj.position.clone().setY(0)).normalize();
+                        let yaw = Math.atan2(toPlayer.x, toPlayer.z);
+                        obj.rotation.y += (yaw - obj.rotation.y) * 0.5;
+                        if (obj.userData.cacoMoveTimer > 0.18 + Math.random() * 0.12) {
+                            obj.userData.cacoMovePhase = 3;
+                            obj.userData.cacoMoveTimer = 0;
+                        }
+                    } else if (obj.userData.cacoMovePhase === 3) {
+                        // Placeholder para tiro
+                        if (!obj.userData.cacoJustShot) {
+                            // console.log("Cacodemon atirando!");
+                            obj.userData.cacoJustShot = true;
+                        }
+                        if (obj.userData.cacoMoveTimer > 0.22) {
+                            obj.userData.cacoMovePhase = 0;
+                            obj.userData.cacoMoveTimer = 0;
+                            obj.userData.cacoLateralDir = Math.random() < 0.5 ? -1 : 1;
+                            obj.userData.cacoMoveType = undefined;
+                            obj.userData.cacoJustShot = false;
+                        }
+                    }
+                    // Movimento para manter distância preferida: se está na faixa ideal, não avança nem recua!
+                    let toPlayer = playerPos.clone().setY(obj.position.y).sub(obj.position).setY(0);
+                    let distXZ = toPlayer.length();
+                    let direction = toPlayer.normalize();
+                    if (distXZ > preferredDistance + 2) {
+                        // Só se aproxima se estiver além da distância preferida
+                        obj.position.add(direction.multiplyScalar(moveSpeed * 0.85));
+                    } else if (distXZ < preferredDistance - 2) {
+                        // Se colou, força recuo
+                        let backDir = obj.position.clone().setY(0).sub(playerPos.clone().setY(0)).normalize();
+                        obj.position.add(backDir.multiplyScalar(moveSpeed * 2.5));
+                    } // Se está na faixa ideal, só movimentos laterais/trás do ciclo
+
+                    // Fora de perseguição, gira para direção do deslocamento (idle)
+                    if (obj.userData.state !== "pursuing") {
+                        let vel = obj.userData.lastMoveVec || new THREE.Vector3(1,0,0);
+                        if (vel.lengthSq() > 0.001) {
+                            let yaw = Math.atan2(vel.x, vel.z);
+                            obj.rotation.y += (yaw - obj.rotation.y) * 0.2;
+                        }
+                    }
+
+                } else {
+                    // Gira inimigo para olhar para o player
+                    const lookVec = playerPos.clone().sub(obj.position);
+                    let targetYaw = Math.atan2(lookVec.x, lookVec.z);
+                    if (isBoss) {
+                        targetYaw -= Math.PI / 2; // Boss: gira 90 graus para a ESQUERDA
+                    }
+                    obj.rotation.y += (targetYaw - obj.rotation.y) * 0.25;
                 }
-                obj.rotation.y += (targetYaw - obj.rotation.y) * 0.25;
 
                 // --- Velocidade diferenciada ---
-                let moveSpeed;
                 if (isSkull) {
                     moveSpeed = obj.userData.dashing ? 20 * delta : 13 * delta; // Dash mais rápido
                 } else if (isBoss) {
                     moveSpeed = 7 * delta; // Boss: mais rápido que antes, ainda o mais lento
                 } else if (isCacodemon) {
-                    moveSpeed = 10 * delta; // Cacodemon: mais rápido que antes
+                    // já definido acima
                 } else {
                     moveSpeed = 8 * delta; // Default
                 }
