@@ -24,7 +24,7 @@ export function criaAreasRampas(scene) {
     const areaMaterial = [
         new THREE.MeshLambertMaterial({ color: 'rgb(155, 249, 134)' }),
         new THREE.MeshLambertMaterial({ color: 'rgb(210, 202, 55)' }),
-        new THREE.MeshLambertMaterial({ color: 'rgb(255, 100, 100)' }),
+        new THREE.MeshLambertMaterial({ color: 'rgba(57, 57, 57, 1)' }),
         new THREE.MeshLambertMaterial({ color: 'rgb(100, 123, 255)' })
     ];
 
