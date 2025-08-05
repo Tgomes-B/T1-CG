@@ -420,7 +420,7 @@ export function moveAnimate(delta) {
                     moveSpeed = 8 * delta; // Velocidade padrão de combate
 
                     // Parâmetro de distância preferida
-                    const preferredDistance = 24; // unidades (preferência por ficar mais longe)
+                    const preferredDistance = 38; // unidades (preferência por ficar ainda mais longe)
                     const distanceToPlayer = obj.position.clone().setY(0).distanceTo(playerPos.clone().setY(0));
 
                     // Ciclo de movimento Doom 2
@@ -429,17 +429,54 @@ export function moveAnimate(delta) {
                     if (!obj.userData.cacoLateralDir) obj.userData.cacoLateralDir = Math.random() < 0.5 ? -1 : 1;
                     // Definir duração do movimento para cada ciclo
                     if (!obj.userData.cacoMoveDuration || obj.userData.cacoMovePhase === 0) {
-                        obj.userData.cacoMoveDuration = 0.7 + Math.random() * 0.8; // 0.7 a 1.5s
+                        // Distribuição triangular invertida para favorecer valores curtos
+                        function triRandMin(min, max, mode) {
+                            // mode = min para favorecer valores curtos
+                            const u = Math.random();
+                            if (u < (mode - min) / (max - min)) {
+                                return min + Math.sqrt(u * (max - min) * (mode - min));
+                            } else {
+                                return max - Math.sqrt((1 - u) * (max - min) * (max - mode));
+                            }
+                        }
+                        if (obj.userData.cacoMoveVertical === 0) {
+                            // Lateral puro: ainda mais curto e suave
+                            obj.userData.cacoMoveDuration = triRandMin(0.5, 1.1, 0.5); // 0.5 a 1.1s
+                            obj.userData.cacoMoveAmplitude = triRandMin(0.8, 1.5, 0.8); // 0.8 a 1.5x
+                        } else {
+                            // Outros movimentos: mantém range anterior
+                            obj.userData.cacoMoveDuration = triRandMin(0.7, 2.1, 0.7);
+                            obj.userData.cacoMoveAmplitude = triRandMin(1.2, 2.6, 1.2);
+                        }
+
+                        // Sorteio do tipo de movimento: lateral puro (70%), lateral-diagonal para cima (18%), vertical puro (12%)
+                        let r = Math.random();
+                        if (r < 0.7) {
+                            obj.userData.cacoMoveVertical = 0; // lateral puro
+                        } else if (r < 0.88) {
+                            obj.userData.cacoMoveVertical = 1; // lateral-diagonal para cima
+                        } else {
+                            obj.userData.cacoMoveVertical = 2; // vertical puro
+                        }
+                        // Alternância entre direita/esquerda
+                        if (obj.userData.cacoMoveVertical === 0) {
+                            if (typeof obj.userData.lastLateralDir === "undefined") obj.userData.lastLateralDir = obj.userData.cacoLateralDir;
+                            // 80% de chance de alternar o lado
+                            if (Math.random() < 0.8) {
+                                obj.userData.cacoLateralDir = -obj.userData.lastLateralDir;
+                            }
+                            obj.userData.lastLateralDir = obj.userData.cacoLateralDir;
+                        }
                     }
                     // Escolher tipo de movimento
                     if (!obj.userData.cacoMoveType || obj.userData.cacoMovePhase === 0) {
-                        if (distanceToPlayer < preferredDistance - 2) {
-                            obj.userData.cacoMoveType = 2; // recuo
-                        } else if (distanceToPlayer > preferredDistance + 2) {
-                            obj.userData.cacoMoveType = 3; // aproxima (único caso em que pode avançar)
+                        if (distanceToPlayer < preferredDistance - 6) {
+                            obj.userData.cacoMoveType = 2; // recuo (só se MUITO colado)
+                        } else if (distanceToPlayer > preferredDistance + 8) {
+                            obj.userData.cacoMoveType = 3; // aproxima (só se MUITO longe)
                         } else {
-                            // Se está na faixa ideal, só lateral (75%) ou trás (25%)
-                            obj.userData.cacoMoveType = Math.random() < 0.25 ? 2 : 1; // 1: lateral, 2: trás
+                            // Se está na faixa confortável, só movimentos laterais
+                            obj.userData.cacoMoveType = 1; // lateral
                         }
                     }
 
@@ -465,21 +502,38 @@ export function moveAnimate(delta) {
                             obj.userData.cacoMoveTimer = 0;
                         }
                     } else if (obj.userData.cacoMovePhase === 1) {
+                        // Movimento de amplitude variável, com possibilidade de vertical/diagonal
+                        let amp = obj.userData.cacoMoveAmplitude || 2.0;
                         if (obj.userData.cacoMoveType === 2) {
-                            // Movimento para trás (mais longo e rápido)
                             let backDir = obj.position.clone().setY(0).sub(playerPos.clone().setY(0)).normalize();
-                            obj.position.add(backDir.multiplyScalar(moveSpeed * 2.2));
+                            obj.position.add(backDir.multiplyScalar(moveSpeed * amp));
                             moveVec.copy(backDir);
-                        } else {
-                            // Movimento lateral mais longo
+                        } else if (obj.userData.cacoMoveType === 1) {
                             let perp = new THREE.Vector3(-(playerPos.z - obj.position.z), 0, playerPos.x - obj.position.x).normalize().multiplyScalar(obj.userData.cacoLateralDir);
-                            obj.position.add(perp.multiplyScalar(moveSpeed * 1.6));
-                            moveVec.copy(perp);
+                            if (obj.userData.cacoMoveVertical === 0) {
+                                // Lateral puro
+                                obj.position.add(perp.multiplyScalar(moveSpeed * amp));
+                                moveVec.copy(perp);
+                            } else if (obj.userData.cacoMoveVertical === 1) {
+                                // Lateral-diagonal para cima
+                                let diag = perp.clone().add(new THREE.Vector3(0, 1, 0)).normalize();
+                                obj.position.add(diag.multiplyScalar(moveSpeed * amp));
+                                moveVec.copy(diag);
+                            } else if (obj.userData.cacoMoveVertical === 2) {
+                                // Vertical puro
+                                let vert = new THREE.Vector3(0, 1, 0);
+                                obj.position.add(vert.multiplyScalar(moveSpeed * amp));
+                                moveVec.copy(vert);
+                            }
+                        } else if (obj.userData.cacoMoveType === 3) {
+                            let toPlayer = playerPos.clone().setY(0).sub(obj.position.clone().setY(0)).normalize();
+                            obj.position.add(toPlayer.multiplyScalar(moveSpeed * (amp * 0.5)));
+                            moveVec.copy(toPlayer);
                         }
                         // Olhar para onde está se movendo
                         let yaw = Math.atan2(moveVec.x, moveVec.z);
                         obj.rotation.y += (yaw - obj.rotation.y) * 0.4;
-                        if (obj.userData.cacoMoveTimer > (obj.userData.cacoMoveType === 2 ? 0.55 : 0.35) + Math.random() * 0.15) {
+                        if (obj.userData.cacoMoveTimer > obj.userData.cacoMoveDuration) {
                             obj.userData.cacoMovePhase = 2;
                             obj.userData.cacoMoveTimer = 0;
                         }
@@ -510,14 +564,14 @@ export function moveAnimate(delta) {
                     let toPlayer = playerPos.clone().setY(obj.position.y).sub(obj.position).setY(0);
                     let distXZ = toPlayer.length();
                     let direction = toPlayer.normalize();
-                    if (distXZ > preferredDistance + 2) {
-                        // Só se aproxima se estiver além da distância preferida
+                    if (distXZ > preferredDistance + 8) {
+                        // Só se aproxima se estiver MUITO além da distância preferida
                         obj.position.add(direction.multiplyScalar(moveSpeed * 0.85));
-                    } else if (distXZ < preferredDistance - 2) {
-                        // Se colou, força recuo
+                    } else if (distXZ < preferredDistance - 6) {
+                        // Só recua se estiver MUITO colado
                         let backDir = obj.position.clone().setY(0).sub(playerPos.clone().setY(0)).normalize();
                         obj.position.add(backDir.multiplyScalar(moveSpeed * 2.5));
-                    } // Se está na faixa ideal, só movimentos laterais/trás do ciclo
+                    } // Se está na faixa confortável, só movimentos laterais/trás do ciclo
 
                     // Fora de perseguição, gira para direção do deslocamento (idle)
                     if (obj.userData.state !== "pursuing") {
