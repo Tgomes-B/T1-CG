@@ -7,6 +7,7 @@ export function adicionarBossGLB(scene, caminhoGLB, posicao) {
     loader.load(caminhoGLB, gltf => {
         const boss = gltf.scene;
         boss.position.copy(posicao);
+        boss.scale.set(0.38, 0.38, 0.38); 
         boss.userData.isEnemy = true;
         boss.userData.isCollidable = true;
         boss.userData.enemyType = "boss";
@@ -22,22 +23,19 @@ export function adicionarBossGLB(scene, caminhoGLB, posicao) {
         boss.userData.name = "boss";
 
         // HealthBar
-        const healthBar = new HealthBar(boss.userData.maxHp, 2.5);
+        const healthBar = new HealthBar(boss.userData.maxHp, 1.8); // igual ao Cacodemon, proporcional ao modelo
         const healthBarObj = healthBar.getObject();
         boss.updateMatrixWorld(true);
         const bbox = new THREE.Box3().setFromObject(boss);
-        const heightOffset = (bbox.max.y - bbox.min.y) + 3;
-        healthBarObj.position.y = heightOffset;
+        const heightOffset = bbox.max.y + boss.position.y + 2
+        healthBarObj.position.set(0, heightOffset, 0); // posicionamento igual ao Cacodemon
         boss.add(healthBarObj);
         boss.userData.healthBar = healthBar;
 
-        // Collision Box (maior que o Skull)
-        const boxSize = 12; // maior que Skull
-        const boxHeight = 16;
-        const boxCenter = boss.position.clone();
-        const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
-        const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
-        boss.userData.collisionBox = new THREE.Box3(min, max);
+        // Collision Box (ajustada ao novo tamanho, igual ao Cacodemon)
+        boss.updateMatrixWorld(true);
+        const bboxBoss = new THREE.Box3().setFromObject(boss);
+        boss.userData.collisionBox = bboxBoss.clone();
 
         boss.traverse(child => {
             if (child.isMesh) {

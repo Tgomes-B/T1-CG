@@ -350,7 +350,7 @@ export function moveAnimate(delta) {
             // Detecção e mudança de estado
             if (obj.userData.state === "idle" && dist <= obj.userData.detectionRadius) {
                 obj.userData.state = "pursuing";
-                if (isCacodemon) {
+                if (isCacodemon || isBoss) {
                     obj.userData.cacoMovePhase = 0;
                     obj.userData.cacoMoveTimer = 0;
                     obj.userData.cacoLateralDir = Math.random() < 0.5 ? -1 : 1;
@@ -367,7 +367,7 @@ export function moveAnimate(delta) {
             if (obj.userData.state === "pursuing") {
                 // --- Ajuste de direção e altura ---
                 let targetY = playerPos.y;
-                if (isCacodemon) {
+                if (isCacodemon || isBoss) {
                     // Oscilação vertical (respiração)
                     const now = performance.now() * 0.001;
                     const osc = Math.sin(now * 2 * Math.PI / 2.5) * 3; // ±3 unidades, ciclo ~2.5s
@@ -416,7 +416,7 @@ export function moveAnimate(delta) {
 
                 // --- Padrão de movimento especial do Cacodemon ---
                 let moveSpeed;
-                if (isCacodemon) {
+                if (isCacodemon || isBoss) {
                     moveSpeed = 8 * delta; // Velocidade padrão de combate
 
                     // Parâmetro de distância preferida
@@ -494,7 +494,9 @@ export function moveAnimate(delta) {
                             // Vai para o lado (lateral), olhar para o lado
                             let perp = new THREE.Vector3(-(playerPos.z - obj.position.z), 0, playerPos.x - obj.position.x).normalize().multiplyScalar(obj.userData.cacoLateralDir);
                             let yaw = Math.atan2(perp.x, perp.z);
-                            obj.rotation.y += (yaw - obj.rotation.y) * 0.3;
+                            let rotLerp = isBoss ? 0.15 : 0.3;
+                            if(isBoss) yaw += Math.sin(performance.now() * 0.001 + obj.id) * 0.07;
+                            obj.rotation.y += (yaw - obj.rotation.y) * rotLerp;
                             moveVec.copy(perp);
                         }
                         if (obj.userData.cacoMoveTimer > 0.2 + Math.random() * 0.2) {
@@ -530,8 +532,9 @@ export function moveAnimate(delta) {
                             obj.position.add(toPlayer.multiplyScalar(moveSpeed * (amp * 0.5)));
                             moveVec.copy(toPlayer);
                         }
-                        // Olhar para onde está se movendo
-                        let yaw = Math.atan2(moveVec.x, moveVec.z);
+                        // Olhar sempre para o player
+                        let toPlayer = playerPos.clone().setY(0).sub(obj.position.clone().setY(0)).normalize();
+                        let yaw = Math.atan2(toPlayer.x, toPlayer.z);
                         obj.rotation.y += (yaw - obj.rotation.y) * 0.4;
                         if (obj.userData.cacoMoveTimer > obj.userData.cacoMoveDuration) {
                             obj.userData.cacoMovePhase = 2;
@@ -597,7 +600,7 @@ export function moveAnimate(delta) {
                     moveSpeed = obj.userData.dashing ? 20 * delta : 13 * delta; // Dash mais rápido
                 } else if (isBoss) {
                     moveSpeed = 7 * delta; // Boss: mais rápido que antes, ainda o mais lento
-                } else if (isCacodemon) {
+                } else if (isCacodemon || isBoss) {
                     // já definido acima
                 } else {
                     moveSpeed = 8 * delta; // Default
