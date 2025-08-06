@@ -11,6 +11,7 @@ import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
 import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
 import { adicionarBossGLB } from './boss.js';
+import { FireEffect } from './Effects.js';
 
 // Função auxiliar para encontrar objetos colidíveis
 function findCollidables(object, result = []) {
@@ -342,8 +343,8 @@ export function moveAnimate(delta) {
             const playerPos = playerObj.position.clone();
             const dist = enemyPos.distanceTo(playerPos);
 
-            // Salva posição original do Cacodemon se ainda não salva
-            if (isCacodemon && !obj.userData.originalPosition) {
+            // Salva posição original do Cacodemon/Boss se ainda não salva
+            if ((isCacodemon || isBoss) && !obj.userData.originalPosition) {
                 obj.userData.originalPosition = obj.position.clone();
             }
 
@@ -494,8 +495,7 @@ export function moveAnimate(delta) {
                             // Vai para o lado (lateral), olhar para o lado
                             let perp = new THREE.Vector3(-(playerPos.z - obj.position.z), 0, playerPos.x - obj.position.x).normalize().multiplyScalar(obj.userData.cacoLateralDir);
                             let yaw = Math.atan2(perp.x, perp.z);
-                            let rotLerp = isBoss ? 0.15 : 0.3;
-                            if(isBoss) yaw += Math.sin(performance.now() * 0.001 + obj.id) * 0.07;
+                            let rotLerp = 0.3;
                             obj.rotation.y += (yaw - obj.rotation.y) * rotLerp;
                             moveVec.copy(perp);
                         }
@@ -514,17 +514,29 @@ export function moveAnimate(delta) {
                             let perp = new THREE.Vector3(-(playerPos.z - obj.position.z), 0, playerPos.x - obj.position.x).normalize().multiplyScalar(obj.userData.cacoLateralDir);
                             if (obj.userData.cacoMoveVertical === 0) {
                                 // Lateral puro
-                                obj.position.add(perp.multiplyScalar(moveSpeed * amp));
+                                {
+    let desloc = moveSpeed * amp;
+    if (Math.abs(desloc) < 0.15) desloc = 0.15 * Math.sign(desloc);
+    obj.position.add(perp.multiplyScalar(desloc));
+}
                                 moveVec.copy(perp);
                             } else if (obj.userData.cacoMoveVertical === 1) {
                                 // Lateral-diagonal para cima
                                 let diag = perp.clone().add(new THREE.Vector3(0, 1, 0)).normalize();
-                                obj.position.add(diag.multiplyScalar(moveSpeed * amp));
+                                {
+    let desloc = moveSpeed * amp;
+    if (Math.abs(desloc) < 0.15) desloc = 0.15 * Math.sign(desloc);
+    obj.position.add(diag.multiplyScalar(desloc));
+}
                                 moveVec.copy(diag);
                             } else if (obj.userData.cacoMoveVertical === 2) {
                                 // Vertical puro
                                 let vert = new THREE.Vector3(0, 1, 0);
-                                obj.position.add(vert.multiplyScalar(moveSpeed * amp));
+                                {
+    let desloc = moveSpeed * amp;
+    if (Math.abs(desloc) < 0.15) desloc = 0.15 * Math.sign(desloc);
+    obj.position.add(vert.multiplyScalar(desloc));
+}
                                 moveVec.copy(vert);
                             }
                         } else if (obj.userData.cacoMoveType === 3) {
@@ -532,10 +544,11 @@ export function moveAnimate(delta) {
                             obj.position.add(toPlayer.multiplyScalar(moveSpeed * (amp * 0.5)));
                             moveVec.copy(toPlayer);
                         }
-                        // Olhar sempre para o player
-                        let toPlayer = playerPos.clone().setY(0).sub(obj.position.clone().setY(0)).normalize();
-                        let yaw = Math.atan2(toPlayer.x, toPlayer.z);
-                        obj.rotation.y += (yaw - obj.rotation.y) * 0.4;
+                        // Olhar para a direção do movimento
+                        if (moveVec.lengthSq() > 0.001) {
+                            let yaw = Math.atan2(moveVec.x, moveVec.z);
+                            obj.rotation.y += (yaw - obj.rotation.y) * 0.4;
+                        }
                         if (obj.userData.cacoMoveTimer > obj.userData.cacoMoveDuration) {
                             obj.userData.cacoMovePhase = 2;
                             obj.userData.cacoMoveTimer = 0;
@@ -874,11 +887,22 @@ function render() {
         window.labelRenderer.render(scene, camera);
     }
 
+    // Atualiza efeito de fogo dos Skulls
+    scene.traverse(obj => {
+        if (
+            obj.userData &&
+            obj.userData.enemyType === 'skull' &&
+            obj.userData.fireEffect
+        ) {
+            obj.userData.fireEffect.update(delta);
+        }
+    });
+
     if (areaChaveData && areaChaveData.animandoBloco && areaChaveData.blocoAnimado && areaChaveData.chaveAnimada) {
         areaChaveData.tempoAnimacao += delta;
         let t = Math.min(areaChaveData.tempoAnimacao / areaChaveData.duracaoAnimacao, 1);
 
-        // EaseOutCubic
+    // ... (rest of the code remains the same)
         t = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     
         // Interpolação entre posição inicial e final

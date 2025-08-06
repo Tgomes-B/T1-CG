@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { HealthBar } from './healthbar.js';
+import { FireEffect } from './Effects.js';
 import { OBJLoader } from '../build/jsm/loaders/OBJLoader.js';
 import { MTLLoader } from '../build/jsm/loaders/MTLLoader.js';
 
@@ -63,6 +64,14 @@ obj.userData.detectionRadius = 60;
                 });
 
                 obj.updateMatrixWorld(true);
+
+                // Adiciona efeito de fogo procedural
+                const fireEffect = new FireEffect(obj, obj.parent || window.scene, {
+                    radius: 2.2,
+                    height: 2.5,
+                    count: 32
+                });
+                obj.userData.fireEffect = fireEffect;
 
                 if (onLoad) onLoad(obj);
             },
