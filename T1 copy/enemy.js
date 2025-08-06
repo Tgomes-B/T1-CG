@@ -26,8 +26,13 @@ export function loadEnemyOBJ(path, position = { x: 0, y: 0, z: 0 }, onLoad) {
                 obj.userData.enemyType = "skull";
                 obj.userData.fading = false;
                 obj.userData.isCollidable = true;
-                obj.userData.state = "idle";
-obj.userData.detectionRadius = 60;
+                obj.userData.state = "patrol";
+                obj.userData.originalPosition = obj.position.clone();
+                // Define patrolArea como toda a areaChave
+                const patrolBoxMin = new THREE.Vector3(25, 2, -30);
+                const patrolBoxMax = new THREE.Vector3(75, 8, 30);
+                obj.userData.patrolArea = {min: patrolBoxMin, max: patrolBoxMax};
+                obj.userData.detectionRadius = 60;
 
                 const healthBar = new HealthBar(obj.userData.maxHp, 1.5);
                 const healthBarObj = healthBar.getObject();
