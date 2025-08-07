@@ -115,14 +115,14 @@ export function criaAreasRampas(scene) {
             criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 10, 120], true);
             criaAreaColisao(areaX + 55, areaY, areaZ, [100, 10, 20]);
         }else if (i == 2) {
-            const TercAreaGeometry = new THREE.BoxGeometry(120, 0.1, 120);
+            const TercAreaGeometry = new THREE.BoxGeometry(120, 0.05, 120);
             base = new THREE.Mesh(TercAreaGeometry, areaMaterial[i]);
             base.position.set(45, 0, 0);
             areaX = 130;
-            areaY = 0.05;
+            areaY = 0.025;
             areaZ = posZ;
 
-            criaAreaColisao(areaX + 45, areaY, areaZ, [120, 0.1, 120], true);
+            criaAreaColisao(areaX + 45, areaY, areaZ, [120, 0.5, 120], true);
             areas[i] = base;
         } else if (i == 3) {
             molde = new THREE.Mesh(areaAzulGeometry, areaMaterial[i]);
@@ -154,7 +154,7 @@ export function criaAreasRampas(scene) {
         }else if (i == 1) {
             areas[i].position.set(120, 5, posZ);
         }else if (i == 2) {
-            areas[i].position.set(175, 0.05, posZ);
+            areas[i].position.set(175, 0.025, posZ);
             areas[i].add(constroiHangar());
         }
         

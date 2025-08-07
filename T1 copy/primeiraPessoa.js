@@ -456,8 +456,12 @@ export function moveAnimate(delta) {
             playerHasKey = false;
         }
     }
+    
+    const boxElevador = scene.getObjectByName('DesceElevador');
     const elevadores = scene.children.filter(obj => obj.name === 'elevador');
-    elevadores.forEach(elevador => { moveElevador(elevador, downRay, frontRay); });
+   
+    elevadores.forEach(elevador => { moveElevador(elevador, downRay, boxElevador, controls); });
+    
 }
 
 function render() {
