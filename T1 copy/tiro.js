@@ -117,6 +117,12 @@ function shootProjectile() {
                         enemyRoot.userData.healthBar = null;
                     }
                     
+                    // Remove o efeito de fogo se existir
+                    if (enemyRoot.userData.fireEffect) {
+                        enemyRoot.userData.fireEffect.dispose();
+                        enemyRoot.userData.fireEffect = null;
+                    }
+                    
                     if (enemyRoot.userData.eliminate) {
                         enemyRoot.userData.eliminate();
                     } else {
@@ -204,6 +210,12 @@ export function updateProjectiles(delta) {
                             if (enemyRoot.userData.healthBar) {
                                 enemyRoot.userData.healthBar.remove();
                                 enemyRoot.userData.healthBar = null;
+                            }
+                            
+                            // Remove o efeito de fogo se existir
+                            if (enemyRoot.userData.fireEffect) {
+                                enemyRoot.userData.fireEffect.dispose();
+                                enemyRoot.userData.fireEffect = null;
                             }
                             
                             if (enemyRoot.userData.eliminate) {
