@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { criaBlocoChave, criaChave } from './areaChave.js';
 import { moveAnimate } from './primeiraPessoa.js';
-import { texTowerRight, texTowerLeft, texTowerTop, texTowerBack, texTowerFront } from './Loaders.js';
+import { texTowerRight, texTowerLeft, texTowerTop, texTowerBack, texTowerFront, texArea2Wall , texArea2Top} from './Loaders.js';
 
 const SHOW_COLLISION_BOXES = false;
 
@@ -126,11 +126,17 @@ function createBlocoChave(scene) {
 // Função para criar o elevador e porta
 function createElevador(scene) {
     const portaGeometry = new THREE.BoxGeometry(5, 10, 20);
-    const portaMaterial = new THREE.MeshLambertMaterial({ color: 'red' });
+    const portaMaterial = new THREE.MeshLambertMaterial({
+        map: texTowerBack, // textura da parede da área 2
+        color: 0xffffff
+    });
     const portaMesh = new THREE.Mesh(portaGeometry, portaMaterial);
 
     const elevadorGeometry = new THREE.BoxGeometry(15, 10, 20);
-    const elevadorMaterial = new THREE.MeshLambertMaterial({ color: 'blue' });
+    const elevadorMaterial = new THREE.MeshLambertMaterial({
+        map: texArea2Top, // textura do topo da área 2
+        color: 0xffffff
+    });
     const elevadorMesh = new THREE.Mesh(elevadorGeometry, elevadorMaterial);
 
     portaMesh.position.set(117.5, 5, 0);

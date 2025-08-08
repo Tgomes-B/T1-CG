@@ -9,6 +9,8 @@ import {
     texPillarArea1,
     texPillarArea1Displacement,
 } from './Loaders.js';
+import { criaTexturaArea2 } from './textureArea2.js';
+import { criaTexturaArea1 } from './textureArea1.js';
 /**
  * Cria áreas, rampas e chão do ambiente 3D.
  * @param {THREE.Scene} scene - A cena onde os objetos serão adicionados
@@ -43,28 +45,12 @@ export function criaAreasRampas(scene) {
     
     const envMap = textureLoader.load('./images/SkyBoxT3/SkyBox2.png');
     envMap.mapping = THREE.EquirectangularReflectionMapping;
-    
-    const area2Materials = new THREE.MeshStandardMaterial({
-        map: texArea2Top,
-        metalness: 0.8,
-        roughness: 4,
-        metalnessMap: texArea2Metallic,
-        roughnessMap: texArea2Roughness,
-        color: 0xffffff
-    });
-
-    const area1Material = new THREE.MeshStandardMaterial({
-        map: texArea1,
-        color: 0xffffff,
-        metalness: 0.5,
-        roughness: 0.7
-    });
 
     const areaGeometry = new THREE.BoxGeometry(120, 10, 120);
     const areaAzulGeometry = new THREE.BoxGeometry(120, 10, 310);
     const areaMaterial = [
-       area1Material,
-        area2Materials,
+        new THREE.MeshLambertMaterial({ color: 'rgb(29, 219, 11)' }),
+       new THREE.MeshLambertMaterial({ color: 0x3b82f6 }),
         new THREE.MeshLambertMaterial({ color: 'rgb(255, 100, 100)' }),
         new THREE.MeshLambertMaterial({ color: 'rgb(100, 123, 255)' })
     ];
@@ -107,22 +93,17 @@ export function criaAreasRampas(scene) {
         scene.add(ramp);
     }
 
-    function criaAreaColisao(areaX, areaY, areaZ, dimensoes, rotacionarY = false) {
-        const [largura, altura, profundidade] = dimensoes;
+    function criaAreaColisao(areaX, areaY, areaZ, dimensoes, rotacionarY = false, material = null) {
         const mesh = new THREE.Mesh(
             new THREE.BoxGeometry(...dimensoes),
-            new THREE.MeshBasicMaterial({ 
+            material || new THREE.MeshBasicMaterial({ 
                 color: 0x00ff00, 
                 transparent: true, 
                 opacity: 0.5,
                 visible: false
             })
         );
-        
-        if (rotacionarY) {
-            mesh.rotateY(Math.PI / 2);
-        }
-        
+        if (rotacionarY) mesh.rotateY(Math.PI / 2);
         mesh.position.set(areaX, areaY, areaZ);
         mesh.userData.isCollidable = true;
         mesh.name = 'topo_colisao';
@@ -134,34 +115,36 @@ export function criaAreasRampas(scene) {
 
     for (let i = 0; i <= 3; i++) {
         let areaX, areaY, areaZ;
-        if( i == 0) {
-            const PrimAreaGeometry = new THREE.BoxGeometry(120, 4, 120);
-            molde = new THREE.Mesh(PrimAreaGeometry, areaMaterial[i]);
+    
+        if (i == 0) {
+            // Área 1
+            molde = new THREE.Mesh(areaGeometry, areaMaterial[i]);
             molde.position.set(45, 0, 0);
             areaX = 130;
             areaY = 2;
             areaZ = posZ;
-
+    
             criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 4, 120], true);
             criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 4, 120], true);
-            criaAreaColisao(areaX + 60, areaY, areaZ, [90, 4, 20]);
-        }else if (i == 1) {
+            criaAreaColisao(areaX + 60, areaY, areaZ, [90, 4, 20], false);
+        } else if (i == 1) {
+            // Área 2
             molde = new THREE.Mesh(areaGeometry, areaMaterial[i]);
             molde.position.set(55, 0, 0);
             areaX = 130;
             areaY = 5;
             areaZ = posZ;
-
+    
             criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 10, 120], true);
             criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 10, 120], true);
-            criaAreaColisao(areaX + 55, areaY, areaZ, [100, 10, 20]);
-        }else if (i == 2) {
+            criaAreaColisao(areaX + 55, areaY, areaZ, [100, 10, 20], false);
+        } else if (i == 2) {
             molde = new THREE.Mesh(areaGeometry, areaMaterial[i]);
             molde.position.set(45, 0, 0);
             areaX = 130;
             areaY = 5;
             areaZ = posZ;
-
+    
             criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 10, 120], true);
             criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 10, 120], true);
             criaAreaColisao(areaX + 60, areaY, areaZ, [90, 10, 20]);
@@ -171,39 +154,45 @@ export function criaAreasRampas(scene) {
             areaX = -130;
             areaY = 5;
             areaZ = 0;
-
+    
             criaAreaColisao(areaX - 45, areaY, areaZ + 82.5, [145, 10, 120], true);
             criaAreaColisao(areaX - 45, areaY, areaZ - 82.5, [145, 10, 120], true);
             criaAreaColisao(areaX - 60, areaY, areaZ, [90, 10, 20]);
         }
-
+    
         updateObject(molde);
         let auxCSG = CSG.fromMesh(molde);
         let objectCSG = auxCSG.subtract(boxCSG);
         areas[i] = CSG.toMesh(objectCSG, new THREE.Matrix4());
-
-        if (i == 3) {
+        areas[i].visible = false;
+    
+        // Adiciona as texturas visuais corretas para cada área
+        if (i == 0) {
+            // Área 1: topo sólido
+            criaTexturaArea1(scene, { x: 130, y: 2, z: posZ });
+            areas[i].position.set(130, 2, posZ);
+            criaEscada(115, posZ, comp, 130, 4, -0.1325, 2);
+        } else if (i == 1) {
+            // Área 2: topo com buraco e laterais
+            criaTexturaArea2(scene, { x: 175, y: 0, z: posZ });
+            areas[i].position.set(120, 5, posZ);
+        } else if (i == 2) {
+            areas[i].position.set(130, 5, posZ);
+            criaEscada(115, posZ, comp, 130, 10, -0.102 * Math.PI, 5);
+        } else if (i == 3) {
             areas[i].position.set(-130, 5, 0);
             comp = -1 * comp;
             posZ = 0;
             criaEscada(-115, posZ, comp, -130, 10, 0.102 * Math.PI, 5);
-        
-        }else if (i == 0) {
-            areas[i].position.set(130, 2, posZ);
-            criaEscada(115, posZ, comp, 130, 4, -0.1325, 2);
-        }else if (i == 1) {
-            areas[i].position.set(120, 5, posZ);
-        }else if (i == 2) {
-            areas[i].position.set(130, 5, posZ);
-            criaEscada(115, posZ, comp, 130, 10, -0.102 * Math.PI, 5);
         }
-        
+    
         areas[i].material = areaMaterial[i];
         areas[i].castShadow = true;
         areas[i].receiveShadow = true;
         posZ += 155;
         scene.add(areas[i]);
     }
+
     criaPilares(scene, areas[0]);
     
     return { areas, ramp, ground };
@@ -213,7 +202,7 @@ export function criaAreasRampas(scene) {
 const SHOW_COLLISION_BOXES = false;
 
 export function criaPilares(scene, area1) {
-    const pilarGeometry = new THREE.CylinderGeometry(4, 4, 30, 32);
+    const pilarGeometry = new THREE.CylinderGeometry(4, 4, 30, 64);
 
     const lateralMaterial = new THREE.MeshStandardMaterial({
         map: texPillarArea1,
@@ -224,9 +213,8 @@ export function criaPilares(scene, area1) {
         roughness: 0.7
     });
     const capMaterial = new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        metalness: 0.2,
-        roughness: 0.7
+        map: texPillarArea1,
+        side: THREE.DoubleSide
     });
 
     const pilarMaterials = [lateralMaterial, capMaterial, capMaterial];
@@ -274,7 +262,7 @@ export function criaPilares(scene, area1) {
         // Pilares da frente
         const frontPillar = createPillar(
             areaPosition.x + Xcont, 
-            17, 
+            18.75,
             areaPosition.z - 55
         );
         pillarsGroup.add(frontPillar);
@@ -282,7 +270,7 @@ export function criaPilares(scene, area1) {
         // Pilares de trás
         const backPillar = createPillar(
             areaPosition.x + Xcont, 
-            17, 
+            18.75,
             areaPosition.z + 55
         );
         pillarsGroup.add(backPillar);
@@ -294,7 +282,7 @@ export function criaPilares(scene, area1) {
     while (Zcont <= 35) {
         const leftPillar = createPillar(
             areaPosition.x - 10,
-            17,
+            18.75,
             areaPosition.z + Zcont
         );
         pillarsGroup.add(leftPillar);
@@ -310,7 +298,7 @@ export function criaPilares(scene, area1) {
     while (contBack <= 33) {
         const rightPillar = createPillar(
             areaPosition.x + 100,
-            17,
+            18.75, 
             areaPosition.z + contBack
         );
         pillarsGroup.add(rightPillar);
@@ -323,7 +311,58 @@ export function criaPilares(scene, area1) {
     
     // Atualiza todas as matrizes no grupo
     pillarsGroup.updateMatrixWorld(true);
+
+    const discoGeometry = new THREE.CylinderGeometry(6, 6, 2, 64);
+    const discoMaterial = new THREE.MeshStandardMaterial({
+        map: texPillarArea1,
+        color: 0xffffff,
+        metalness: 0.2,
+        roughness: 0.7
+    });
+
+    // Array para guardar referências dos pilares
+    const pilarMeshes = [];
+    pillarsGroup.children.forEach(pilar => {
+        // Adiciona disco
+        const disco = new THREE.Mesh(discoGeometry, discoMaterial);
+        disco.position.set(0, 16, 0); // 16 = metade da altura do pilar + metade do disco
+        disco.castShadow = true;
+        disco.receiveShadow = true;
+        pilar.add(disco);
+
+        pilarMeshes.push(pilar);
+    });
+
+    pilarMeshes.sort((a, b) => {
+        if (a.position.x !== b.position.x) return a.position.x - b.position.x;
+        return a.position.z - b.position.z;
+    });
     
+    // Seleciona sempre os mesmos 7 pilares pelos índices fixos
+    const indicesFixos = [3, 10, 16, 1, 14, 7, 18]; // (lembre: índice começa em 0)
+    const escolhidos = indicesFixos.map(idx => pilarMeshes[idx]).filter(Boolean);
+    
+    const blocoGeometry = new THREE.BoxGeometry(10, 3, 18);
+    const blocoMaterial = new THREE.MeshStandardMaterial({
+        map: texPillarArea1, // tom de pedra clara
+        metalness: 0.1,
+        roughness: 0.9
+    });
+    
+    escolhidos.forEach(pilar => {
+        const bloco = new THREE.Mesh(blocoGeometry, blocoMaterial);
+        bloco.position.set(0, 18.5, 0); // ajuste conforme altura do disco/pilar
+    
+    // Rotaciona o bloco apenas se o pilar está nas laterais (esquerda ou direita)
+    if (pilar.position.x - areaPosition.x > -5 && pilar.position.x - areaPosition.x < 80) {
+        bloco.rotation.y = Math.PI / 2;
+    }
+    
+        bloco.castShadow = true;
+        bloco.receiveShadow = true;
+        pilar.add(bloco);
+    });
+
     return area1;
 }
 

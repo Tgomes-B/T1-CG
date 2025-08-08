@@ -8,13 +8,21 @@ texArea1.wrapS = THREE.RepeatWrapping;
 texArea1.wrapT = THREE.RepeatWrapping;
 texArea1.repeat.set(10, 10);
 texArea1.offset.set(0, 0); 
+export const texArea1Wall = textureLoader.load('./images/Textures/area1/wallArea1.png')
+texArea1Wall.wrapS = THREE.RepeatWrapping;
+texArea1Wall.wrapS = THREE.RepeatWrapping;
+texArea1Wall.repeat.set(10,1);
+texArea1Wall.offset.set(0, 0); 
 
 // --- Texturas da área 2 (topo e base) ---
 export const texArea2Top = textureLoader.load('./images/Textures/area2/ground/Metal.png');
 export const texarea2Alt = textureLoader.load('./images/Textures/area2/ground/Metal.png');
 export const texArea2Metallic = textureLoader.load('./images/Textures/area2/ground/MetalMetallic.png');
 export const texArea2Roughness = textureLoader.load('./images/Textures/area2/ground/MetalRoughness.png');
-
+export const texArea2Wall = textureLoader.load('./images/Textures/area2/laterals/area2Wall.png');
+texArea2Wall.wrapT = THREE.RepeatWrapping;
+texArea2Wall.wrapS = THREE.RepeatWrapping;
+texArea2Wall.repeat.set(10, 1);
 // --- Texturas das torres (laterais) ---
 export const texTowerRight = textureLoader.load('./images/Textures/area2/laterals/sides.jpg');
 export const texTowerLeft  = textureLoader.load('./images/Textures/area2/laterals/sides.jpg');
@@ -39,7 +47,7 @@ texPillarArea1.wrapS = THREE.RepeatWrapping;
 texPillarArea1.wrapT = THREE.RepeatWrapping;
 texPillarArea1.repeat.set(5,5);
 
-export const texPillarArea1Displacement = textureLoader.load('./images/Textures/area1/romanPilar_height.png');
+export const texPillarArea1Displacement = textureLoader.load('./images/Textures/area1/romanPilar_height_contraste_extremo.png');
 texPillarArea1Displacement.wrapS = THREE.RepeatWrapping;
 texPillarArea1Displacement.wrapT = THREE.RepeatWrapping;
 texPillarArea1.repeat.set(5,5);
