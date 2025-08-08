@@ -67,7 +67,7 @@ function init() {
     camera = createCamera();
 
     const loader = new THREE.TextureLoader();
-    const skyTexture = loader.load('./images/SkyBoxT3/SkyBox2.png');
+    const skyTexture = loader.load('./images/SkyboxT3/SkyBox2.png');
     skyTexture.mapping = THREE.EquirectangularReflectionMapping;
     scene.background = skyTexture;
 
