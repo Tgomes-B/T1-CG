@@ -3,11 +3,10 @@ import { CSG } from '../libs/other/CSGMesh.js';
 import GUI from '../libs/util/dat.gui.module.js';
 import {
     texArea2Top,
-    texArea2Metallic,
-    texArea2Roughness,
-    texArea1,
+    texDisc,
     texPillarArea1,
     texPillarArea1Displacement,
+    texPreda
 } from './Loaders.js';
 import { criaTexturaArea2 } from './textureArea2.js';
 import { criaTexturaArea1 } from './textureArea1.js';
@@ -73,7 +72,7 @@ export function criaAreasRampas(scene) {
         let degrau;
         let altura = alt / 8;
         const degrauGeometry = new THREE.BoxGeometry(30 / 8, altura, 20);
-        const degrauMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(96, 52, 255)' });
+        const degrauMaterial = new THREE.MeshLambertMaterial({ map: texPreda });
         
         for (let i = 0; i < 8; i++) {
             degrau = new THREE.Mesh(degrauGeometry, degrauMaterial);
@@ -312,7 +311,7 @@ export function criaPilares(scene, area1) {
 
     const discoGeometry = new THREE.CylinderGeometry(6, 6, 2, 64);
     const discoMaterial = new THREE.MeshStandardMaterial({
-        map: texPillarArea1,
+        map: texDisc,
         color: 0xffffff,
         metalness: 0.2,
         roughness: 0.7
@@ -342,7 +341,7 @@ export function criaPilares(scene, area1) {
     
     const blocoGeometry = new THREE.BoxGeometry(10, 3, 18);
     const blocoMaterial = new THREE.MeshStandardMaterial({
-        map: texPillarArea1, // tom de pedra clara
+        map: texPreda, // tom de pedra clara
         metalness: 0.1,
         roughness: 0.9
     });
