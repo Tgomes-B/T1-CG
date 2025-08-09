@@ -137,6 +137,10 @@ function setupEnvironment() {
             loadedCount++;
             if (loadedCount === enemyPositions.length) {
                 areaChaveData = setupAreaChave(scene, area1, enemiesArea1);
+
+                // ESCONDE A TELA DE LOADING QUANDO TUDO CARREGAR
+                const loadingScreen = document.getElementById('loadingScreen');
+                if (loadingScreen) loadingScreen.style.display = 'none';
             }
         });
     });
@@ -156,7 +160,6 @@ function setupEnvironment() {
         };
     });
     adicionarInimigoCena(scene, posicoesArea2, () => {
-        // Espera um frame para garantir que os inimigos estão na cena
         setTimeout(() => {
             setupCacodemonElimination(scene);
         }, 0);
@@ -164,7 +167,6 @@ function setupEnvironment() {
 
     const posBoss = new THREE.Vector3(-180, 12, -180);
     adicionarBossGLB(scene, '../0_assetsT3/objects/pain/painElemental.glb', posBoss);
-
 }
 
 function setupLightingAndCollision() {
