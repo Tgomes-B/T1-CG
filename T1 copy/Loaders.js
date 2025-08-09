@@ -13,6 +13,8 @@ texArea1Wall.wrapS = THREE.RepeatWrapping;
 texArea1Wall.wrapS = THREE.RepeatWrapping;
 texArea1Wall.repeat.set(10,1);
 texArea1Wall.offset.set(0, 0); 
+export const texDisc = textureLoader.load('./images/Textures/area1/romanPilarDisc.png');
+export const texPreda = textureLoader.load('../assets/textures/porcelanatoC.png');
 
 // --- Texturas da área 2 (topo e base) ---
 export const texArea2Top = textureLoader.load('./images/Textures/area2/ground/Metal.png');
@@ -23,6 +25,7 @@ export const texArea2Wall = textureLoader.load('./images/Textures/area2/laterals
 texArea2Wall.wrapT = THREE.RepeatWrapping;
 texArea2Wall.wrapS = THREE.RepeatWrapping;
 texArea2Wall.repeat.set(10, 1);
+
 // --- Texturas das torres (laterais) ---
 export const texTowerRight = textureLoader.load('./images/Textures/area2/laterals/sides.jpg');
 export const texTowerLeft  = textureLoader.load('./images/Textures/area2/laterals/sides.jpg');
@@ -40,6 +43,13 @@ export const texArea2Faces = [
     textureLoader.load('./images/Textures/area2/ground/Metal.png'), // front
     textureLoader.load('./images/Textures/area2/ground/Metal.png')  // back
 ];
+// --- Texturas elevador ---
+export const texElevadorTop = textureLoader.load('./images/Textures/area2/elevadorTop.jpeg');
+export const texElevadorSides = textureLoader.load('./images/Textures/area2/elevadorSides.jpeg');
+
+// --- Textura portão ---
+
+export const texGate = textureLoader.load('./images/Textures/area2/ScifiGate.jpeg');
 
 // --- Pilares da area 1 ---
 export const texPillarArea1 = textureLoader.load('./images/Textures/area1/romanPillar.png');

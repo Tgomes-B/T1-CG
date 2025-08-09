@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import { criaBlocoChave, criaChave } from './areaChave.js';
 import { moveAnimate } from './primeiraPessoa.js';
-import { texTowerRight, texTowerLeft, texTowerTop, texTowerBack, texTowerFront, texArea2Wall , texArea2Top} from './Loaders.js';
+import { texTowerRight, texTowerLeft, 
+    texTowerTop, texTowerBack, texTowerFront, 
+    texArea2Top,texElevadorSides,texElevadorTop,
+    texGate} from './Loaders.js';
 
 const SHOW_COLLISION_BOXES = false;
 
@@ -15,11 +18,29 @@ const torreMaterials = [
     new THREE.MeshLambertMaterial({ map: texTowerBack })
 ];
 
+const portaMaterial = [
+    new THREE.MeshLambertMaterial({map:texGate}),
+    new THREE.MeshLambertMaterial({map:texGate}),
+    new THREE.MeshLambertMaterial({map:texGate}),
+    new THREE.MeshLambertMaterial({map:texGate}),
+    new THREE.MeshLambertMaterial({map:texGate}),
+    new THREE.MeshLambertMaterial({map:texGate}),
+];
+
+const elevadorMaterial = [
+    new THREE.MeshLambertMaterial({map:texElevadorSides}),
+    new THREE.MeshLambertMaterial({map:texElevadorSides}),
+    new THREE.MeshLambertMaterial({map:texElevadorTop}),
+    new THREE.MeshLambertMaterial({map:texElevadorTop}),
+    new THREE.MeshLambertMaterial({map:texElevadorSides}),
+    new THREE.MeshLambertMaterial({map:texElevadorSides}),
+];
+
 // Função para criar uma torre
 function createTower(x, y, z, width, height, depth, material) {
     const geometry = new THREE.BoxGeometry(width, height, depth);
     const tower = new THREE.Mesh(geometry, torreMaterials);
-    tower.position.set(x+120, y, z);
+    tower.position.set(x+120, y + 5, z);
     tower.name = "torre";
     tower.castShadow = true;
     tower.receiveShadow = true;
@@ -126,17 +147,9 @@ function createBlocoChave(scene) {
 // Função para criar o elevador e porta
 function createElevador(scene) {
     const portaGeometry = new THREE.BoxGeometry(5, 10, 20);
-    const portaMaterial = new THREE.MeshLambertMaterial({
-        map: texTowerBack, // textura da parede da área 2
-        color: 0xffffff
-    });
     const portaMesh = new THREE.Mesh(portaGeometry, portaMaterial);
 
     const elevadorGeometry = new THREE.BoxGeometry(15, 10, 20);
-    const elevadorMaterial = new THREE.MeshLambertMaterial({
-        map: texArea2Top, // textura do topo da área 2
-        color: 0xffffff
-    });
     const elevadorMesh = new THREE.Mesh(elevadorGeometry, elevadorMaterial);
 
     portaMesh.position.set(117.5, 5, 0);
