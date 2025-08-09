@@ -3,7 +3,8 @@ import {
     texArea2Top,
     texArea2Metallic,
     texArea2Roughness,
-    texArea2Wall
+    texArea2Wall, 
+    texBottom
 } from './Loaders.js';
 
 // Cria o topo e as laterais da área 2, respeitando espaço para elevador/porta
@@ -177,4 +178,12 @@ export function criaTexturaArea2(scene, pos = { x: 130, y: 10, z: 0 }) {
     fundo.rotation.y = Math.PI/2;
     fundo.castShadow = true;
     scene.add(fundo);
+
+    const PlaneGeo = new THREE.PlaneGeometry(width, depth);
+    const PlaneMat = new THREE.MeshLambertMaterial({ map: texBottom, side: THREE.DoubleSide });
+    const Plane = new THREE.Mesh(PlaneGeo, PlaneMat);
+    Plane.position.set(pos.x, pos.y - 0.11, pos.z); // um pouco abaixo da área
+    Plane.rotation.x = -Math.PI / 2;
+    scene.add(Plane);
+
 }

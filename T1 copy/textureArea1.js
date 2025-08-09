@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import {
     texArea1,
-    texArea1Wall
+    texArea1Wall,
+    texBottom
  } from './Loaders.js';
 
 // Cria o topo da área 1 (sem buraco)
@@ -143,6 +144,14 @@ export function criaTexturaArea1(scene, pos = { x: 130, y: 2, z: 0 }) {
       buracoZFrente -buracoLargura - 35
   );
   buracoLateralDir.castShadow = true;
-  scene.add(buracoLateralDir)
+    scene.add(buracoLateralDir)
+    
+    // --- Plano QR code abaixo da área 1 ---
+    const PlaneGeo = new THREE.PlaneGeometry(width, depth);
+    const PlaneMat = new THREE.MeshLambertMaterial({ map: texBottom, side: THREE.DoubleSide });
+    const Plane = new THREE.Mesh(PlaneGeo, PlaneMat);
+    Plane.position.set(pos.x + 45, 0, pos.z); // um pouco abaixo da área
+    Plane.rotation.x = -Math.PI / 2;
+    scene.add(Plane);
     
 }

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CSG } from '../libs/other/CSGMesh.js';
+import { texBlockTop, texBlockSide, texBlockSide2 } from './Loaders.js';
 
 export function criaChave(cor) {
     let keyMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1));
@@ -128,8 +129,17 @@ export function setupAreaChave(scene, area, enemies) {
 }
 
 export function criaBlocoChave(Bluck){
-    const blocoGeometry = new THREE.BoxGeometry(2,4,2);
-    const blocoMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(200, 200, 200)' });
+    const blocoGeometry = new THREE.BoxGeometry(2, 4, 2);
+
+
+    const blocoMaterial = [
+        new THREE.MeshLambertMaterial({ map: texBlockSide }), // right
+        new THREE.MeshLambertMaterial({ map: texBlockSide }), // left
+        new THREE.MeshLambertMaterial({ map: texBlockTop }),  // top
+        new THREE.MeshLambertMaterial({ map: texBlockTop }),  // bottom
+        new THREE.MeshLambertMaterial({ map: texBlockSide2 }), // front (girado)
+        new THREE.MeshLambertMaterial({ map: texBlockSide2 })  // back
+    ];
     let bloco = new THREE.Mesh(blocoGeometry, blocoMaterial);
     if (Bluck === 1) {
         bloco.name = 'bloco1';

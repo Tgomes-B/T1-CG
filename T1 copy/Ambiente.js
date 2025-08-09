@@ -4,9 +4,11 @@ import GUI from '../libs/util/dat.gui.module.js';
 import {
     texArea2Top,
     texDisc,
+    texDiscTop,
     texPillarArea1,
     texPillarArea1Displacement,
-    texPreda
+    texPreda,
+    texBottom
 } from './Loaders.js';
 import { criaTexturaArea2 } from './textureArea2.js';
 import { criaTexturaArea1 } from './textureArea1.js';
@@ -49,7 +51,7 @@ export function criaAreasRampas(scene) {
     const areaAzulGeometry = new THREE.BoxGeometry(120, 10, 310);
     const areaMaterial = [
         new THREE.MeshLambertMaterial({ color: 'rgb(29, 219, 11)' }),
-       new THREE.MeshLambertMaterial({ color: 0x3b82f6 }),
+         new THREE.MeshLambertMaterial({ color: 0x3b82f6 }),
         new THREE.MeshLambertMaterial({ color: 'rgb(255, 100, 100)' }),
         new THREE.MeshLambertMaterial({ color: 'rgb(100, 123, 255)' })
     ];
@@ -310,19 +312,36 @@ export function criaPilares(scene, area1) {
     pillarsGroup.updateMatrixWorld(true);
 
     const discoGeometry = new THREE.CylinderGeometry(6, 6, 2, 64);
-    const discoMaterial = new THREE.MeshStandardMaterial({
-        map: texDisc,
-        color: 0xffffff,
-        metalness: 0.2,
-        roughness: 0.7
-    });
+    texDisc.wrapS = THREE.RepeatWrapping;
+    texDisc.wrapT = THREE.RepeatWrapping;
+    texDisc.repeat.set(7, 1);
+    const discoMaterials = [
+        new THREE.MeshStandardMaterial({
+            map: texDisc,         
+            color: 0xffffff,
+            metalness: 0.2,
+            roughness: 0.7
+        }),
+        new THREE.MeshStandardMaterial({
+            map: texDiscTop,     
+            color: 0xffffff,
+            metalness: 0.2,
+            roughness: 0.7
+        }),
+        new THREE.MeshStandardMaterial({
+            map: texDiscTop,      
+            color: 0xffffff,
+            metalness: 0.2,
+            roughness: 0.7
+        })
+    ];
 
     // Array para guardar referências dos pilares
     const pilarMeshes = [];
     pillarsGroup.children.forEach(pilar => {
         // Adiciona disco
-        const disco = new THREE.Mesh(discoGeometry, discoMaterial);
-        disco.position.set(0, 16, 0); // 16 = metade da altura do pilar + metade do disco
+        const disco = new THREE.Mesh(discoGeometry, discoMaterials);
+        disco.position.set(0, 16, 0);
         disco.castShadow = true;
         disco.receiveShadow = true;
         pilar.add(disco);

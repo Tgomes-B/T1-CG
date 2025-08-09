@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { isPaused } from './primeiraPessoa.js';
 
 let camera, scene, controls;
 const projectileSpeed = 100;
@@ -26,6 +27,7 @@ export function setupShooting(_camera, _scene, _controls, _getCurrentWeapon,_are
     areas = _areas;
     if (getCurrentWeapon().name === "chaingun") stopChaingunAnimation();
     document.addEventListener('mousedown', (event) => {
+        if (isPaused || !controls.isLocked) return;
         if (event.button !== 0 && event.button !== 2) return;
         isMousePressed = true;
         shootProjectile();

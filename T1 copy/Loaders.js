@@ -14,6 +14,7 @@ texArea1Wall.wrapS = THREE.RepeatWrapping;
 texArea1Wall.repeat.set(10,1);
 texArea1Wall.offset.set(0, 0); 
 export const texDisc = textureLoader.load('./images/Textures/area1/romanPilarDisc.png');
+export const texDiscTop = textureLoader.load('./images/Textures/area1/PilarDiscTop.png');
 export const texPreda = textureLoader.load('../assets/textures/porcelanatoC.png');
 
 // --- Texturas da área 2 (topo e base) ---
@@ -60,4 +61,15 @@ texPillarArea1.repeat.set(1,1);
 export const texPillarArea1Displacement = textureLoader.load('./images/Textures/area1/romanPilar_height_contraste_extremo.png');
 texPillarArea1Displacement.wrapS = THREE.RepeatWrapping;
 texPillarArea1Displacement.wrapT = THREE.RepeatWrapping;
-texPillarArea1.repeat.set(1,1);
+texPillarArea1.repeat.set(1, 1);
+
+// --- Blocos pra chaves ---
+export const texBlockTop = textureLoader.load('./images/Textures/blocos/blockTop.png');
+export const texBlockSide = textureLoader.load('./images/Textures/blocos/blockSide.png');
+export const texBlockSide2 = textureLoader.load('./images/Textures/blocos/blockSide2.png');
+
+// --- Parte de baixo da area ---
+export const texBottom = textureLoader.load('./images/Textures/areasBottom.png');
+texBottom.wrapS = THREE.RepeatWrapping;
+texBottom.wrapT = THREE.RepeatWrapping;
+texBottom.repeat.set(1, 1);

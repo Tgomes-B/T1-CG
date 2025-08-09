@@ -12,6 +12,8 @@ import { setupCollision } from './colisao.js';
 import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
 import { adicionarBossGLB } from './boss.js';
 
+export { isPaused };
+
 // Função auxiliar para encontrar objetos colidíveis
 function findCollidables(object, result = []) {
     if (object.userData && object.userData.isCollidable) {
@@ -516,7 +518,7 @@ function render() {
     
         // Interpolação entre posição inicial e final
         const blocoY0 = -4;
-        const blocoY1 = 6;
+        const blocoY1 = 4;
         areaChaveData.blocoAnimado.position.y = blocoY0 + (blocoY1 - blocoY0) * t;
 
         if (t >= 1) {
@@ -557,13 +559,13 @@ function render() {
         }
         if (scene.userData.animandoChaveAmarela && scene.userData.chaveAmarela) {
             scene.userData.tempoAnimacaoChaveAmarela += delta;
-            let t = Math.min(scene.userData.tempoAnimacaoChaveAmarela / 1.2, 1); // 1.2s para cair
+            let t = Math.min(scene.userData.tempoAnimacaoChaveAmarela / 3, 1); // 1.2s para cair
         
             // Posição inicial: logo acima do topo da torre
             // Posição final: topo da torre (altura/2)
             const alturaTorre = scene.userData.torreEspecial.geometry.parameters.height;
-            const yTopo = alturaTorre - 25;
-            const yFinal = alturaTorre - 35;
+            const yTopo = alturaTorre - 15;
+            const yFinal = alturaTorre - 38;
         
             scene.userData.chaveAmarela.position.y = yTopo + (yFinal - yTopo) * t;
         
@@ -580,7 +582,7 @@ function render() {
             const torre = scene.userData.torreEspecial;
             if (torre) {
                 const alturaTorre = torre.geometry.parameters.height;
-                const baseY = alturaTorre - 35; // baseY igual ao yFinal da animação de queda
+                const baseY = alturaTorre - 38; // baseY igual ao yFinal da animação de queda
                 scene.userData.chaveAmarela.position.y =
                     baseY + Math.sin(performance.now() * 0.002) * 1.2;
             }
