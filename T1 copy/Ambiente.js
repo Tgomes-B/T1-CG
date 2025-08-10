@@ -9,10 +9,14 @@ import { setupCollision } from './colisao.js';
  * @param {THREE.Scene} scene - A cena onde os objetos serão adicionados
  * @returns {Object} Objeto contendo as áreas, rampa e chão criados
  */
+
+let loader = new THREE.TextureLoader();
+
 export function criaAreasRampas(scene) {
     const planeGeometry = new THREE.PlaneGeometry(500, 500);
     const planeMaterial = new THREE.MeshLambertMaterial({ color: 'rgb(249, 223, 184)' });
     const ground = new THREE.Mesh(planeGeometry, planeMaterial);
+
     ground.position.set(0, 0, 0);
     ground.rotation.x = -0.5 * Math.PI;
     ground.name = "ground";
@@ -21,14 +25,25 @@ export function criaAreasRampas(scene) {
 
     const areaGeometry = new THREE.BoxGeometry(120, 10, 120);
     const areaAzulGeometry = new THREE.BoxGeometry(120, 10, 310);
+
+    const cor = new THREE.MeshBasicMaterial ({color:'rgba(88, 88, 88, 1)'});
+    const baseMaterial = [
+        cor, //x+
+        cor, //x-   Texture + color
+        setMaterial('./images/Textures/Area3/cimento.jpg', 20, 20), //y+
+        cor, //y-  Just a color
+        cor, //x+
+        cor //x+
+    ];
+
     const areaMaterial = [
         new THREE.MeshLambertMaterial({ color: 'rgb(155, 249, 134)' }),
         new THREE.MeshLambertMaterial({ color: 'rgb(210, 202, 55)' }),
-        new THREE.MeshLambertMaterial({ color: 'rgba(57, 57, 57, 1)' }),
+        baseMaterial,
         new THREE.MeshLambertMaterial({ color: 'rgb(100, 123, 255)' })
     ];
 
-    let molde, base, areas = [], posZ = -155, comp = 30 / 8, ramp, rotX = 1.5 * Math.PI;
+    let molde, areas = [], posZ = -155, comp = 30 / 8, ramp, rotX = 1.5 * Math.PI;
     let boxMesh = new THREE.Mesh(new THREE.BoxGeometry(30, 10, 20));
     boxMesh.position.set(0, 0, 0);
     let boxCSG = CSG.fromMesh(boxMesh);
@@ -116,7 +131,9 @@ export function criaAreasRampas(scene) {
             criaAreaColisao(areaX + 55, areaY, areaZ, [100, 10, 20]);
         }else if (i == 2) {
             const TercAreaGeometry = new THREE.BoxGeometry(120, 0.05, 120);
-            base = new THREE.Mesh(TercAreaGeometry, areaMaterial[i]);
+
+            const base = new THREE.Mesh(TercAreaGeometry, areaMaterial[i]);
+
             base.position.set(45, 0, 0);
             areaX = 130;
             areaY = 0.025;
@@ -317,20 +334,29 @@ export function criaParedes(scene) {
      * @param {string} name - Nome identificador da parede
      * @returns {THREE.Mesh} A parede criada
      */
-// 2. Função createWall atualizada:
-function createWall(width, height, depth, position, name) {
-  const geometry = new THREE.BoxGeometry(width, height, depth);
-  const wall = new THREE.Mesh(geometry, wallMaterial);
-  wall.position.set(...position);
-  wall.name = name;
-  wall.userData.isCollidable = true;
-  
-  // Habilitar sombras
-  wall.castShadow = true;
-  wall.receiveShadow = true;
-  
-  return wall;
+    // 2. Função createWall atualizada:
+    function createWall(width, height, depth, position, name) {
+    const geometry = new THREE.BoxGeometry(width, height, depth);
+    const wall = new THREE.Mesh(geometry, wallMaterial);
+    wall.position.set(...position);
+    wall.name = name;
+    wall.userData.isCollidable = true;
+    
+    // Habilitar sombras
+    wall.castShadow = true;
+    wall.receiveShadow = true;
+    
+    return wall;
+    }
 }
+
+function setMaterial(file, repeatU = 1, repeatV = 1, color = 'rgb(255,255,255)'){
+   let mat = new THREE.MeshBasicMaterial({ map: loader.load(file), color:color});
+      mat.map.colorSpace = THREE.SRGBColorSpace;
+   mat.map.wrapS = mat.map.wrapT = THREE.RepeatWrapping;
+   mat.map.minFilter = mat.map.magFilter = THREE.LinearFilter;
+   mat.map.repeat.set(repeatU,repeatV); 
+   return mat;
 }
 
 export function setupLighting(scene) {

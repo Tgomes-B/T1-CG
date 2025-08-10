@@ -456,11 +456,11 @@ export function moveAnimate(delta) {
             playerHasKey = false;
         }
     }
-    
-    const boxElevador = scene.getObjectByName('DesceElevador');
-    const elevadores = scene.children.filter(obj => obj.name === 'elevador');
-   
-    elevadores.forEach(elevador => { moveElevador(elevador, downRay, boxElevador, controls); });
+    //move o elevador
+    const elevador = scene.getObjectByName('elevador');
+    const sensor = scene.children.filter(obj => obj.name === 'DesceElevador');
+    sensor.forEach(sensor => { moveElevador(elevador, downRay, sensor, controls); });
+
     
 }
 

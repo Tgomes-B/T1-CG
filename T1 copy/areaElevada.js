@@ -139,8 +139,8 @@ function createElevador(scene) {
 
     portaMesh.castShadow = true;
     portaMesh.receiveShadow = true;
-    portaMesh.userData.isCollidable = true;
     portaMesh.userData.descendo = false;
+    portaMesh.userData.isCollidable = true;
     portaMesh.userData.collisionBox = new THREE.Box3().setFromObject(portaMesh);
 
     elevadorMesh.castShadow = true;
@@ -151,7 +151,7 @@ function createElevador(scene) {
     scene.add(elevadorMesh);
     scene.add(portaMesh);
 
-    createBoxColision(118, 2.5, 0);
+    createBoxColision(120, 2.5, 0);
     createBoxColision(138, 12.5, 0);
     
     addCollisionHelper(portaMesh, scene);
