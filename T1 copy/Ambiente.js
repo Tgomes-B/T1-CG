@@ -8,7 +8,8 @@ import {
     texPillarArea1,
     texPillarArea1Displacement,
     texPreda,
-    texBottom
+    texBottom,
+    texPillarArea1Normal
 } from './Loaders.js';
 import { criaTexturaArea2 } from './textureArea2.js';
 import { criaTexturaArea1 } from './textureArea1.js';
@@ -208,7 +209,8 @@ export function criaPilares(scene, area1) {
     const lateralMaterial = new THREE.MeshStandardMaterial({
         map: texPillarArea1,
         displacementMap: texPillarArea1Displacement,
-        displacementScale: 1.8,
+        displacementScale: 2.5,
+        normalMap: texPillarArea1Normal,
         color: 0xffffff,
         roughness: 0.7
     });
@@ -311,7 +313,7 @@ export function criaPilares(scene, area1) {
     // Atualiza todas as matrizes no grupo
     pillarsGroup.updateMatrixWorld(true);
 
-    const discoGeometry = new THREE.CylinderGeometry(6, 6, 2, 64);
+    const discoGeometry = new THREE.CylinderGeometry(8, 8, 2, 64);
     texDisc.wrapS = THREE.RepeatWrapping;
     texDisc.wrapT = THREE.RepeatWrapping;
     texDisc.repeat.set(7, 1);
@@ -358,7 +360,7 @@ export function criaPilares(scene, area1) {
     const indicesFixos = [3, 10, 16, 1, 14, 7, 18]; // (lembre: índice começa em 0)
     const escolhidos = indicesFixos.map(idx => pilarMeshes[idx]).filter(Boolean);
     
-    const blocoGeometry = new THREE.BoxGeometry(10, 3, 18);
+    const blocoGeometry = new THREE.BoxGeometry(14, 4, 18);
     const blocoMaterial = new THREE.MeshStandardMaterial({
         map: texPreda, // tom de pedra clara
         metalness: 0.1,
@@ -367,7 +369,7 @@ export function criaPilares(scene, area1) {
     
     escolhidos.forEach(pilar => {
         const bloco = new THREE.Mesh(blocoGeometry, blocoMaterial);
-        bloco.position.set(0, 18.5, 0); // ajuste conforme altura do disco/pilar
+        bloco.position.set(0, 19, 0); // ajuste conforme altura do disco/pilar
     
     // Rotaciona o bloco apenas se o pilar está nas laterais (esquerda ou direita)
     if (pilar.position.x - areaPosition.x > -5 && pilar.position.x - areaPosition.x < 80) {

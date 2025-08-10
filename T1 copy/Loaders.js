@@ -17,6 +17,11 @@ export const texDisc = textureLoader.load('./images/Textures/area1/romanPilarDis
 export const texDiscTop = textureLoader.load('./images/Textures/area1/PilarDiscTop.png');
 export const texPreda = textureLoader.load('../assets/textures/porcelanatoC.png');
 
+export const texPillarArea1Normal = textureLoader.load('./images/Textures/area1/nomalPilar.png');
+texPillarArea1Normal.wrapS = THREE.RepeatWrapping;
+texPillarArea1Normal.wrapT = THREE.RepeatWrapping;
+texPillarArea1Normal.repeat.set(1, 1);
+
 // --- Texturas da área 2 (topo e base) ---
 export const texArea2Top = textureLoader.load('./images/Textures/area2/ground/Metal.png');
 export const texarea2Alt = textureLoader.load('./images/Textures/area2/ground/Metal.png');

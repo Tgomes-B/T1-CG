@@ -27,6 +27,8 @@ function findCollidables(object, result = []) {
     return result;
 }
 let isPaused = false;
+let isRunning = false;
+let canJump = false;
 let stats, renderer, scene, camera, controls, clock;
 let areaChaveData;
 let playerHasKey = false;
@@ -44,7 +46,7 @@ const WEAPONS = {
         fireRate: 500,
         showProjectile: true,
         sprite: null,
-        spritesheet: "images/sprites/rocketLauncher.png",
+        spritesheet: "images/sprites/spriteLauncher.png",
         frames: 3,
         create: createRocketLauncherSprite
     },
@@ -339,7 +341,16 @@ function movementControls(key, value) {
         case 'KeyA': case 'ArrowLeft': moveLeft = value; break;
         case 'KeyD': case 'ArrowRight': moveRight = value; break;
         case 'Space': moveUp = value; break;
-        case 'ShiftLeft': moveDown = value; break;
+        /*        case 'Space':
+            if (value && canJump) {
+                velocityY = speed * 1.2; 
+                canJump = false;
+            }
+            break; */
+        case 'ShiftLeft':
+        case 'ShiftRight':
+            isRunning = value;
+            break;
     }
 }
 
@@ -357,7 +368,8 @@ export function moveAnimate(delta) {
     if (moveVec.lengthSq() > 0) moveVec.normalize();
 
     const originalPos = playerObj.position.clone();
-    let tryPos = originalPos.clone().add(moveVec.clone().multiplyScalar(speed * delta));
+    let currentSpeed = isRunning ? speed * 2 : speed;
+    let tryPos = originalPos.clone().add(moveVec.clone().multiplyScalar(currentSpeed * delta));
     playerObj.position.copy(tryPos);
 
     let playerBox = new THREE.Box3().setFromCenterAndSize(
@@ -429,13 +441,16 @@ export function moveAnimate(delta) {
                 surfaceY + alturaPlayer,
                 0.1
             );
+            canJump = true; // <-- Permite pular
         } else {
             velocityY -= gravity * delta;
             playerObj.position.y += velocityY * delta;
+            canJump = false;
         }
     } else {
         velocityY -= gravity * delta;
         playerObj.position.y += velocityY * delta;
+        canJump = false;
     }
 
     const frontRay = new THREE.Raycaster(
