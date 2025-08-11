@@ -699,7 +699,62 @@ export function moveAnimate(delta) {
                         // Gira rapidamente para o player para atirar
                         let toPlayer = playerPos.clone().setY(0).sub(obj.position.clone().setY(0)).normalize();
                         let yaw = Math.atan2(toPlayer.x, toPlayer.z);
+                        let prevYaw = obj.rotation.y;
                         obj.rotation.y += (yaw - obj.rotation.y) * 0.5;
+                        
+                        // Se acabou de entrar nesta fase, reseta o flag de tiro
+                        if (!obj.userData.inShootingPhase) {
+                            obj.userData.inShootingPhase = true;
+                            obj.userData.hasFiredInThisPhase = false;
+                        }
+                        
+                        // Atira um projétil quando estiver alinhado com o jogador
+                        if (!obj.userData.hasFiredInThisPhase && Math.abs(yaw - obj.rotation.y) < 0.1) {
+                            obj.userData.hasFiredInThisPhase = true;
+                            
+                            // Cria o projétil
+                            const projectile = new THREE.Mesh(
+                                new THREE.SphereGeometry(0.5, 8, 8),
+                                new THREE.MeshBasicMaterial({
+                                    color: 0xff6600,
+                                    transparent: true,
+                                    opacity: 0.9,
+                                })
+                            );
+                            
+                            // Posição inicial: frente do Cacodemon
+                            const offset = new THREE.Vector3(0, 0, -1.5)
+                                .applyQuaternion(obj.quaternion);
+                            projectile.position.copy(obj.position).add(offset);
+                            
+                            // Cria o efeito de fogo ao redor do projétil
+                            const fireEffect = new FireEffect(projectile, scene, {
+                                radius: 1.2,  // Um pouco maior que o projétil
+                                height: 1.2,  // Altura do efeito
+                                count: 12     // Número de partículas de fogo
+                            });
+                            
+                            // Armazena a referência para remoção posterior
+                            projectile.userData.fireEffect = fireEffect;
+                            
+                            // Direção: do Cacodemon para o jogador
+                            const direction = playerPos.clone()
+                                .sub(obj.position)
+                                .normalize();
+                            
+                            // Define a velocidade do projétil (mais lento que o do jogador)
+                            projectile.userData = {
+                                velocity: direction.multiplyScalar(40 * 0.016), // Velocidade reduzida
+                                damage: 10, // Dano do projétil
+                                isEnemyProjectile: true,
+                                fireEffect: fireEffect
+                            };
+                            
+                            // Adiciona à cena e ao array de projéteis
+                            scene.add(projectile);
+                            if (!window.enemyProjectiles) window.enemyProjectiles = [];
+                            window.enemyProjectiles.push(projectile);
+                        }
                         if (obj.userData.cacoMoveTimer > 0.18 + Math.random() * 0.12) {
                             obj.userData.cacoMovePhase = 3;
                             obj.userData.cacoMoveTimer = 0;
@@ -716,6 +771,7 @@ export function moveAnimate(delta) {
                             obj.userData.cacoLateralDir = Math.random() < 0.5 ? -1 : 1;
                             obj.userData.cacoMoveType = undefined;
                             obj.userData.cacoJustShot = false;
+                            obj.userData.inShootingPhase = false; // Reseta para permitir tiro no próximo ciclo
                         }
                     }
                     // Movimento para manter distância preferida: se está na faixa ideal, não avança nem recua!
@@ -1023,26 +1079,81 @@ function render() {
     if (controls.isLocked) {
         moveAnimate(delta);
         updateProjectiles(delta);
+        
+        // Atualiza projéteis dos inimigos
+        if (window.enemyProjectiles) {
+            for (let i = window.enemyProjectiles.length - 1; i >= 0; i--) {
+                const proj = window.enemyProjectiles[i];
+                if (!proj || !proj.userData) {
+                    window.enemyProjectiles.splice(i, 1);
+                    continue;
+                }
+                
+                // Atualiza posição
+                proj.position.add(proj.userData.velocity);
+                
+                // Verifica colisão com o jogador
+                const player = controls.getObject();
+                const playerBox = new THREE.Box3().setFromCenterAndSize(
+                    player.position.clone().add(new THREE.Vector3(0, 1, 0)),
+                    new THREE.Vector3(1, 2, 1)
+                );
+                
+                const projBox = new THREE.Box3().setFromCenterAndSize(
+                    proj.position,
+                    new THREE.Vector3(1, 1, 1)
+                );
+                
+                if (playerBox.intersectsBox(projBox)) {
+                    // Aplica dano ao jogador
+                    if (typeof window.playerTakeDamage === 'function') {
+                        window.playerTakeDamage(proj.userData.damage || 10);
+                    }
+                    
+                    // Remove o efeito de fogo se existir
+                    if (proj.userData.fireEffect) {
+                        proj.userData.fireEffect.dispose();
+                    }
+                    // Remove o projétil
+                    scene.remove(proj);
+                    window.enemyProjectiles.splice(i, 1);
+                    continue;
+                }
+                
+                // Remove projéteis muito longe
+                if (proj.position.distanceTo(player.position) > 500) {
+                    // Remove o efeito de fogo se existir
+                    if (proj.userData.fireEffect) {
+                        proj.userData.fireEffect.dispose();
+                    }
+                    scene.remove(proj);
+                    window.enemyProjectiles.splice(i, 1);
+                }
+            }
+        }
     }
 
     if (window.labelRenderer && controls.isLocked) {
-        window.labelRenderer.render(scene, camera);
-    }
+    window.labelRenderer.render(scene, camera);
+}
 
-    // Atualiza efeito de fogo dos Skulls
-    scene.traverse(obj => {
-        if (
-            obj.userData &&
-            obj.userData.enemyType === 'skull' &&
-            obj.userData.fireEffect
-        ) {
+// Atualiza efeito de fogo dos Skulls e projéteis
+scene.traverse(obj => {
+    if (obj.userData) {
+        // Atualiza fogo dos Skulls
+        if (obj.userData.enemyType === 'skull' && obj.userData.fireEffect) {
             obj.userData.fireEffect.update(delta);
         }
-    });
+        // Atualiza fogo dos projéteis
+        if (obj.userData.isEnemyProjectile && obj.userData.fireEffect) {
+            obj.userData.fireEffect.update(delta);
+        }
+    }
+});
 
-    if (areaChaveData && areaChaveData.animandoBloco && areaChaveData.blocoAnimado && areaChaveData.chaveAnimada) {
-        areaChaveData.tempoAnimacao += delta;
-        let t = Math.min(areaChaveData.tempoAnimacao / areaChaveData.duracaoAnimacao, 1);
+if (areaChaveData && areaChaveData.animandoBloco && areaChaveData.blocoAnimado && areaChaveData.chaveAnimada) {
+    areaChaveData.tempoAnimacao += delta;
+    let t = Math.min(areaChaveData.tempoAnimacao / areaChaveData.duracaoAnimacao, 1);
 
     // ... (rest of the code remains the same)
         t = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
