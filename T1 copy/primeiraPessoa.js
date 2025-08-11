@@ -604,11 +604,16 @@ export function moveAnimate(delta) {
                         // Alternância entre direita/esquerda
                         if (obj.userData.cacoMoveVertical === 0) {
                             if (typeof obj.userData.lastLateralDir === "undefined") obj.userData.lastLateralDir = obj.userData.cacoLateralDir;
-                            // 80% de chance de alternar o lado
-                            if (Math.random() < 0.8) {
+                            // 60% de chance de alternar o lado (mais tempo em cada direção)
+                            if (Math.random() < 0.6) {
                                 obj.userData.cacoLateralDir = -obj.userData.lastLateralDir;
                             }
                             obj.userData.lastLateralDir = obj.userData.cacoLateralDir;
+                            
+                            // Aumenta a duração do movimento lateral
+                            if (obj.userData.cacoMoveVertical === 0) {
+                                obj.userData.cacoMoveDuration = triRandMin(1.2, 2.0, 1.2); // Aumenta a duração do movimento lateral
+                            }
                         }
                     }
                     // Escolher tipo de movimento
@@ -631,9 +636,16 @@ export function moveAnimate(delta) {
                             // Vai para trás, olhar para trás do vetor player
                             let backDir = obj.position.clone().setY(0).sub(playerPos.clone().setY(0)).normalize();
                             let yaw = Math.atan2(backDir.x, backDir.z);
-                            obj.rotation.y += (yaw - obj.rotation.y) * 0.3;
+                            // Reduz a velocidade de rotação para 40% do valor original (0.3 -> 0.12)
+                            obj.rotation.y += (yaw - obj.rotation.y) * 0.12;
                             moveVec.copy(backDir);
                             obj.userData.lastMoveWasBackward = true; // Marca que o último movimento foi para trás
+                            
+                            // Aumenta o tempo de movimento para trás
+                            if (obj.userData.cacoMoveTimer > 0.3 + Math.random() * 0.3) {  // Aumenta o tempo mínimo e máximo
+                                obj.userData.cacoMovePhase = 1;
+                                obj.userData.cacoMoveTimer = 0;
+                            }
                         } else {
                             // Vai para o lado (lateral), olhar para o lado
                             let perp = new THREE.Vector3(-(playerPos.z - obj.position.z), 0, playerPos.x - obj.position.x).normalize().multiplyScalar(obj.userData.cacoLateralDir);
@@ -649,9 +661,12 @@ export function moveAnimate(delta) {
                     } else if (obj.userData.cacoMovePhase === 1) {
                         // Movimento de amplitude variável, com possibilidade de vertical/diagonal
                         let amp = obj.userData.cacoMoveAmplitude || 2.0;
+                        // Reduz a velocidade de movimento em 40%
+                        let adjustedMoveSpeed = moveSpeed * 0.6;
+                        
                         if (obj.userData.cacoMoveType === 2) {
                             let backDir = obj.position.clone().setY(0).sub(playerPos.clone().setY(0)).normalize();
-                            obj.position.add(backDir.multiplyScalar(moveSpeed * amp));
+                            obj.position.add(backDir.multiplyScalar(adjustedMoveSpeed * amp * 0.8)); // Mais lento ainda para trás
                             moveVec.copy(backDir);
                         } else if (obj.userData.cacoMoveType === 1) {
                             let perp = new THREE.Vector3(-(playerPos.z - obj.position.z), 0, playerPos.x - obj.position.x).normalize().multiplyScalar(obj.userData.cacoLateralDir);
@@ -687,21 +702,24 @@ export function moveAnimate(delta) {
                             obj.position.add(toPlayer.multiplyScalar(moveSpeed * (amp * 0.5)));
                             moveVec.copy(toPlayer);
                         }
-                        // Olhar para a direção do movimento
+                        // Olhar para a direção do movimento (mais suave)
                         if (moveVec.lengthSq() > 0.001) {
                             let yaw = Math.atan2(moveVec.x, moveVec.z);
-                            obj.rotation.y += (yaw - obj.rotation.y) * 0.4;
+                            // Reduz a velocidade de rotação para 40% do valor original (0.4 -> 0.16)
+                            obj.rotation.y += (yaw - obj.rotation.y) * 0.16;
                         }
-                        if (obj.userData.cacoMoveTimer > obj.userData.cacoMoveDuration) {
+                        // Aumenta a duração de cada fase de movimento em 50%
+                        if (obj.userData.cacoMoveTimer > obj.userData.cacoMoveDuration * 1.5) {
                             obj.userData.cacoMovePhase = 2;
                             obj.userData.cacoMoveTimer = 0;
                         }
                     } else if (obj.userData.cacoMovePhase === 2) {
-                        // Gira rapidamente para o player para atirar
+                        // Gira suavemente para o player para atirar
                         let toPlayer = playerPos.clone().setY(0).sub(obj.position.clone().setY(0)).normalize();
                         let yaw = Math.atan2(toPlayer.x, toPlayer.z);
                         let prevYaw = obj.rotation.y;
-                        obj.rotation.y += (yaw - obj.rotation.y) * 0.5;
+                        // Reduz a velocidade de rotação para 40% do valor original (0.5 -> 0.2)
+                        obj.rotation.y += (yaw - obj.rotation.y) * 0.2;
                         
                         // Se acabou de entrar nesta fase, reseta o flag de tiro
                         if (!obj.userData.inShootingPhase) {
