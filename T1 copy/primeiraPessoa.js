@@ -633,6 +633,7 @@ export function moveAnimate(delta) {
                             let yaw = Math.atan2(backDir.x, backDir.z);
                             obj.rotation.y += (yaw - obj.rotation.y) * 0.3;
                             moveVec.copy(backDir);
+                            obj.userData.lastMoveWasBackward = true; // Marca que o último movimento foi para trás
                         } else {
                             // Vai para o lado (lateral), olhar para o lado
                             let perp = new THREE.Vector3(-(playerPos.z - obj.position.z), 0, playerPos.x - obj.position.x).normalize().multiplyScalar(obj.userData.cacoLateralDir);
@@ -706,10 +707,12 @@ export function moveAnimate(delta) {
                         if (!obj.userData.inShootingPhase) {
                             obj.userData.inShootingPhase = true;
                             obj.userData.hasFiredInThisPhase = false;
+                            // Reseta o flag de movimento para trás no início da fase de tiro
+                            obj.userData.lastMoveWasBackward = false;
                         }
                         
-                        // Atira um projétil quando estiver alinhado com o jogador
-                        if (!obj.userData.hasFiredInThisPhase && Math.abs(yaw - obj.rotation.y) < 0.1) {
+                        // Atira um projétil quando estiver alinhado com o jogador e o último movimento não foi para trás
+                        if (!obj.userData.hasFiredInThisPhase && Math.abs(yaw - obj.rotation.y) < 0.1 && !obj.userData.lastMoveWasBackward) {
                             obj.userData.hasFiredInThisPhase = true;
                             
                             // Cria o projétil
