@@ -742,12 +742,15 @@ export function moveAnimate(delta) {
                                 .sub(obj.position)
                                 .normalize();
                             
-                            // Define a velocidade do projétil (mais lento que o do jogador)
+                            // Define a velocidade do projétil (muito mais lento para dar tempo de desviar)
                             projectile.userData = {
-                                velocity: direction.multiplyScalar(40 * 0.016), // Velocidade reduzida
+                                velocity: direction.multiplyScalar(15 * 0.016), // Velocidade muito reduzida
                                 damage: 10, // Dano do projétil
                                 isEnemyProjectile: true,
-                                fireEffect: fireEffect
+                                fireEffect: fireEffect,
+                                maxDistance: 200, // Distância máxima antes de começar a desaparecer
+                                fadeStartDistance: 150, // Distância para começar o fade-out
+                                initialPosition: projectile.position.clone() // Guarda a posição inicial
                             };
                             
                             // Adiciona à cena e ao array de projéteis
@@ -1120,14 +1123,44 @@ function render() {
                     continue;
                 }
                 
-                // Remove projéteis muito longe
-                if (proj.position.distanceTo(player.position) > 500) {
+                // Calcula a distância percorrida pelo projétil
+                const distanceTraveled = proj.position.distanceTo(proj.userData.initialPosition);
+                
+                // Aplica fade-out baseado na distância (igual ao efeito dos Skulls)
+                if (distanceTraveled > proj.userData.fadeStartDistance) {
+                    const fadeRange = proj.userData.maxDistance - proj.userData.fadeStartDistance;
+                    const fadeAmount = 1 - ((distanceTraveled - proj.userData.fadeStartDistance) / fadeRange);
+                    
+                    // Aplica o fade ao material do projétil
+                    if (proj.material) {
+                        proj.material.opacity = 0.9 * fadeAmount;
+                        proj.material.needsUpdate = true;
+                    }
+                    
+                    // Ajusta a opacidade do efeito de fogo (usando a mesma abordagem dos Skulls)
+                    if (proj.userData.fireEffect) {
+                        const particles = proj.userData.fireEffect.particles;
+                        if (particles) {
+                            particles.forEach(particle => {
+                                if (particle.material) {
+                                    particle.material.opacity = fadeAmount;
+                                    particle.material.transparent = true;
+                                    particle.material.needsUpdate = true;
+                                }
+                            });
+                        }
+                    }
+                }
+                
+                // Remove projéteis que passaram da distância máxima
+                if (distanceTraveled > proj.userData.maxDistance) {
                     // Remove o efeito de fogo se existir
                     if (proj.userData.fireEffect) {
                         proj.userData.fireEffect.dispose();
                     }
                     scene.remove(proj);
                     window.enemyProjectiles.splice(i, 1);
+                    continue;
                 }
             }
         }
