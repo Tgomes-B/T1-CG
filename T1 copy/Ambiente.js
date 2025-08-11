@@ -49,7 +49,7 @@ export function criaAreasRampas(scene) {
     envMap.mapping = THREE.EquirectangularReflectionMapping;
 
     const areaGeometry = new THREE.BoxGeometry(120, 10, 120);
-    const areaAzulGeometry = new THREE.BoxGeometry(120, 10, 310);
+    const areaAzulGeometry = new THREE.BoxGeometry(190, 0.3, 310);
     const areaMaterial = [
         new THREE.MeshLambertMaterial({ color: 'rgb(29, 219, 11)' }),
          new THREE.MeshLambertMaterial({ color: 0x3b82f6 }),
@@ -154,19 +154,21 @@ export function criaAreasRampas(scene) {
             molde = new THREE.Mesh(areaAzulGeometry, areaMaterial[i]);
             molde.position.set(-45, 0, 0);
             areaX = -130;
-            areaY = 5;
+            areaY = 2;
             areaZ = 0;
-    
-            criaAreaColisao(areaX - 45, areaY, areaZ + 82.5, [145, 10, 120], true);
-            criaAreaColisao(areaX - 45, areaY, areaZ - 82.5, [145, 10, 120], true);
-            criaAreaColisao(areaX - 60, areaY, areaZ, [90, 10, 20]);
+
         }
     
-        updateObject(molde);
-        let auxCSG = CSG.fromMesh(molde);
-        let objectCSG = auxCSG.subtract(boxCSG);
-        areas[i] = CSG.toMesh(objectCSG, new THREE.Matrix4());
-        areas[i].visible = false;
+        if (i !== 3) { // Evita realizar o CSG na área 4
+            updateObject(molde);
+            let auxCSG = CSG.fromMesh(molde);
+            let objectCSG = auxCSG.subtract(boxCSG);
+            areas[i] = CSG.toMesh(objectCSG, new THREE.Matrix4());
+            areas[i].visible = false;
+        } else {
+            areas[i] = molde; // Apenas atribui o molde diretamente para a área 4
+            areas[i].visible = true; // Torna a área 4 visível
+        }
     
         // Adiciona as texturas visuais corretas para cada área
         if (i == 0) {
@@ -182,10 +184,13 @@ export function criaAreasRampas(scene) {
             areas[i].position.set(130, 5, posZ);
             criaEscada(115, posZ, comp, 130, 10, -0.102 * Math.PI, 5);
         } else if (i == 3) {
-            areas[i].position.set(-130, 5, 0);
+            areas[i].position.set(-130, 0.5, 0);
             comp = -1 * comp;
             posZ = 0;
-            criaEscada(-115, posZ, comp, -130, 10, 0.102 * Math.PI, 5);
+            areas[i].visible = true;
+
+            const area4CollisionBox = new THREE.Box3().setFromObject(areas[i]);
+            areas[i].userData.collisionBox = area4CollisionBox;
         }
     
         areas[i].material = areaMaterial[i];
