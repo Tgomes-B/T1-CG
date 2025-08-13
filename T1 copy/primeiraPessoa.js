@@ -13,6 +13,8 @@ import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
 import { adicionarBossGLB } from './boss.js';
 import { FireEffect } from './Effects.js';
 
+export { isPaused };
+
 // Função auxiliar para encontrar objetos colidíveis
 function findCollidables(object, result = []) {
     if (object.userData && object.userData.isCollidable) {
@@ -25,7 +27,9 @@ function findCollidables(object, result = []) {
     }
     return result;
 }
-
+let isPaused = false;
+let isRunning = false;
+let canJump = false;
 let stats, renderer, scene, camera, controls, clock;
 let areaChaveData;
 let playerHasKey = false;
@@ -43,8 +47,9 @@ const WEAPONS = {
         fireRate: 500,
         showProjectile: true,
         sprite: null,
-        spritesheet: null,
-        create: createGun
+        spritesheet: "images/sprites/spriteLauncher.png",
+        frames: 3,
+        create: createRocketLauncherSprite
     },
     chaingun: {
         name: "chaingun",
@@ -67,7 +72,7 @@ function init() {
     camera = createCamera();
 
     const loader = new THREE.TextureLoader();
-    const skyTexture = loader.load('./images/SkyBoxT3/SkyBox2.png');
+    const skyTexture = loader.load('./images/SkyboxT3/SkyBox2.png');
     skyTexture.mapping = THREE.EquirectangularReflectionMapping;
     scene.background = skyTexture;
 
@@ -137,6 +142,10 @@ function setupEnvironment() {
             loadedCount++;
             if (loadedCount === enemyPositions.length) {
                 areaChaveData = setupAreaChave(scene, area1, enemiesArea1);
+
+                // ESCONDE A TELA DE LOADING QUANDO TUDO CARREGAR
+                const loadingScreen = document.getElementById('loadingScreen');
+                if (loadingScreen) loadingScreen.style.display = 'none';
             }
         });
     });
@@ -156,7 +165,6 @@ function setupEnvironment() {
         };
     });
     adicionarInimigoCena(scene, posicoesArea2, () => {
-        // Espera um frame para garantir que os inimigos estão na cena
         setTimeout(() => {
             setupCacodemonElimination(scene);
         }, 0);
@@ -164,7 +172,6 @@ function setupEnvironment() {
 
     const posBoss = new THREE.Vector3(-180, 12, -180);
     adicionarBossGLB(scene, '../0_assetsT3/objects/pain/painElemental.glb', posBoss);
-
 }
 
 function setupLightingAndCollision() {
@@ -175,7 +182,7 @@ function setupLightingAndCollision() {
 
 function setupGameElements() {
     setupCrosshair();
-    createGun();
+    currentWeapon.create(); // Adiciona o sprite da arma inicial
     setupShooting(camera, scene, controls, () => currentWeapon, areas);
 }
 
@@ -256,6 +263,26 @@ function switchWeaponByIndex(index) {
     currentWeapon.create();
 }
 
+function createRocketLauncherSprite() {
+    const frames = WEAPONS.launcher.frames;
+    const texture = new THREE.TextureLoader().load(WEAPONS.launcher.spritesheet);
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1 / frames, 1); // Mostra só 1 frame
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(material);
+    sprite.name = "launcher";
+    sprite.scale.set(1.5, 2, 1.5);
+    sprite.position.set(0, -1, -3);
+    camera.add(sprite);
+
+    WEAPONS.launcher.sprite = sprite;
+    WEAPONS.launcher.spriteTexture = texture;
+    WEAPONS.launcher.currentFrame = 0;
+}
+
 function createChaingunSprite() {
     const frames = WEAPONS.chaingun.frames;
     const texture = new THREE.TextureLoader().load(WEAPONS.chaingun.spritesheet);
@@ -279,19 +306,10 @@ function createChaingunSprite() {
 function removeCurrentWeaponVisual() {
     const gun = camera.getObjectByName("launcher");
     if (gun) camera.remove(gun);
+    const rocketSprite = camera.getObjectByName("rocketlauncher_sprite");
+    if (rocketSprite) camera.remove(rocketSprite);
     const chaingunSprite = camera.getObjectByName("chaingun_sprite");
     if (chaingunSprite) camera.remove(chaingunSprite);
-}
-
-function createGun() {
-    const gunGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 32);
-    const gunMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
-    const gun = new THREE.Mesh(gunGeometry, gunMaterial);
-    gun.name = "launcher";
-    gun.position.set(0.01, -0.4, -1);
-    gun.rotation.x = -Math.PI / 2;
-    controls.getObject().add(gun);
-    camera.add(gun);
 }
 
 function setupControls() {
@@ -324,7 +342,16 @@ function movementControls(key, value) {
         case 'KeyA': case 'ArrowLeft': moveLeft = value; break;
         case 'KeyD': case 'ArrowRight': moveRight = value; break;
         case 'Space': moveUp = value; break;
-        case 'ShiftLeft': moveDown = value; break;
+        /*        case 'Space':
+            if (value && canJump) {
+                velocityY = speed * 1.2; 
+                canJump = false;
+            }
+            break; */
+        case 'ShiftLeft':
+        case 'ShiftRight':
+            isRunning = value;
+            break;
     }
 }
 
@@ -1023,7 +1050,8 @@ export function moveAnimate(delta) {
     if (moveVec.lengthSq() > 0) moveVec.normalize();
 
     const originalPos = playerObj.position.clone();
-    let tryPos = originalPos.clone().add(moveVec.clone().multiplyScalar(speed * delta));
+    let currentSpeed = isRunning ? speed * 2 : speed;
+    let tryPos = originalPos.clone().add(moveVec.clone().multiplyScalar(currentSpeed * delta));
     playerObj.position.copy(tryPos);
 
     let playerBox = new THREE.Box3().setFromCenterAndSize(
@@ -1095,13 +1123,16 @@ export function moveAnimate(delta) {
                 surfaceY + alturaPlayer,
                 0.1
             );
+            canJump = true; // <-- Permite pular
         } else {
             velocityY -= gravity * delta;
             playerObj.position.y += velocityY * delta;
+            canJump = false;
         }
     } else {
         velocityY -= gravity * delta;
         playerObj.position.y += velocityY * delta;
+        canJump = false;
     }
 
     const frontRay = new THREE.Raycaster(
@@ -1280,7 +1311,7 @@ if (areaChaveData && areaChaveData.animandoBloco && areaChaveData.blocoAnimado &
     
         // Interpolação entre posição inicial e final
         const blocoY0 = -4;
-        const blocoY1 = 6;
+        const blocoY1 = 4;
         areaChaveData.blocoAnimado.position.y = blocoY0 + (blocoY1 - blocoY0) * t;
 
         if (t >= 1) {
@@ -1321,13 +1352,13 @@ if (areaChaveData && areaChaveData.animandoBloco && areaChaveData.blocoAnimado &
         }
         if (scene.userData.animandoChaveAmarela && scene.userData.chaveAmarela) {
             scene.userData.tempoAnimacaoChaveAmarela += delta;
-            let t = Math.min(scene.userData.tempoAnimacaoChaveAmarela / 1.2, 1); // 1.2s para cair
+            let t = Math.min(scene.userData.tempoAnimacaoChaveAmarela / 3, 1); // 1.2s para cair
         
             // Posição inicial: logo acima do topo da torre
             // Posição final: topo da torre (altura/2)
             const alturaTorre = scene.userData.torreEspecial.geometry.parameters.height;
-            const yTopo = alturaTorre - 25;
-            const yFinal = alturaTorre - 35;
+            const yTopo = alturaTorre - 15;
+            const yFinal = alturaTorre - 38;
         
             scene.userData.chaveAmarela.position.y = yTopo + (yFinal - yTopo) * t;
         
@@ -1344,7 +1375,7 @@ if (areaChaveData && areaChaveData.animandoBloco && areaChaveData.blocoAnimado &
             const torre = scene.userData.torreEspecial;
             if (torre) {
                 const alturaTorre = torre.geometry.parameters.height;
-                const baseY = alturaTorre - 35; // baseY igual ao yFinal da animação de queda
+                const baseY = alturaTorre - 38; // baseY igual ao yFinal da animação de queda
                 scene.userData.chaveAmarela.position.y =
                     baseY + Math.sin(performance.now() * 0.002) * 1.2;
             }

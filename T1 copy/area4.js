@@ -1,0 +1,2 @@
+//Vou começar a fazer as coisas da area 4 aqui as paredes e os caralhos falta pensar em como finalizar esse jogo
+//ainda acho valido a ideia da plataforma subindo com alguma musica e uma tela de vitoria
