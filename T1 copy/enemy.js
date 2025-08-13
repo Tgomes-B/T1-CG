@@ -34,6 +34,14 @@ export function loadEnemyOBJ(path, position = { x: 0, y: 0, z: 0 }, onLoad) {
                 obj.userData.patrolArea = {min: patrolBoxMin, max: patrolBoxMax};
                 obj.userData.detectionRadius = 60;
 
+                // Skull dash properties
+                obj.userData.dashDirection = new THREE.Vector3();
+                obj.userData.isDashing = false;
+                obj.userData.lastDashTime = 0;
+                obj.userData.dashDuration = 2000; // 2 seconds of dash
+                obj.userData.dashSpeed = 25; // Speed of the dash
+                obj.userData.maxDashDistance = 1800; // Increased dash distance to 1800 units
+
                 const healthBar = new HealthBar(obj.userData.maxHp, 1.5);
                 const healthBarObj = healthBar.getObject();
 

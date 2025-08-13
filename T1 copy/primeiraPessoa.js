@@ -508,16 +508,82 @@ export function moveAnimate(delta) {
             }
             // Perseguição
             if (obj.userData.state === "pursuing") {
-                // --- Ajuste de direção e altura ---
+                // --- Lógica específica para Skull (Lost Soul) ---
+                if (isSkull) {
+                    // Inicia o dash se não estiver em um
+                    if (!obj.userData.isDashing) {
+                        // Calcula direção do dash uma única vez
+                        obj.userData.dashDirection = playerPos.clone().sub(obj.position).normalize();
+                        obj.userData.isDashing = true;
+                        obj.userData.lastDashTime = performance.now();
+                        obj.userData.initialDashPosition = obj.position.clone(); // Guarda posição inicial do dash
+                        obj.userData.maxDashDistance = 1800; // 1800 unidades
+                    }
+                    
+                    // Move na direção travada do dash
+                    if (obj.userData.isDashing) {
+                        const dashSpeed = obj.userData.dashSpeed * 2; // Aumenta a velocidade do dash
+                        const moveVec = obj.userData.dashDirection.clone().multiplyScalar(dashSpeed * delta);
+                        
+                        // Verifica colisão com ambiente (incluindo chão, ignora apenas jogador)
+                        const collidables = [];
+                        findCollidables(scene, collidables);
+                        const validCollidables = collidables.filter(o => 
+                            o !== obj && 
+                            o.userData.collisionBox && 
+                            o.userData.isCollidable &&
+                            o.name !== "camera" // Ignora apenas o jogador
+                        );
+                        
+                        // Testa colisão com ambiente
+                        const tempBox = obj.userData.collisionBox.clone();
+                        tempBox.translate(moveVec);
+                        
+                        // Verifica se atingiu a distância máxima
+                        const distanceTraveled = obj.position.distanceTo(obj.userData.initialDashPosition);
+                        const maxDistanceReached = distanceTraveled >= obj.userData.maxDashDistance;
+                        
+                        // Verifica colisão com objetos do ambiente
+                        const collides = validCollidables.some(o => 
+                            tempBox.intersectsBox(o.userData.collisionBox)
+                        );
+                        
+                        if (collides || maxDistanceReached) {
+                            if (collides) {
+                                // Ricocheteia na direção oposta
+                                obj.userData.dashDirection.multiplyScalar(-1);
+                            }
+                            // Muda para estado de retorno após colisão ou distância máxima
+                            obj.userData.isDashing = false;
+                            obj.userData.state = "returning";
+                        } else {
+                            // Move normalmente
+                            obj.position.add(moveVec);
+                        }
+                        
+                        // Atualiza a rotação para a direção do movimento
+                        if (obj.userData.dashDirection.lengthSq() > 0.001) {
+                            const yaw = Math.atan2(obj.userData.dashDirection.x, obj.userData.dashDirection.z);
+                            obj.rotation.y = yaw;
+                        }
+                    }
+                    
+                    // Atualiza a caixa de colisão
+                    if (obj.userData.collisionBox) {
+                        obj.userData.collisionBox.setFromObject(obj);
+                    }
+                    
+                    // Pula o resto da lógica de perseguição para o Skull
+                    return;
+                }
+                
+                // --- Lógica para outros inimigos (Cacodemon, Boss, etc) ---
                 let targetY = playerPos.y;
                 if (isCacodemon || isBoss) {
                     // Oscilação vertical (respiração)
                     const now = performance.now() * 0.001;
                     const osc = Math.sin(now * 2 * Math.PI / 2.5) * 3; // ±3 unidades, ciclo ~2.5s
                     targetY += 5.0 + osc; // Cacodemon sempre acima e oscilando
-                }
-                if (isSkull) {
-                    targetY += 1.2; // Skull (Lost Soul) ligeiramente mais alto
                 }
                 // Busca altura máxima possível entre obj.position.y e targetY sem atravessar bounding boxes, mas faz o movimento suave (lerp)
                 const collidablesY = [];
