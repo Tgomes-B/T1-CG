@@ -17,6 +17,7 @@ export function constroiHangar(){
     hangar.rotation.z = Math.PI / 2; // Rotaciona para ficar horizontal
     hangar.castShadow = true;
     hangar.receiveShadow = true;
+    hangar.name = 'hangar';
 
 
     hangar.add(rodape(50));
@@ -43,29 +44,50 @@ function rodape(posZ){
     return rodape;
 }
 
-export function movePorta(porta1, porta2){
-    // vê se as posições iniciais foram definidas
-        if (porta1.userData.zInicial === undefined) {
-            porta1.userData.zInicial = porta1.position.z;
-        }
-        if (porta2.userData.zInicial === undefined) {
-            porta2.userData.zInicial = porta2.position.z;
-        }
-        porta1.userData.abrindo = true;
+export function movePortaoH(porta1, porta2, frontRay){
+    if (!porta1 || !porta2) return;
     
+    // vê se as posições iniciais foram definidas
+    let intersects = [];
+    let intersects2 = [];
+    
+    if (porta1.userData.zInicial === undefined) {
+        porta1.userData.zInicial = porta1.position.z;
+        porta1.userData.abrindo = false;
+    }
+    if (porta2.userData.zInicial === undefined) {
+        porta2.userData.zInicial = porta2.position.z;
+        porta2.userData.abrindo = false;
+    }
+    
+    // Verifica intersecção com as portas
+    intersects = frontRay.intersectObject(porta1, true);
+    intersects2 = frontRay.intersectObject(porta2, true);
+    
+    if (intersects.length > 0 || intersects2.length > 0) {
+        porta1.userData.abrindo = true;
+        porta2.userData.abrindo = true;
+    }
     // se a porta 1 está abrindo, a porta 2 acompanha pro lado oposto
     if (porta1.userData.abrindo) {
         const Alvo1 = porta1.userData.zInicial + 15;
         const Alvo2 = porta2.userData.zInicial - 15;
-        if (porta1.position.z > Alvo1) {
+        if (Math.abs(porta1.position.z - Alvo1) > 0.1) {
             porta1.position.z = THREE.MathUtils.lerp(porta1.position.z, Alvo1, 0.03);
             porta2.position.z = THREE.MathUtils.lerp(porta2.position.z, Alvo2, 0.03);
         } else {
             porta1.position.z = Alvo1;
+            porta2.position.z = Alvo2;
             porta1.userData.abrindo = false;
+            porta2.userData.abrindo = false;
         }
-        porta1.userData.collisionBox.setFromObject(porta1);
-        porta2.userData.collisionBox.setFromObject(porta2);
+        // Atualiza as collision boxes
+        if (porta1.userData.collisionBox) {
+            porta1.userData.collisionBox.setFromObject(porta1);
+        }
+        if (porta2.userData.collisionBox) {
+            porta2.userData.collisionBox.setFromObject(porta2);
+        }
     }
 }
 
@@ -83,14 +105,14 @@ function portas(hangar, pos1, pos2){
     porta1.receiveShadow = true;
     porta1.userData.isCollidable = true;
     porta1.userData.collisionBox = new THREE.Box3().setFromObject(porta1);
-    porta1.name = 'porta1';
+    porta1.name = 'porta';
 
 
     porta2.castShadow = true;
     porta2.receiveShadow = true;
     porta2.userData.isCollidable = true;
     porta2.userData.collisionBox = new THREE.Box3().setFromObject(porta2);
-    porta2.name = 'porta2';
+    porta2.name = 'porta';
 
     hangar.add(porta1);
     hangar.add(porta2);

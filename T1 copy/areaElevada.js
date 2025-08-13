@@ -106,9 +106,9 @@ function createBlocoChave(scene) {
     return bloco;
 }
 
-function createBoxColision(posX,posY,posZ){
+function createBoxColision(posX,posY,posZ, rotY){
     const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(3, 5, 20),
+        new THREE.BoxGeometry(3, 5, 23),
         new THREE.MeshBasicMaterial({ 
             color: 0x00ff00,
             visible: true,
@@ -116,9 +116,15 @@ function createBoxColision(posX,posY,posZ){
         })
     );
     mesh.position.set(posX, posY, posZ);
+    mesh.rotation.y = rotY;
     //mesh.userData.isCollidable = false;
     mesh.name = "DesceElevador";
+    
+    // Adiciona a collision box ao userData para otimização
+    mesh.userData.collisionBox = new THREE.Box3().setFromObject(mesh);
+    
     scene.add(mesh);
+    return mesh;
 }
 
 // Função para criar o elevador e porta
@@ -151,9 +157,11 @@ function createElevador(scene) {
     scene.add(elevadorMesh);
     scene.add(portaMesh);
 
-    createBoxColision(120, 2.5, 0);
-    createBoxColision(138, 12.5, 0);
-    
+    createBoxColision(120, 2.5, 0, 0);
+    createBoxColision(138, 12.5, 0, 0);
+    createBoxColision(127, 12.5, 13, Math.PI / 2);
+    createBoxColision(127, 12.5, -13, Math.PI / 2);
+
     addCollisionHelper(portaMesh, scene);
     addCollisionHelper(elevadorMesh, scene);
 
@@ -224,9 +232,19 @@ export function movePorta(porta, frontRay){
 
 export function moveElevador(elevador, downRay, colisionBoxElevador, controls){
 
-    const proxElevador = controls.getObject().position.distanceTo(colisionBoxElevador.position);
+    // Usa a collision box pré-calculada se disponível, senão calcula uma nova
+    const playerPosition = controls.getObject().position;
+    let collisionBox;
     
-    if (proxElevador < 4 && !elevador.userData.descendo && !elevador.userData.subindo) {
+    if (colisionBoxElevador.userData && colisionBoxElevador.userData.collisionBox) {
+        collisionBox = colisionBoxElevador.userData.collisionBox;
+    } else {
+        collisionBox = new THREE.Box3().setFromObject(colisionBoxElevador);
+    }
+    
+    const proxElevador = collisionBox.distanceToPoint(playerPosition);
+
+    if (proxElevador < 0.5 && !elevador.userData.descendo && !elevador.userData.subindo) {
         if (elevador.userData.yInicial === undefined) {
             elevador.userData.yInicial = elevador.position.y;
         }
