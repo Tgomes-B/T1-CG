@@ -11,6 +11,7 @@ import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
 import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
 import { adicionarBossGLB } from './boss.js';
+import { adicionaPrediosArea4 } from './area4.js';
 
 export { isPaused };
 
@@ -69,6 +70,8 @@ function init() {
     scene = new THREE.Scene();
     window.scene = scene; 
     camera = createCamera();
+    window.camera = camera;
+    window.renderer = renderer;
 
     const loader = new THREE.TextureLoader();
     const skyTexture = loader.load('./images/SkyboxT3/SkyBox2.png');
@@ -121,7 +124,7 @@ function setupEnvironment() {
     const enemiesArea1 = [];
     const numEnemies = 5;
     const enemyPositions = [];
-    const margin = 15; 
+    const margin = 15;
 
     for (let i = 0; i < numEnemies; i++) {
         enemyPositions.push({
@@ -130,23 +133,75 @@ function setupEnvironment() {
             z: Math.random() * (areaLimits.safeMaxZ - areaLimits.safeMinZ - 2 * margin) + areaLimits.safeMinZ + margin
         });
     }
-    
-    let loadedCount = 0;
+
+    let loadedEnemies = 0;
+    let areaChaveLoaded = false;
+    let prediosLoaded = false;
+
+    function tryHideLoading() {
+        console.log('loadedEnemies:', loadedEnemies, 'areaChaveLoaded:', areaChaveLoaded, 'prediosLoaded:', prediosLoaded);
+        if (loadedEnemies === enemyPositions.length && areaChaveLoaded && prediosLoaded) {
+            // Pre-warm dos prédios da área 4
+            if (window.camera && window.renderer) {
+                const posInicial = window.camera.position.clone();
+                const lookInicial = window.camera.getWorldDirection(new THREE.Vector3()).clone();
+
+                window.camera.position.set(areas[3].position.x, areas[3].position.y + 10, areas[3].position.z + 10);
+                window.camera.lookAt(areas[3].position.x, areas[3].position.y + 5, areas[3].position.z);
+
+                window.renderer.render(scene, window.camera);
+
+                window.camera.position.copy(posInicial);
+                window.camera.lookAt(posInicial.x + lookInicial.x, posInicial.y + lookInicial.y, posInicial.z + lookInicial.z);
+            }
+
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen) loadingScreen.style.display = 'none';
+        }
+    }
+
+    // Carrega inimigos com fallback de erro
     enemyPositions.forEach((enemyPos) => {
         loadEnemyOBJ('images/sprites/skull/skull.obj', enemyPos, (enemy) => {
             enemy.position.set(enemyPos.x, enemyPos.y, enemyPos.z);
             scene.add(enemy);
             enemiesArea1.push(enemy);
             if (enemy.userData.boxHelper) scene.add(enemy.userData.boxHelper);
-            loadedCount++;
-            if (loadedCount === enemyPositions.length) {
+            loadedEnemies++;
+            if (loadedEnemies === enemyPositions.length) {
                 areaChaveData = setupAreaChave(scene, area1, enemiesArea1);
-
-                // ESCONDE A TELA DE LOADING QUANDO TUDO CARREGAR
-                const loadingScreen = document.getElementById('loadingScreen');
-                if (loadingScreen) loadingScreen.style.display = 'none';
+                areaChaveLoaded = true;
+                tryHideLoading();
+            }
+        }, () => { // fallback em caso de erro
+            loadedEnemies++;
+            if (loadedEnemies === enemyPositions.length) {
+                areaChaveData = setupAreaChave(scene, area1, enemiesArea1);
+                areaChaveLoaded = true;
+                tryHideLoading();
             }
         });
+    });
+
+    // Adiciona prédios da área 4 e faz pre-warm
+    adicionaPrediosArea4(scene, areas[3], () => {
+        // PRE-WARM: força renderização olhando para os prédios
+        if (window.camera && window.renderer) {
+            const posInicial = window.camera.position.clone();
+            const lookInicial = window.camera.getWorldDirection(new THREE.Vector3()).clone();
+    
+            window.camera.position.set(areas[3].position.x, areas[3].position.y + 10, areas[3].position.z + 10);
+            window.camera.lookAt(areas[3].position.x, areas[3].position.y + 5, areas[3].position.z);
+            console.log('prewarm');
+    
+            window.renderer.render(scene, window.camera);
+    
+            window.camera.position.copy(posInicial);
+            window.camera.lookAt(posInicial.x + lookInicial.x, posInicial.y + lookInicial.y, posInicial.z + lookInicial.z);
+        }
+    
+        prediosLoaded = true;
+        tryHideLoading();
     });
 
     setupArea2(scene);

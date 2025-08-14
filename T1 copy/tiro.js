@@ -81,7 +81,7 @@ function shootProjectile() {
         camera.getWorldDirection(dir);
 
         // Define a velocidade do projétil
-        projectile.userData.velocity = dir.multiplyScalar(projectileSpeed * 0.016); // Ajuste para delta time
+        projectile.userData.velocity = dir.multiplyScalar(projectileSpeed);
 
         // Adiciona à cena e armazena
         scene.add(projectile);
@@ -152,7 +152,7 @@ export function updateProjectiles(delta) {
             projectile.position,
             velocity.clone().normalize(),
             0,
-            velocity.length()
+            velocity.length() * delta 
         );
 
         let collidables = [];
@@ -235,7 +235,7 @@ export function updateProjectiles(delta) {
         }
 
         // Se não colidiu, move normalmente
-        projectile.position.add(velocity);
+        projectile.position.addScaledVector(velocity, delta);
     }
 }
 

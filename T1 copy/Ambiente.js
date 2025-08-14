@@ -13,6 +13,7 @@ import {
 } from './Loaders.js';
 import { criaTexturaArea2 } from './textureArea2.js';
 import { criaTexturaArea1 } from './textureArea1.js';
+import { adicionaPrediosArea4 } from './area4.js';
 /**
  * Cria áreas, rampas e chão do ambiente 3D.
  * @param {THREE.Scene} scene - A cena onde os objetos serão adicionados
@@ -199,7 +200,6 @@ export function criaAreasRampas(scene) {
         posZ += 155;
         scene.add(areas[i]);
     }
-
     criaPilares(scene, areas[0]);
     
     return { areas, ramp, ground };
