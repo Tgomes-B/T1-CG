@@ -827,13 +827,14 @@ export function moveAnimate(delta) {
                         if (!obj.userData.hasFiredInThisPhase && Math.abs(yaw - obj.rotation.y) < 0.1 && !obj.userData.lastMoveWasBackward) {
                             obj.userData.hasFiredInThisPhase = true;
                             
-                            // Cria o projétil
+
+                            // Cria o projétil com menos polígonos para melhor desempenho
                             const projectile = new THREE.Mesh(
-                                new THREE.SphereGeometry(0.5, 8, 8),
+                                new THREE.SphereGeometry(0.5, 6, 4), // Reduzindo a complexidade da esfera
                                 new THREE.MeshBasicMaterial({
                                     color: 0xff6600,
                                     transparent: true,
-                                    opacity: 0.9,
+                                    opacity: 0.8, // Opacidade ligeiramente reduzida
                                 })
                             );
                             
@@ -842,16 +843,18 @@ export function moveAnimate(delta) {
                                 .applyQuaternion(obj.quaternion);
                             projectile.position.copy(obj.position).add(offset);
                             
-                            // Cria o efeito de fogo ao redor do projétil
+                            // Cria o efeito de fogo ao redor do projétil com menos partículas
                             const fireEffect = new FireEffect(projectile, scene, {
-                                radius: 1.2,  // Um pouco maior que o projétil
-                                height: 1.2,  // Altura do efeito
-                                count: 12     // Número de partículas de fogo
+                                radius: 0.8,   // Menor raio para melhor desempenho
+                                height: 0.8,   // Menor altura para melhor desempenho
+                                count: 6       // Metade das partículas originais
                             });
                             
+
                             // Armazena a referência para remoção posterior
                             projectile.userData.fireEffect = fireEffect;
                             
+
                             // Direção: do Cacodemon para o jogador
                             const direction = playerPos.clone()
                                 .sub(obj.position)

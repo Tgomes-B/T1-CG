@@ -45,6 +45,7 @@ export function criaAreasRampas(scene) {
     ground.rotation.x = -0.5 * Math.PI;
     ground.name = "ground";
     ground.receiveShadow = true;
+    ground.userData = { isCollidable: true };
     scene.add(ground);
     
     texArea2Top.wrapS = THREE.RepeatWrapping;
@@ -541,8 +542,8 @@ export function setupLighting(scene) {
         
         // Configurações de sombra
         light.castShadow = true;
-        light.shadow.mapSize.width = 4096;
-        light.shadow.mapSize.height = 4096;
+        light.shadow.mapSize.width = 2048;
+        light.shadow.mapSize.height = 2048;
         light.shadow.camera.near = 0.5;
         light.shadow.camera.far = 500;
         light.shadow.camera.left = -250;

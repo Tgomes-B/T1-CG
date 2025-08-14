@@ -182,7 +182,7 @@ export function updateProjectiles(delta) {
         const distance = projectile.position.distanceTo(projectile.userData.startPos);
 
         // Condição para fade-out (colisão ou distância máxima)
-        if ((intersects.length > 0 || distance > 750) && !projectile.userData.fading) {
+        if ((intersects.length > 0 || distance > 500) && !projectile.userData.fading) {
             projectile.userData.fading = true;
         
             if (intersects.length > 0) {
