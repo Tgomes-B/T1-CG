@@ -37,6 +37,7 @@ export function loadEnemyOBJ(path, position = { x: 0, y: 0, z: 0 }, onLoad) {
                 // Skull dash properties
                 obj.userData.dashDirection = new THREE.Vector3();
                 obj.userData.isDashing = false;
+                obj.userData.wasReturning = false; // Nova propriedade para rastrear se estava retornando
                 obj.userData.lastDashTime = 0;
                 obj.userData.dashDuration = 2000; // 2 seconds of dash
                 obj.userData.dashSpeed = 25; // Speed of the dash

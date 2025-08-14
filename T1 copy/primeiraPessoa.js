@@ -384,6 +384,9 @@ export function moveAnimate(delta) {
             // 2. Se perdeu o player, volta para returning
             if (obj.userData.state === "pursuing" && dist > (obj.userData.detectionRadius * 1.5)) {
                 obj.userData.state = "returning";
+                if (isSkull) {
+                    obj.userData.wasReturning = true; // Marca que está retornando
+                }
             }
             // 3. Se chegou na origem, volta para patrulha
             if (obj.userData.state === "returning" && obj.userData.originalPosition) {
@@ -538,13 +541,20 @@ export function moveAnimate(delta) {
             if (obj.userData.state === "pursuing") {
                 // --- Lógica específica para Skull (Lost Soul) ---
                 if (isSkull) {
+                    // Se estava retornando e agora está perseguindo, força recalcular a direção
+                    if (obj.userData.wasReturning) {
+                        obj.userData.isDashing = false;
+                        obj.userData.wasReturning = false;
+                    }
+                    
                     // Inicia o dash se não estiver em um
                     if (!obj.userData.isDashing) {
-                        // Calcula direção do dash uma única vez
-                        obj.userData.dashDirection = playerPos.clone().sub(obj.position).normalize();
+                        // Recalcula a direção do dash baseada na nova posição do jogador
+                        const newDirection = playerPos.clone().sub(obj.position).normalize();
+                        obj.userData.dashDirection.copy(newDirection);
                         obj.userData.isDashing = true;
                         obj.userData.lastDashTime = performance.now();
-                        obj.userData.initialDashPosition = obj.position.clone(); // Guarda posição inicial do dash
+                        obj.userData.initialDashPosition = obj.position.clone();
                         obj.userData.maxDashDistance = 1800; // 1800 unidades
                     }
                     
@@ -584,6 +594,7 @@ export function moveAnimate(delta) {
                             // Muda para estado de retorno após colisão ou distância máxima
                             obj.userData.isDashing = false;
                             obj.userData.state = "returning";
+                            obj.userData.wasReturning = true; // Marca que está retornando
                         } else {
                             // Move normalmente
                             obj.position.add(moveVec);
