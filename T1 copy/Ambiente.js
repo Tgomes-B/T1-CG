@@ -176,8 +176,8 @@ export function criaAreasRampas(scene) {
             areaZ = 0;
 
         }
-    
-        if (i !== 3 || i !== 2) { // Evita realizar o CSG na área 4
+
+        if (i !== 3 && i !== 2) { // Evita realizar o CSG na área 4
             updateObject(molde);
             let auxCSG = CSG.fromMesh(molde);
             let objectCSG = auxCSG.subtract(boxCSG);
@@ -201,6 +201,7 @@ export function criaAreasRampas(scene) {
         }else if (i == 2) {
             areas[i].position.set(175, 0.025, posZ);
             areas[i].add(constroiHangar());
+            areas[i].visible = true;
         } else if (i == 3) {
             areas[i].position.set(-130, 0.5, 0);
             comp = -1 * comp;
