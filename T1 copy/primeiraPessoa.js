@@ -11,7 +11,7 @@ import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
 import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
 import { adicionarBossGLB } from './boss.js';
-import { adicionaPrediosArea4 } from './area4.js';
+import { adicionaPrediosArea4, checaTeleportePortais,getPredioColiders, checaColisaoPredios, prediosData,getPredioColidersFromScene } from './area4.js';
 
 export { isPaused };
 
@@ -427,9 +427,22 @@ export function moveAnimate(delta) {
     let tryPos = originalPos.clone().add(moveVec.clone().multiplyScalar(currentSpeed * delta));
     playerObj.position.copy(tryPos);
 
+    const predioColiders = getPredioColidersFromScene(scene);
+
+    if (checaColisaoPredios(playerObj, predioColiders)) {
+        playerObj.position.copy(originalPos);
+    }
+
     let playerBox = new THREE.Box3().setFromCenterAndSize(
         playerObj.position.clone(),
         new THREE.Vector3(0.3, alturaPlayer, 0.3)
+    );
+
+    checaTeleportePortais(
+        controls.getObject(),
+        scene.getObjectByName('portalBlue'),
+        scene.getObjectByName('portalOrange'),
+        predioColiders
     );
 
     const collidables = [];

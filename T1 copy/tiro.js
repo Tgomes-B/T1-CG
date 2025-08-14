@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { isPaused } from './primeiraPessoa.js';
+import { getPredioColidersFromScene } from './area4.js';
 
 let camera, scene, controls;
 const projectileSpeed = 100;
@@ -156,6 +157,9 @@ export function updateProjectiles(delta) {
         );
 
         let collidables = [];
+        const predioObjs = scene.children.filter(obj => obj.name && obj.name.startsWith('predio_'));
+        collidables.push(...predioObjs);
+
         // 1. Adiciona filhos das áreas (como antes)
         areas.forEach(area => {
             area.traverse(obj => {
