@@ -2,6 +2,7 @@ import { adicionarInimigoCena } from './inimigo.js';
 import { loadEnemyOBJ } from './enemy.js';
 import { setupAreaChave, criaChave, recriarPilarComChave } from './areaChave.js';
 import { moveElevador, setupArea2, movePorta,setupCacodemonElimination } from './areaElevada.js';
+import { movePortaoH } from './areaHangar.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
@@ -1135,11 +1136,13 @@ export function moveAnimate(delta) {
         canJump = false;
     }
 
+    // Direção para o raycaster baseada na direção da câmera
+    const playerDirection = controls.getDirection(new THREE.Vector3()).setY(0).normalize();
     const frontRay = new THREE.Raycaster(
         playerObj.position.clone(),
-        new THREE.Vector3(1, 0, 0),
+        playerDirection,
         0,
-        2
+        5 // Aumentei a distância para melhor detecção
     );
 
     if (areaChaveData && areaChaveData.getChaveAnimada && typeof areaChaveData.getChaveAnimada === "function") {
@@ -1179,8 +1182,28 @@ export function moveAnimate(delta) {
             playerHasKey = false;
         }
     }
-    const elevadores = scene.children.filter(obj => obj.name === 'elevador');
-    elevadores.forEach(elevador => { moveElevador(elevador, downRay, frontRay); });
+    //move o elevador
+    const elevador = scene.getObjectByName('elevador');
+    const sensor = scene.children.filter(obj => obj.name === 'DesceElevador');
+    sensor.forEach(sensor => { moveElevador(elevador, downRay, sensor, controls); });
+
+    // portao area 3
+    const hangar = scene.getObjectByName('hangar');
+    if (hangar) {
+        const portas = [];
+        hangar.traverse((child) => {
+            if (child.name === 'porta') {
+                portas.push(child);
+            }
+        });
+        
+        if (portas.length >= 2) {
+            movePortaoH(portas[0], portas[1], frontRay);
+        } else if (portas.length > 0) {
+            console.warn('Apenas', portas.length, 'porta(s) encontrada(s) no hangar');
+        }
+    } else {
+    }
 }
 
 function render() {
