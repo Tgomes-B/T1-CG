@@ -1,27 +1,40 @@
 import * as THREE from 'three';
-
+import {
+    texHangarArea3,
+    texHangarArea3Normal,
+    texHangarArea3Displacement
+}from './Loaders.js';
 
 let loader = new THREE.TextureLoader();
 
 export function constroiHangar(){
-    const hangarGeometry = new THREE.CylinderGeometry(50, 50, 100, 32, 1, false, 0, Math.PI);
+    const hangarGeometry = new THREE.CylinderGeometry(50, 50, 100, 32, 1, true, 0, Math.PI);
 
     const hangarMaterial = [
         setMaterial('./images/Textures/Area3/telha.jpg', 4, 4), // parte de cima
         new THREE.MeshLambertMaterial({ color: 'rgba(255, 29, 29, 1)' }), // parte da frente
         new THREE.MeshLambertMaterial({ color: 'rgba(255, 41, 41, 1)' }) // parte da frente
     ];
+    const lateralMaterial = new THREE.MeshStandardMaterial({
+        map: texHangarArea3,
+        displacementMap: texHangarArea3Displacement,
+        displacementScale: 1,
+        normalMap: texHangarArea3Normal,
+        color: 0xffffff,
+        roughness: 5,
+        side: THREE.DoubleSide
+    });
 
-    let hangar = new THREE.Mesh(hangarGeometry, hangarMaterial);
+    let hangar = new THREE.Mesh(hangarGeometry, lateralMaterial);
     hangar.position.set(0, 0, 0);
     hangar.rotation.z = Math.PI / 2; // Rotaciona para ficar horizontal
     hangar.castShadow = true;
     hangar.receiveShadow = true;
     hangar.name = 'hangar';
 
-
-    hangar.add(rodape(50));
-    hangar.add(rodape(-50));
+    hangar.add(rodape(49.9));
+    hangar.add(rodape(-49.9));
+    paredeHangar(hangar);
 
     portas(hangar, 12.5, -12.5);
 
@@ -32,16 +45,41 @@ export function constroiHangar(){
 
 
 function rodape(posZ){
-    const rodapeGeometry = new THREE.BoxGeometry(99, 10, 2);
+    const rodapeGeometry = new THREE.BoxGeometry(100, 10, 1);
     const rodapeMaterial = new THREE.MeshLambertMaterial({ color: 'rgba(254, 6, 6, 1)' });
     const rodape = new THREE.Mesh(rodapeGeometry, rodapeMaterial);
     rodape.rotation.z = Math.PI / 2;
-    rodape.position.set(5, 0, posZ); // o X e o Y estão invertidos
+    rodape.position.set(5, -0.5, posZ); // o X e o Y estão invertidos
     
     rodape.castShadow = true;
     rodape.receiveShadow = true;
 
     return rodape;
+}
+
+function paredeHangar(hangar){
+    const paredeGeometry = new THREE.CircleGeometry(50.25, 32, -Math.PI/2, Math.PI);
+    const paredeMaterial = new THREE.MeshStandardMaterial({
+        map: texHangarArea3,
+        displacementMap: texHangarArea3Displacement,
+        displacementScale: 1,
+        normalMap: texHangarArea3Normal,
+        color: 0xffffff,
+        roughness: 1,
+        side: THREE.DoubleSide
+    });
+    const parede = new THREE.Mesh(paredeGeometry, paredeMaterial);
+    
+    parede.position.set(0, 49, 0);
+    parede.rotation.x = Math.PI/2;
+    parede.castShadow = true;
+    parede.receiveShadow = true;
+    parede.name = 'parede';
+    const fundo = parede.clone();
+    fundo.position.set(0, -49, 0);
+
+    hangar.add(parede);
+    hangar.add(fundo);
 }
 
 export function movePortaoH(porta1, porta2, frontRay){
