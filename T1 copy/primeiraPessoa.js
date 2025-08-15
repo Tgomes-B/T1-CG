@@ -10,6 +10,7 @@ import { initRenderer, onWindowResize } from "../libs/util/util.js";
 import { criaAreasRampas, criaParedes, setupLighting } from './Ambiente.js';
 import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
+import { updatePatrolBehavior } from './patrolBehavior.js';
 import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
 import { adicionarBossGLB } from './boss.js';
 import { FireEffect } from './Effects.js';
@@ -397,9 +398,13 @@ export function moveAnimate(delta) {
             }
 
             // --- Lógica de patrulha ---
-            if (obj.userData.state === "patrol" && obj.userData.patrolArea) {
-                // Cacodemon: patrulha lenta e deliberada
-                if (isCacodemon || isBoss) {
+            if (obj.userData.state === "patrol") {
+                // Usa o novo sistema de patrulha para Skulls
+                if (isSkull) {
+                    updatePatrolBehavior(obj, delta, scene);
+                } 
+                // Mantém o comportamento antigo para Cacodemon e Boss
+                else if (isCacodemon || isBoss) {
                     if (!obj.userData.patrolTarget || obj.position.distanceTo(obj.userData.patrolTarget) < 1.2) {
                         // Sorteia novo ponto dentro da patrolArea
                         const min = obj.userData.patrolArea.min;
@@ -415,6 +420,7 @@ export function moveAnimate(delta) {
                     dir.y = 0; // Mantém patrulha horizontal
                     if (dir.length() > 0.1) dir.normalize();
                     const move = dir.clone().multiplyScalar(3 * delta); // lento
+                    
                     // Testa colisão
                     const collidables = [];
                     findCollidables(scene, collidables);
@@ -425,44 +431,11 @@ export function moveAnimate(delta) {
                     if (!collides) {
                         obj.position.add(move);
                     }
+                    
                     // Rotação suave
                     if (dir.lengthSq() > 0.001) {
                         let yaw = Math.atan2(dir.x, dir.z);
                         obj.rotation.y += (yaw - obj.rotation.y) * 0.1;
-                    }
-                } else if (isSkull) {
-                    // Skull: patrulha rápida e zigue-zague
-                    if (!obj.userData.patrolTarget || obj.position.distanceTo(obj.userData.patrolTarget) < 1.0) {
-                        const min = obj.userData.patrolArea.min;
-                        const max = obj.userData.patrolArea.max;
-                        obj.userData.patrolTarget = new THREE.Vector3(
-                            min.x + Math.random() * (max.x - min.x),
-                            min.y + Math.random() * (max.y - min.y),
-                            min.z + Math.random() * (max.z - min.z)
-                        );
-                        obj.userData.zigzagDir = Math.random() < 0.5 ? -1 : 1;
-                    }
-                    let dir = obj.userData.patrolTarget.clone().sub(obj.position);
-                    dir.y = 0;
-                    if (dir.length() > 0.1) dir.normalize();
-                    // Adiciona zigue-zague lateral
-                    let perp = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
-                    let zigzag = perp.multiplyScalar(Math.sin(performance.now() * 0.003) * 1.5 * obj.userData.zigzagDir);
-                    let move = dir.clone().multiplyScalar(5 * delta).add(zigzag.multiplyScalar(delta));
-                    // Testa colisão
-                    const collidables = [];
-                    findCollidables(scene, collidables);
-                    const validCollidables = collidables.filter(o => o !== obj && o.userData.collisionBox && o.userData.isCollidable);
-                    const tempBox = obj.userData.collisionBox.clone();
-                    tempBox.translate(move);
-                    let collides = validCollidables.some(o => tempBox.intersectsBox(o.userData.collisionBox));
-                    if (!collides) {
-                        obj.position.add(move);
-                    }
-                    // Rotação suave
-                    if (dir.lengthSq() > 0.001) {
-                        let yaw = Math.atan2(dir.x, dir.z);
-                        obj.rotation.y += (yaw - obj.rotation.y) * 0.18;
                     }
                 }
                 // Atualiza caixa de colisão

@@ -28,10 +28,22 @@ export function loadEnemyOBJ(path, position = { x: 0, y: 0, z: 0 }, onLoad) {
                 obj.userData.isCollidable = true;
                 obj.userData.state = "patrol";
                 obj.userData.originalPosition = obj.position.clone();
-                // Define patrolArea como toda a areaChave
-                const patrolBoxMin = new THREE.Vector3(25, 2, -30);
-                const patrolBoxMax = new THREE.Vector3(75, 8, 30);
-                obj.userData.patrolArea = {min: patrolBoxMin, max: patrolBoxMax};
+                
+                // Initialize patrol properties
+                obj.userData.lastPatrolChange = 0;
+                obj.userData.lastDirectionChange = 0;
+                obj.userData.patrolTarget = null;
+                obj.userData.patrolDirection = new THREE.Vector3(
+                    Math.random() * 2 - 1,
+                    0,
+                    Math.random() * 2 - 1
+                ).normalize();
+                
+                // Define patrolArea as the entire area1
+                obj.userData.patrolArea = {
+                    min: new THREE.Vector3(115, 4, -215),  // AREA1_MIN_X, AREA1_MIN_Y, AREA1_MIN_Z
+                    max: new THREE.Vector3(235, 30, -95)   // AREA1_MAX_X, AREA1_MAX_Y, AREA1_MAX_Z
+                };
                 obj.userData.detectionRadius = 60;
 
                 // Skull dash properties
