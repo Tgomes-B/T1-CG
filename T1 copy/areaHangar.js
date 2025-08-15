@@ -1,9 +1,12 @@
 import * as THREE from 'three';
+import { OBJLoader } from '../build/jsm/loaders/OBJLoader.js';
+import { MTLLoader } from '../build/jsm/loaders/MTLLoader.js';
 import {
     texHangarArea3,
     texHangarArea3Normal,
     texHangarArea3Displacement
 }from './Loaders.js';
+import { CSG } from '../libs/other/CSGMesh.js'  
 
 let loader = new THREE.TextureLoader();
 
@@ -36,6 +39,8 @@ export function constroiHangar(){
     hangar.add(rodape(-49.9));
     paredeHangar(hangar);
 
+    loadOBJFile('./imagens/Textures/', 'plane', 3.5, 0, true, hangar);
+
     portas(hangar, 12.5, -12.5);
 
     return hangar;
@@ -45,8 +50,16 @@ export function constroiHangar(){
 
 
 function rodape(posZ){
-    const rodapeGeometry = new THREE.BoxGeometry(100, 10, 1);
-    const rodapeMaterial = new THREE.MeshLambertMaterial({ color: 'rgba(254, 6, 6, 1)' });
+    const rodapeGeometry = new THREE.BoxGeometry(101, 10, 1);
+    const rodapeMaterial = [
+        setMaterial('./images/Textures/Area3/muroHangar.jpg', 1, 1),
+        setMaterial('./images/Textures/Area3/testeMuro.jpg', 1, 1),
+        setMaterial('./images/Textures/Area3/testeMuro.jpg', 1, 1),
+        new THREE.MeshLambertMaterial({ color: 'rgba(254, 6, 188, 1)' }),
+        setMaterial('./images/Textures/Area3/testeMuro.png', 2, 1),// z+
+        setMaterial('./images/Textures/Area3/testeMuro.png', 2, 1) //z-
+    ];
+
     const rodape = new THREE.Mesh(rodapeGeometry, rodapeMaterial);
     rodape.rotation.z = Math.PI / 2;
     rodape.position.set(5, -0.5, posZ); // o X e o Y estão invertidos
@@ -57,29 +70,61 @@ function rodape(posZ){
     return rodape;
 }
 
+export function loadOBJFile(modelPath, modelName, desiredScale, angle, visibility, hangar)
+{
+  const mtlLoader = new MTLLoader();
+  mtlLoader.setPath(modelPath);
+  mtlLoader.load(modelName + '.mtl', function (materials) {
+      materials.preload();
+
+      const objLoader = new OBJLoader();
+      objLoader.setMaterials(materials);
+      objLoader.setPath(modelPath);
+      objLoader.load( modelName + ".obj", function ( obj ) {
+        obj.visible = visibility;
+        obj.name = modelName;
+        // Set 'castShadow' property for each children of the group
+        obj.traverse( function (child)
+        {
+           if( child.isMesh )   child.castShadow = true;
+           if( child.material ) child.material.side = THREE.DoubleSide; 
+        });
+
+        obj = normalizeAndRescale(obj, desiredScale);
+        obj = fixPosition(obj);
+        obj.rotateY(THREE.MathUtils.degToRad(angle));
+
+        hangar.add(obj);
+      });
+  });
+}
+
 function paredeHangar(hangar){
-    const paredeGeometry = new THREE.CircleGeometry(50.25, 32, -Math.PI/2, Math.PI);
+    let boxCSG = CSG.fromMesh(new THREE.Mesh(new THREE.BoxGeometry(55, 30, 30)));
+    const paredeGeometry = new THREE.CylinderGeometry(50.25, 50.25, 0.5, 32, 1, false, 0, Math.PI);
     const paredeMaterial = new THREE.MeshStandardMaterial({
         map: texHangarArea3,
-        displacementMap: texHangarArea3Displacement,
-        displacementScale: 1,
-        normalMap: texHangarArea3Normal,
         color: 0xffffff,
-        roughness: 1,
         side: THREE.DoubleSide
     });
-    const parede = new THREE.Mesh(paredeGeometry, paredeMaterial);
     
-    parede.position.set(0, 49, 0);
-    parede.rotation.x = Math.PI/2;
-    parede.castShadow = true;
-    parede.receiveShadow = true;
-    parede.name = 'parede';
-    const fundo = parede.clone();
-    fundo.position.set(0, -49, 0);
+    const fundo = new THREE.Mesh(paredeGeometry, paredeMaterial);
+    fundo.position.set(0, 0, 0);
 
-    hangar.add(parede);
+    let portaCSG = CSG.fromMesh(fundo);
+    portaCSG = portaCSG.subtract(boxCSG); // Subtrai um cubo para criar a porta
+    let parede = CSG.toMesh(portaCSG, new THREE.Matrix4());
+
+    fundo.position.set(0, -49, 0);
+    fundo.castShadow = true;
+    fundo.receiveShadow = true;
+    fundo.name = 'parede';
+
+    parede.position.set(0, 49, 0);
+    parede.material = fundo.material;
+
     hangar.add(fundo);
+    hangar.add(parede);
 }
 
 export function movePortaoH(porta1, porta2, frontRay){
@@ -131,7 +176,14 @@ export function movePortaoH(porta1, porta2, frontRay){
 
 function portas(hangar, pos1, pos2){
     const portaGeometry = new THREE.BoxGeometry(30, 1, 25);
-    const portaMaterial = new THREE.MeshLambertMaterial({ color: 'rgba(200, 200, 200, 1)' });
+    const portaMaterial = [
+        setMaterial('./images/Textures/Area3/cimento.jpg', 1, 1),
+        setMaterial('./images/Textures/Area3/cimento.jpg', 1, 1),
+        setMaterial('./images/Textures/Area3/portao.jpg', 1, 1),
+        setMaterial('./images/Textures/Area3/portao.jpg', 1, 1),
+        setMaterial('./images/Textures/Area3/cimento.jpg', 1, 1),
+        setMaterial('./images/Textures/Area3/cimento.jpg', 1, 1)
+    ];
 
     const porta1 = new THREE.Mesh(portaGeometry, portaMaterial);
     const porta2 = new THREE.Mesh(portaGeometry, portaMaterial);
@@ -163,4 +215,24 @@ function setMaterial(file, repeatU = 1, repeatV = 1, color = 'rgb(255,255,255)')
    mat.map.minFilter = mat.map.magFilter = THREE.LinearFilter;
    mat.map.repeat.set(repeatU,repeatV); 
    return mat;
+}
+
+function normalizeAndRescale(obj, newScale)
+{
+  var scale = getMaxSize(obj); // Available in 'utils.js'
+  obj.scale.set(newScale * (1.0/scale),
+                newScale * (1.0/scale),
+                newScale * (1.0/scale));
+  return obj;
+}
+
+function fixPosition(obj)
+{
+  // Fix position of the object over the ground plane
+  var box = new THREE.Box3().setFromObject( obj );
+  if(box.min.y > 0)
+    obj.translateY(-box.min.y);
+  else
+    obj.translateY(-1*box.min.y);
+  return obj;
 }

@@ -89,7 +89,7 @@ texHangarArea3.repeat.set(8,8);
 export const texHangarArea3Normal = textureLoader.load('./images/Textures/Area3/telhaNormalMap.png');
 texHangarArea3Normal.wrapS = THREE.RepeatWrapping;
 texHangarArea3Normal.wrapT = THREE.RepeatWrapping;
-texHangarArea3Normal.repeat.set(8, 8);
+texHangarArea3Normal.repeat.set(1, 1);
 
 export const texHangarArea3Displacement = textureLoader.load('./images/Textures/Area3/telhaHeight.png');
 texHangarArea3Displacement.wrapS = THREE.RepeatWrapping;
