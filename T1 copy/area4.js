@@ -25,15 +25,15 @@ export function adicionaPrediosArea4(scene, area4,onAllLoaded) {
     const loader = new GLTFLoader();
     const alturaBase = area4.position.y + 5; // 5 unidades acima do plano da área 4
     prediosData = [
-        { file: 'Predio1.glb', pos: { x: -60, y: alturaBase, z: -60 }, scale: 0.7 },
+        { file: 'predio1.glb', pos: { x: -60, y: alturaBase, z: -60 }, scale: 0.7 },
         { file: 'predio2.glb', pos: { x: -40, y: alturaBase +15, z: -20 }, scale: 0.8 },
-        { file: 'Predio1.glb', pos: { x: -65, y: alturaBase, z: 25 }, scale: 0.6 },
+        { file: 'predio1.glb', pos: { x: -65, y: alturaBase, z: 25 }, scale: 0.6 },
         { file: 'predio2.glb', pos: { x: -35, y: alturaBase +17, z: 60 }, scale: 0.9 },
         { file: 'predio2.glb', pos: { x: 40, y: alturaBase +12.5, z: -50 }, scale: 0.7 },
-        { file: 'Predio1.glb', pos: { x: 60, y: alturaBase, z: -10 }, scale: 0.8 },
+        { file: 'predio1.glb', pos: { x: 60, y: alturaBase, z: -10 }, scale: 0.8 },
         { file: 'predio2.glb', pos: { x: 35, y: alturaBase +10, z: 35 }, scale: 0.6 },
-        { file: 'Predio1.glb', pos: { x: 55, y: alturaBase, z: 70 }, scale: 0.9 },
-        { file: 'Predio1.glb', pos: { x: 80, y: alturaBase, z: -80 }, scale: 0.75 },
+        { file: 'predio1.glb', pos: { x: 55, y: alturaBase, z: 70 }, scale: 0.9 },
+        { file: 'predio1.glb', pos: { x: 80, y: alturaBase, z: -80 }, scale: 0.75 },
         { file: 'predio2.glb', pos: { x: -30, y: alturaBase + 16.5, z: 47}, scale: 0.85 }
     ];
 
@@ -63,7 +63,7 @@ export function adicionaPrediosArea4(scene, area4,onAllLoaded) {
     
         // --- Portal Laranja ---
         const ringMeshOrange = new THREE.Mesh(ringGeometry, ringMaterialOrange);
-        ringMeshOrange.position.set(area4.position.x , area4.position.y +5, area4.position.z - 60);
+        ringMeshOrange.position.set(area4.position.x , area4.position.y +5, area4.position.z - 54);
         ringMeshOrange.scale.set(1, 2.2, 1);
         ringMeshOrange.rotation.y = Math.PI;
         ringMeshOrange.name = 'portalOrange';
@@ -76,7 +76,7 @@ export function adicionaPrediosArea4(scene, area4,onAllLoaded) {
             opacity: 0.7
         });
         const centerMeshOrange = new THREE.Mesh(centerGeometry, centerMaterialOrange);
-        centerMeshOrange.position.set(area4.position.x, area4.position.y +5, area4.position.z - 60 + 0.05);
+        centerMeshOrange.position.set(area4.position.x, area4.position.y +5, area4.position.z - 54 + 0.05);
         centerMeshOrange.scale.set(1, 2.7, 1);
         scene.add(centerMeshOrange);
     }
