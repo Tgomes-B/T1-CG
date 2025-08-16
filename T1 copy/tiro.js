@@ -260,7 +260,16 @@ export function updateProjectiles(delta) {
                 continue;
             }
 
-        // Se não colidiu, move normalmente
+            // Se não colidiu, mas atingiu distância máxima, remova o projétil
+            const idx = projectiles.indexOf(projectile);
+            if (idx !== -1) projectiles.splice(idx, 1);
+            fadeOut(projectile, 250, () => {
+                if (scene.children.includes(projectile)) scene.remove(projectile);
+            });
+            continue;
+        }
+
+        // Se não colidiu nem atingiu distância máxima, move normalmente
         projectile.position.addScaledVector(velocity, delta);
     }
 }
