@@ -9,14 +9,8 @@ import { CSG } from '../libs/other/CSGMesh.js'
 
 let loader = new THREE.TextureLoader();
 
-export function constroiHangar(scene){
+export function constroiHangar(){
     const hangarGeometry = new THREE.CylinderGeometry(50, 50, 100, 32, 1, true, 0, Math.PI);
-
-    const hangarMaterial = [
-        setMaterial('./images/Textures/Area3/telha.jpg', 4, 4), // parte de cima
-        new THREE.MeshLambertMaterial({ color: 'rgba(255, 29, 29, 1)' }), // parte da frente
-        new THREE.MeshLambertMaterial({ color: 'rgba(255, 41, 41, 1)' }) // parte da frente
-    ];
     const lateralMaterial = new THREE.MeshStandardMaterial({
         map: texHangarArea3,
         displacementMap: texHangarArea3Displacement,
@@ -40,11 +34,10 @@ export function constroiHangar(scene){
     portas(hangar, 12.5, -12.5);
 
     // Carrega o avião depois que o hangar estiver completamente construído
-    loadOBJFile({x: 0, y: 2, z: 0}, hangar, (aviao) => {
+    loadOBJFile({x: 7, y: 0, z: 0}, hangar, (aviao) => {
         //aviao.rotation.x = -Math.PI / 2;
         aviao.rotation.z = - Math.PI / 2;
-        aviao.rotation.x = - Math.PI / 2; // Ajusta a rotação do avião
-        console.log("Avião carregado:", aviao); // Para debug
+        aviao.rotation.x =  Math.PI / 2; // Ajusta a rotação do avião
     });
     return hangar;
 }
@@ -68,6 +61,7 @@ function rodape(posZ){
     rodape.position.set(5, -0.5, posZ); // o X e o Y estão invertidos
     rodape.castShadow = true;
     rodape.receiveShadow = true;
+
     rodape.userData.isCollidable = true;
     
     // Atualiza a matriz do mundo antes de criar a collision box

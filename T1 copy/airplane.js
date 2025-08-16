@@ -9,11 +9,11 @@ export function loadOBJFile(position, hangar, onLoad) {
     // Carrega o arquivo GLB
     const gltfLoader = new GLTFLoader();
     gltfLoader.load(
-        modelPath + 'plane.glb',
+        modelPath + 'su25ukr.glb',
         (gltf) => {
             const obj = gltf.scene;
             obj.position.set(position.x, position.y, position.z);
-            obj.scale.set(2, 2, 2);
+            obj.scale.set(0.15, 0.15, 0.15);
             obj.name = 'plane';
             obj.visible = true;
 
@@ -23,7 +23,12 @@ export function loadOBJFile(position, hangar, onLoad) {
                     child.receiveShadow = true;
                 }
             });
+            
+            obj.userData.isCollidable = true;
+            obj.userData.collisionBox = new THREE.Box3().setFromObject(obj);
+            
             hangar.add(obj);
+            obj.userData.collisionBox.setFromObject(obj);
             obj.updateMatrixWorld(true);
             if (onLoad) onLoad(obj);
         },
