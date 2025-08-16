@@ -479,7 +479,7 @@ export function criaParedes(scene) {
     // ...código anterior...
 
     function createWall(width, height, depth, position, name) {
-        const geometry = new THREE.BoxGeometry(width, height, depth, 128, 128, 128);
+        const geometry = new THREE.BoxGeometry(width, height, depth, 1, 1, 1);
     
         // Crie uma nova textura para o topo/base desta parede
         const topTexture = new THREE.TextureLoader().load('../assets/textures/displacement/rockWall.jpg');

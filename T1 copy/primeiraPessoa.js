@@ -316,9 +316,8 @@ const music = document.getElementById('doomMusic');
 
 instructions.addEventListener('click', () => {
     if (music) {
-        music.volume = 0;
-        music.muted = false;
-        music.play();
+        music.volume = 0.3;
+        if (music.paused) music.play(); // Só toca se estiver pausada
     }
     if (!jogoFinalizado) controls.lock();
 }, false);

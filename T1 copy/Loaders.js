@@ -88,7 +88,7 @@ export const texPortalBlue = textureLoader.load('./images/Textures/area4/portal_
 export const texPortalOrange = textureLoader.load('./images/Textures/area4/portal_ring_orange.png');
 export const texPortalRed = textureLoader.load('./images/Textures/area4/portal_ring_red.png');
 
-export const texParedeArea4 = textureLoader.load('./images/Textures/area4/Wall4.jpg');
+export const texParedeArea4 = textureLoader.load('./images/Textures/area4/Wall.jpg');
 texParedeArea4.wrapS = THREE.RepeatWrapping;
 texParedeArea4.wrapT = THREE.RepeatWrapping;
 texParedeArea4.repeat.set(1, 1);

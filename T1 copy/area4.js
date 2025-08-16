@@ -218,21 +218,21 @@ export function criaParedesArea4(scene, area4) {
     const largura = 190;
     const altura = 60;
     const espessura = 4;
-    const corParede = 0x444444;
     const material = new THREE.MeshLambertMaterial({ 
         map: texParedeArea4, 
         side: THREE.DoubleSide 
     });
-
-
+    
     // Norte (Z+)
     const paredeNorte = new THREE.Mesh(
         new THREE.BoxGeometry(largura, altura, espessura),
         material
     );
-    paredeNorte.position.set(area4.position.x, area4.position.y + altura / 2, area4.position.z + 155 / 2 + 75.5);
+    paredeNorte.position.set(area4.position.x, area4.position.y + altura / 2, area4.position.z + 155 / 2 + 79.5);
     paredeNorte.userData.isCollidable = true;
     paredeNorte.userData.altura = altura;
+    paredeNorte.castShadow = true;
+    paredeNorte.receiveShadow = true;
     scene.add(paredeNorte);
 
     // Sul (Z-)
@@ -240,11 +240,13 @@ export function criaParedesArea4(scene, area4) {
         new THREE.BoxGeometry(largura, altura, espessura),
         material
     );
-    paredeSul.position.set(area4.position.x, area4.position.y + altura / 2, area4.position.z - 155 / 2 - 75.5);
+    paredeSul.position.set(area4.position.x, area4.position.y + altura / 2, area4.position.z - 155 / 2 - 79.5);
     paredeSul.userData.isCollidable = true;
     paredeSul.userData.altura = altura;
+    paredeSul.castShadow = true;
+    paredeSul.receiveShadow = true;
     scene.add(paredeSul);
-
+    
     // Leste (X+)
     const paredeLeste = new THREE.Mesh(
         new THREE.BoxGeometry(espessura, altura, 310),
@@ -253,8 +255,10 @@ export function criaParedesArea4(scene, area4) {
     paredeLeste.position.set(area4.position.x + largura / 2, area4.position.y + altura / 2, area4.position.z);
     paredeLeste.userData.isCollidable = true;
     paredeLeste.userData.altura = altura;
+    paredeLeste.castShadow = true;
+    paredeLeste.receiveShadow = true;
     scene.add(paredeLeste);
-
+    
     // Oeste (X-)
     const paredeOeste = new THREE.Mesh(
         new THREE.BoxGeometry(espessura, altura, 310),
@@ -263,6 +267,8 @@ export function criaParedesArea4(scene, area4) {
     paredeOeste.position.set(area4.position.x - largura / 2, area4.position.y + altura / 2, area4.position.z);
     paredeOeste.userData.isCollidable = true;
     paredeOeste.userData.altura = altura;
+    paredeOeste.castShadow = true;
+    paredeOeste.receiveShadow = true;
     scene.add(paredeOeste);
 }
 
