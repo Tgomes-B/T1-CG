@@ -1046,9 +1046,9 @@ export function moveAnimate(delta) {
                     // Fora de perseguição, gira para direção do deslocamento (idle)
                     if (obj.userData.state !== "pursuing") {
                         let vel = obj.userData.lastMoveVec || new THREE.Vector3(1,0,0);
-                        if (vel.lengthSq() > 0.001) {
-                            let yaw = Math.atan2(vel.x, vel.z);
-                            obj.rotation.y += (yaw - obj.rotation.y) * 0.2;
+                        if ((isCacodemon && !isBoss) && moveVec.lengthSq() > 0.001) {
+                            let yaw = Math.atan2(moveVec.x, moveVec.z);
+                            obj.rotation.y += (yaw - obj.rotation.y) * 0.16;
                         }
                     }
 

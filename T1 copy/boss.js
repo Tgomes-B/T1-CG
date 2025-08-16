@@ -10,6 +10,9 @@ export function adicionarBossGLB(scene, caminhoGLB, posicao) {
         boss.scale.set(0.38, 0.38, 0.38); 
         boss.userData.isEnemy = true;
         boss.userData.isCollidable = true;
+        //boss.rotation.x = Math.PI / 2;
+        //boss.rotation.y = Math.PI / 2;
+        //boss.rotation.z = Math.PI / 2;
         boss.userData.enemyType = "boss";
         boss.userData.hp = 300;
         boss.userData.maxHp = 300;
@@ -20,7 +23,10 @@ export function adicionarBossGLB(scene, caminhoGLB, posicao) {
         boss.userData.moveDirection = 1;
         boss.userData.baseY = boss.position.y;
         boss.name = "boss";
-        boss.userData.name = "boss";
+        boss.userData.name = "boss"; 
+
+        const axesHelper = new THREE.AxesHelper(20);
+        boss.add(axesHelper);   
 
         // HealthBar
         const healthBar = new HealthBar(boss.userData.maxHp, 1.8); // igual ao Cacodemon, proporcional ao modelo
