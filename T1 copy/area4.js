@@ -1,5 +1,5 @@
 import { GLTFLoader } from '../build/jsm/loaders/GLTFLoader.js';
-import { texPortalBlue, texPortalOrange,texPortalRed } from './Loaders.js';
+import { texPortalBlue, texPortalOrange,texPortalRed, texParedeArea4 } from './Loaders.js';
 import * as THREE from 'three';
 
 let prediosData = [];
@@ -201,7 +201,11 @@ export function criaParedesArea4(scene, area4) {
     const altura = 60;
     const espessura = 4;
     const corParede = 0x444444;
-    const material = new THREE.MeshLambertMaterial({ color: corParede, side: THREE.DoubleSide });
+    const material = new THREE.MeshLambertMaterial({ 
+        map: texParedeArea4, 
+        side: THREE.DoubleSide 
+    });
+
 
     // Norte (Z+)
     const paredeNorte = new THREE.Mesh(
@@ -250,15 +254,20 @@ export function desceParedesArea4(scene, alturaFinal = 0, velocidade = 1) {
         obj.userData && obj.userData.isCollidable
     );
 
-    // O destino é abaixo do chão (por exemplo, -altura/2 - 10)
     function animate() {
         let todasAbaixadas = true;
         paredes.forEach(parede => {
-            const destinoY = alturaFinal - (parede.userData.altura / 2) - 10; // 10 unidades abaixo do chão
+            const destinoY = alturaFinal - (parede.userData.altura / 2) - 10;
             if (parede.position.y > destinoY) {
-
                 parede.position.y = Math.max(parede.position.y - velocidade, destinoY);
                 todasAbaixadas = false;
+
+                // Atualiza a bounding box de colisão
+                if (!parede.userData.collisionBox) {
+                    parede.userData.collisionBox = new THREE.Box3().setFromObject(parede);
+                } else {
+                    parede.userData.collisionBox.setFromObject(parede);
+                }
             }
         });
         if (!todasAbaixadas) {
@@ -267,6 +276,7 @@ export function desceParedesArea4(scene, alturaFinal = 0, velocidade = 1) {
     }
     animate();
 }
+
 export function criaPortalVermelhoArea4(scene, area4, pos = { x: 0, y: 5, z: 0 }) {
     // Geometria do anel
     const ringGeometry = new THREE.PlaneGeometry(4, 6);
@@ -274,7 +284,7 @@ export function criaPortalVermelhoArea4(scene, area4, pos = { x: 0, y: 5, z: 0 }
     const ringMeshRed = new THREE.Mesh(ringGeometry, ringMaterialRed);
     ringMeshRed.position.set(area4.position.x + pos.x, area4.position.y + pos.y, area4.position.z + pos.z);
     ringMeshRed.scale.set(1, 2.2, 1);
-    ringMeshRed.rotation.y = 0;
+    ringMeshRed.rotation.y = Math.PI/2;
     ringMeshRed.name = 'portalRed';
     scene.add(ringMeshRed);
 
@@ -289,7 +299,24 @@ export function criaPortalVermelhoArea4(scene, area4, pos = { x: 0, y: 5, z: 0 }
     const centerMeshRed = new THREE.Mesh(centerGeometry, centerMaterialRed);
     centerMeshRed.position.set(area4.position.x + pos.x, area4.position.y + pos.y, area4.position.z + pos.z - 0.05);
     centerMeshRed.scale.set(1, 2.7, 1);
+    centerMeshRed.rotation.y = Math.PI/2;
     scene.add(centerMeshRed);
+}
+
+export function checaPortalVermelho(playerObj, scene) {
+    // Encontra o portal vermelho na cena
+    const portalRed = scene.getObjectByName('portalRed');
+    if (!portalRed) return false;
+
+    // Cria bounding box do jogador e do portal
+    const playerBox = new THREE.Box3().setFromCenterAndSize(
+        playerObj.position.clone(),
+        new THREE.Vector3(0.3, 2, 0.3)
+    );
+    const portalBox = new THREE.Box3().setFromObject(portalRed);
+
+    // Retorna true se colidiu
+    return portalBox.intersectsBox(playerBox);
 }
 
 export { prediosData };

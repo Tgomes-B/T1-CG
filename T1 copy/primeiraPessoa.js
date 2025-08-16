@@ -13,6 +13,7 @@ import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
 import { adicionarBossGLB } from './boss.js';
 import { adicionaPrediosArea4, checaTeleportePortais,getPredioColiders, checaColisaoPredios, prediosData,getPredioColidersFromScene, criaParedesArea4, desceParedesArea4 } from './area4.js';
 import { criaSoldier } from './Soldier.js';
+import { checaPortalVermelho } from './area4.js';
 export { isPaused };
 
 function updateHUD() {
@@ -51,6 +52,7 @@ function findCollidables(object, result = []) {
     return result;
 }
 let isPaused = false;
+export let jogoFinalizado = false;
 let isRunning = false;
 let canJump = false;
 let stats, renderer, scene, camera, controls, clock;
@@ -128,6 +130,44 @@ function setupInitialCameraPosition() {
         controls.getObject().position
     ).normalize();
     controls.getObject().rotation.y = Math.atan2(direction.x, direction.z);
+}
+
+function mostraMensagemFinal() {
+    const div = document.createElement('div');
+    div.innerText = "Você finalizou o jogo!";
+    div.style.position = 'fixed';
+    div.style.top = '50%';
+    div.style.left = '50%';
+    div.style.transform = 'translate(-50%, -50%)';
+    div.style.fontSize = '3em';
+    div.style.color = '#ff2222';
+    div.style.background = 'rgba(0,0,0,0.7)';
+    div.style.padding = '40px 80px';
+    div.style.borderRadius = '20px';
+    div.style.zIndex = '9999';
+
+    // Esconde ESC/instructions/blocker
+    const blocker = document.getElementById('blocker');
+    const instructions = document.getElementById('instructions');
+    if (blocker) blocker.style.display = 'none';
+    if (instructions) instructions.style.display = 'none';
+
+    // Botão de restart
+    const btn = document.createElement('button');
+    btn.innerText = "Reiniciar";
+    btn.style.display = 'block';
+    btn.style.margin = '40px auto 0 auto';
+    btn.style.fontSize = '2em';
+    btn.style.padding = '20px 40px';
+    btn.style.background = '#222';
+    btn.style.color = '#fff';
+    btn.style.border = 'none';
+    btn.style.borderRadius = '10px';
+    btn.style.cursor = 'pointer';
+    btn.onclick = () => location.reload();
+
+    div.appendChild(btn);
+    document.body.appendChild(div);
 }
 
 function setupEnvironment() {
@@ -279,11 +319,11 @@ function createCamera() {
 }
 
 function setupEventListeners() {
-    window.addEventListener('keydown', (event) => movementControls(event.code, true));
-    window.addEventListener('keyup', (event) => movementControls(event.code, false));
-    window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
-
     window.addEventListener('keydown', (event) => {
+        if (jogoFinalizado) {
+            event.preventDefault();
+            return;
+        }
         movementControls(event.code, true);
         if (event.code === "Digit1") {
             currentWeaponIndex = 0;
@@ -294,8 +334,22 @@ function setupEventListeners() {
             switchWeaponByIndex(currentWeaponIndex);
         }
     });
-    
+
+    window.addEventListener('keyup', (event) => {
+        if (jogoFinalizado) {
+            event.preventDefault();
+            return;
+        }
+        movementControls(event.code, false);
+    });
+
+    window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
+
     window.addEventListener('wheel', (event) => {
+        if (jogoFinalizado) {
+            event.preventDefault();
+            return;
+        }
         if (event.deltaY < 0) {
             currentWeaponIndex = (currentWeaponIndex + 1) % weaponNames.length;
         } else if (event.deltaY > 0) {
@@ -394,9 +448,15 @@ function setupControls() {
     const blocker = document.getElementById('blocker');
     const instructions = document.getElementById('instructions');
 
-    instructions.addEventListener('click', () => controls.lock(), false);
+    instructions.addEventListener('click', () => {
+        if (!jogoFinalizado) controls.lock();
+    }, false);
 
     controls.addEventListener('lock', () => {
+        if (jogoFinalizado) {
+            controls.unlock();
+            return;
+        }
         instructions.style.display = 'none';
         blocker.style.display = 'none';
         const crosshair = document.getElementById('crosshair');
@@ -404,6 +464,15 @@ function setupControls() {
     });
 
     controls.addEventListener('unlock', () => {
+        const blocker = document.getElementById('blocker');
+        const instructions = document.getElementById('instructions');
+        if (jogoFinalizado) {
+            if (blocker) blocker.style.display = 'none';
+            if (instructions) instructions.style.display = 'none';
+            const crosshair = document.getElementById('crosshair');
+            if (crosshair) crosshair.style.display = 'none';
+            return;
+        }
         blocker.style.display = 'block';
         instructions.style.display = '';
         const crosshair = document.getElementById('crosshair');
@@ -434,6 +503,7 @@ function movementControls(key, value) {
 }
 
 export function moveAnimate(delta) {
+    if (jogoFinalizado) return;
     const playerObj = controls.getObject();
     const alturaPlayer = 2;
     const forward = controls.getDirection(new THREE.Vector3()).setY(0).normalize();
@@ -707,8 +777,13 @@ function render() {
     if (vaiDesce) {
         desceParedesArea4(scene, 0, 0.01);
     }
-        
 
+    if (!jogoFinalizado && checaPortalVermelho(controls.getObject(), scene)) {
+        jogoFinalizado = true;
+        mostraMensagemFinal();
+        controls.unlock();
+    }
+        
     if (spotLightHelper) spotLightHelper.update();
     renderer.render(scene, camera);
     requestAnimationFrame(render);

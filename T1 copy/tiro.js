@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { isPaused } from './primeiraPessoa.js';
 import { getPredioColidersFromScene } from './area4.js';
+import { jogoFinalizado } from './primeiraPessoa.js';
 
 let camera, scene, controls;
 const projectileSpeed = 100;
@@ -55,6 +56,7 @@ export function setupShooting(_camera, _scene, _controls, _getCurrentWeapon,_are
  * Também controla a animação do sprite da chaingun.
  */
 function shootProjectile() {
+    if (jogoFinalizado) return;
     const weapon = getCurrentWeapon();
     const currentTime = performance.now();
     if (currentTime - lastShotTime < weapon.fireRate) return;

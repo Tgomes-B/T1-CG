@@ -86,4 +86,9 @@ texArea4Ground.repeat.set(15, 15);
 
 export const texPortalBlue = textureLoader.load('./images/Textures/area4/portal_ring_blue.png');
 export const texPortalOrange = textureLoader.load('./images/Textures/area4/portal_ring_orange.png');
-export const texPortalRed = textureLoader.load('./images/Textures/area4/portal_ring_red.png')
+export const texPortalRed = textureLoader.load('./images/Textures/area4/portal_ring_red.png');
+
+export const texParedeArea4 = textureLoader.load('./images/Textures/area4/Wall4.jpg');
+texParedeArea4.wrapS = THREE.RepeatWrapping;
+texParedeArea4.wrapT = THREE.RepeatWrapping;
+texParedeArea4.repeat.set(1, 1);
