@@ -15,7 +15,33 @@ import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
 import { adicionarBossGLB } from './boss.js';
 import { FireEffect } from './Effects.js';
 
+import { adicionaPrediosArea4, checaTeleportePortais,getPredioColiders, checaColisaoPredios, prediosData,getPredioColidersFromScene, criaParedesArea4, desceParedesArea4 } from './area4.js';
+import { criaSoldier } from './Soldier.js';
+import { checaPortalVermelho } from './area4.js';
 export { isPaused };
+
+function updateHUD() {
+    const healthElement = document.getElementById("health");
+    healthElement.style.width = playerHealth + "%";
+    if (playerHealth > 60) {
+      healthElement.style.background = "limegreen";
+    } else if (playerHealth > 30) {
+      healthElement.style.background = "yellow";
+    } else {
+      healthElement.style.background = "red";
+    }
+    document.getElementById("ammo").textContent = "Ammo: " + playerAmmo;
+  
+    // Retrato estilo Doom
+    const face = document.getElementById("player-face");
+    if (playerHealth > 60) {
+      face.src = "images/faces/face100.png";
+    } else if (playerHealth > 30) {
+      face.src = "images/faces/face50.png";
+    } else {
+      face.src = "images/image.png";
+    }
+  }
 
 // Função auxiliar para encontrar objetos colidíveis
 function findCollidables(object, result = []) {
@@ -30,6 +56,7 @@ function findCollidables(object, result = []) {
     return result;
 }
 let isPaused = false;
+export let jogoFinalizado = false;
 let isRunning = false;
 let canJump = false;
 let stats, renderer, scene, camera, controls, clock;
@@ -75,6 +102,8 @@ function init() {
     scene = new THREE.Scene();
     window.scene = scene; 
     camera = createCamera();
+    window.camera = camera;
+    window.renderer = renderer;
 
     const loader = new THREE.TextureLoader();
     const skyTexture = loader.load('./images/SkyboxT3/SkyBox2.png');
@@ -137,6 +166,44 @@ function setupInitialCameraPosition() {
     controls.getObject().rotation.y = Math.atan2(direction.x, direction.z);
 }
 
+function mostraMensagemFinal() {
+    const div = document.createElement('div');
+    div.innerText = "Você finalizou o jogo!";
+    div.style.position = 'fixed';
+    div.style.top = '50%';
+    div.style.left = '50%';
+    div.style.transform = 'translate(-50%, -50%)';
+    div.style.fontSize = '3em';
+    div.style.color = '#ff2222';
+    div.style.background = 'rgba(0,0,0,0.7)';
+    div.style.padding = '40px 80px';
+    div.style.borderRadius = '20px';
+    div.style.zIndex = '9999';
+
+    // Esconde ESC/instructions/blocker
+    const blocker = document.getElementById('blocker');
+    const instructions = document.getElementById('instructions');
+    if (blocker) blocker.style.display = 'none';
+    if (instructions) instructions.style.display = 'none';
+
+    // Botão de restart
+    const btn = document.createElement('button');
+    btn.innerText = "Reiniciar";
+    btn.style.display = 'block';
+    btn.style.margin = '40px auto 0 auto';
+    btn.style.fontSize = '2em';
+    btn.style.padding = '20px 40px';
+    btn.style.background = '#222';
+    btn.style.color = '#fff';
+    btn.style.border = 'none';
+    btn.style.borderRadius = '10px';
+    btn.style.cursor = 'pointer';
+    btn.onclick = () => location.reload();
+
+    div.appendChild(btn);
+    document.body.appendChild(div);
+}
+
 function setupEnvironment() {
     ({ areas } = criaAreasRampas(scene));
     criaParedes(scene);
@@ -154,7 +221,7 @@ function setupEnvironment() {
     const enemiesArea1 = [];
     const numEnemies = 5;
     const enemyPositions = [];
-    const margin = 15; 
+    const margin = 15;
 
     for (let i = 0; i < numEnemies; i++) {
         enemyPositions.push({
@@ -163,28 +230,81 @@ function setupEnvironment() {
             z: Math.random() * (areaLimits.safeMaxZ - areaLimits.safeMinZ - 2 * margin) + areaLimits.safeMinZ + margin
         });
     }
-    
-    let loadedCount = 0;
+
+    let loadedEnemies = 0;
+    let areaChaveLoaded = false;
+    let prediosLoaded = false;
+
+    function tryHideLoading() {
+        console.log('loadedEnemies:', loadedEnemies, 'areaChaveLoaded:', areaChaveLoaded, 'prediosLoaded:', prediosLoaded);
+        if (loadedEnemies === enemyPositions.length && areaChaveLoaded && prediosLoaded) {
+            // Pre-warm dos prédios da área 4
+            if (window.camera && window.renderer) {
+                const posInicial = window.camera.position.clone();
+                const lookInicial = window.camera.getWorldDirection(new THREE.Vector3()).clone();
+
+                window.camera.position.set(areas[3].position.x, areas[3].position.y + 10, areas[3].position.z + 10);
+                window.camera.lookAt(areas[3].position.x, areas[3].position.y + 5, areas[3].position.z);
+
+                window.renderer.render(scene, window.camera);
+
+                window.camera.position.copy(posInicial);
+                window.camera.lookAt(posInicial.x + lookInicial.x, posInicial.y + lookInicial.y, posInicial.z + lookInicial.z);
+            }
+
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen) loadingScreen.style.display = 'none';
+        }
+    }
+
+    // Carrega inimigos com fallback de erro
     enemyPositions.forEach((enemyPos) => {
         loadEnemyOBJ('images/sprites/skull/skull.obj', enemyPos, (enemy) => {
             enemy.position.set(enemyPos.x, enemyPos.y, enemyPos.z);
             scene.add(enemy);
             enemiesArea1.push(enemy);
             if (enemy.userData.boxHelper) scene.add(enemy.userData.boxHelper);
-            loadedCount++;
-            if (loadedCount === enemyPositions.length) {
+            loadedEnemies++;
+            if (loadedEnemies === enemyPositions.length) {
                 areaChaveData = setupAreaChave(scene, area1, enemiesArea1);
-
-                // ESCONDE A TELA DE LOADING QUANDO TUDO CARREGAR
-                const loadingScreen = document.getElementById('loadingScreen');
-                if (loadingScreen) loadingScreen.style.display = 'none';
+                areaChaveLoaded = true;
+                tryHideLoading();
+            }
+        }, () => { // fallback em caso de erro
+            loadedEnemies++;
+            if (loadedEnemies === enemyPositions.length) {
+                areaChaveData = setupAreaChave(scene, area1, enemiesArea1);
+                areaChaveLoaded = true;
+                tryHideLoading();
             }
         });
     });
 
+    // Adiciona prédios da área 4 e faz pre-warm
+    adicionaPrediosArea4(scene, areas[3], () => {
+        // PRE-WARM: força renderização olhando para os prédios
+        if (window.camera && window.renderer) {
+            const posInicial = window.camera.position.clone();
+            const lookInicial = window.camera.getWorldDirection(new THREE.Vector3()).clone();
+    
+            window.camera.position.set(areas[3].position.x, areas[3].position.y + 10, areas[3].position.z + 10);
+            window.camera.lookAt(areas[3].position.x, areas[3].position.y + 5, areas[3].position.z);
+            console.log('prewarm');
+    
+            window.renderer.render(scene, window.camera);
+    
+            window.camera.position.copy(posInicial);
+            window.camera.lookAt(posInicial.x + lookInicial.x, posInicial.y + lookInicial.y, posInicial.z + lookInicial.z);
+        }
+    
+        prediosLoaded = true;
+        tryHideLoading();
+    });
+    criaParedesArea4(scene, areas[3]);
     setupArea2(scene);
 
     const torresArea2 = [];
+    criaSoldier(areas[2].position.clone().add(new THREE.Vector3(0, 10, 0)), scene);
     scene.traverse(obj => {
         if (obj.name === "torre") torresArea2.push(obj);
     });
@@ -233,11 +353,11 @@ function createCamera() {
 }
 
 function setupEventListeners() {
-    window.addEventListener('keydown', (event) => movementControls(event.code, true));
-    window.addEventListener('keyup', (event) => movementControls(event.code, false));
-    window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
-
     window.addEventListener('keydown', (event) => {
+        if (jogoFinalizado) {
+            event.preventDefault();
+            return;
+        }
         movementControls(event.code, true);
         if (event.code === "Digit1") {
             currentWeaponIndex = 0;
@@ -248,8 +368,22 @@ function setupEventListeners() {
             switchWeaponByIndex(currentWeaponIndex);
         }
     });
-    
+
+    window.addEventListener('keyup', (event) => {
+        if (jogoFinalizado) {
+            event.preventDefault();
+            return;
+        }
+        movementControls(event.code, false);
+    });
+
+    window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
+
     window.addEventListener('wheel', (event) => {
+        if (jogoFinalizado) {
+            event.preventDefault();
+            return;
+        }
         if (event.deltaY < 0) {
             currentWeaponIndex = (currentWeaponIndex + 1) % weaponNames.length;
         } else if (event.deltaY > 0) {
@@ -348,9 +482,15 @@ function setupControls() {
     const blocker = document.getElementById('blocker');
     const instructions = document.getElementById('instructions');
 
-    instructions.addEventListener('click', () => controls.lock(), false);
+    instructions.addEventListener('click', () => {
+        if (!jogoFinalizado) controls.lock();
+    }, false);
 
     controls.addEventListener('lock', () => {
+        if (jogoFinalizado) {
+            controls.unlock();
+            return;
+        }
         instructions.style.display = 'none';
         blocker.style.display = 'none';
         const crosshair = document.getElementById('crosshair');
@@ -358,6 +498,15 @@ function setupControls() {
     });
 
     controls.addEventListener('unlock', () => {
+        const blocker = document.getElementById('blocker');
+        const instructions = document.getElementById('instructions');
+        if (jogoFinalizado) {
+            if (blocker) blocker.style.display = 'none';
+            if (instructions) instructions.style.display = 'none';
+            const crosshair = document.getElementById('crosshair');
+            if (crosshair) crosshair.style.display = 'none';
+            return;
+        }
         blocker.style.display = 'block';
         instructions.style.display = '';
         const crosshair = document.getElementById('crosshair');
@@ -1037,6 +1186,7 @@ export function moveAnimate(delta) {
         }
     });
 
+    if (jogoFinalizado) return;
     const playerObj = controls.getObject();
     const alturaPlayer = 2;
     const forward = controls.getDirection(new THREE.Vector3()).setY(0).normalize();
@@ -1054,9 +1204,22 @@ export function moveAnimate(delta) {
     let tryPos = originalPos.clone().add(moveVec.clone().multiplyScalar(currentSpeed * delta));
     playerObj.position.copy(tryPos);
 
+    const predioColiders = getPredioColidersFromScene(scene);
+
+    if (checaColisaoPredios(playerObj, predioColiders)) {
+        playerObj.position.copy(originalPos);
+    }
+
     let playerBox = new THREE.Box3().setFromCenterAndSize(
         playerObj.position.clone(),
         new THREE.Vector3(0.3, alturaPlayer, 0.3)
+    );
+
+    checaTeleportePortais(
+        controls.getObject(),
+        scene.getObjectByName('portalBlue'),
+        scene.getObjectByName('portalOrange'),
+        predioColiders
     );
 
     const collidables = [];
@@ -1243,6 +1406,13 @@ function showDeathScreen() {
         window.location.reload();
     };
 }
+let vaiDesce = false; // Torne global
+
+window.addEventListener('keydown', (event) => {
+    if (event.code === 'KeyC') {
+        vaiDesce = true;
+    }
+});
 
 function render() {
     stats.update();
@@ -1429,9 +1599,20 @@ if (areaChaveData && areaChaveData.animandoBloco && areaChaveData.blocoAnimado &
                 scene.userData.chaveAmarela.position.y =
                     baseY + Math.sin(performance.now() * 0.002) * 1.2;
             }
-        }
-        
+    }
 
+    
+    // desce a parede
+    if (vaiDesce) {
+        desceParedesArea4(scene, 0, 0.01);
+    }
+
+    if (!jogoFinalizado && checaPortalVermelho(controls.getObject(), scene)) {
+        jogoFinalizado = true;
+        mostraMensagemFinal();
+        controls.unlock();
+    }
+        
     if (spotLightHelper) spotLightHelper.update();
     renderer.render(scene, camera);
     requestAnimationFrame(render);

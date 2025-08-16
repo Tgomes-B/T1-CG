@@ -78,3 +78,17 @@ export const texBottom = textureLoader.load('./images/Textures/areasBottom.png')
 texBottom.wrapS = THREE.RepeatWrapping;
 texBottom.wrapT = THREE.RepeatWrapping;
 texBottom.repeat.set(1, 1);
+
+export const texArea4Ground = textureLoader.load('./images/Textures/area4/Floor4.png');
+texArea4Ground.wrapS = THREE.RepeatWrapping;
+texArea4Ground.wrapT = THREE.RepeatWrapping;
+texArea4Ground.repeat.set(15, 15);
+
+export const texPortalBlue = textureLoader.load('./images/Textures/area4/portal_ring_blue.png');
+export const texPortalOrange = textureLoader.load('./images/Textures/area4/portal_ring_orange.png');
+export const texPortalRed = textureLoader.load('./images/Textures/area4/portal_ring_red.png');
+
+export const texParedeArea4 = textureLoader.load('./images/Textures/area4/Wall4.jpg');
+texParedeArea4.wrapS = THREE.RepeatWrapping;
+texParedeArea4.wrapT = THREE.RepeatWrapping;
+texParedeArea4.repeat.set(1, 1);

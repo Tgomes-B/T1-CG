@@ -1,9 +1,15 @@
 import * as THREE from 'three';
 import { isPaused } from './primeiraPessoa.js';
+import { getPredioColidersFromScene } from './area4.js';
+import { jogoFinalizado } from './primeiraPessoa.js';
 
 let camera, scene, controls;
 const projectileSpeed = 100;
 const projectiles = [];
+const chaingunSound = new Audio('../0_assetsT3/sounds/chaingunFiring.wav');
+chaingunSound.volume = 0.2;
+const launcherSound = new Audio('../0_assetsT3/sounds/rocketFiring.wav');
+launcherSound.volume = 0.3;
 let areas = [];
 const ballGeometry = new THREE.SphereGeometry(0.1, 16, 16);
 
@@ -50,12 +56,15 @@ export function setupShooting(_camera, _scene, _controls, _getCurrentWeapon,_are
  * Também controla a animação do sprite da chaingun.
  */
 function shootProjectile() {
+    if (jogoFinalizado) return;
     const weapon = getCurrentWeapon();
     const currentTime = performance.now();
     if (currentTime - lastShotTime < weapon.fireRate) return;
     lastShotTime = currentTime;
 
     if (weapon.name === "launcher") {
+        launcherSound.currentTime = 0;
+        launcherSound.play();
         animateLauncherSprite();
         // Cria o projétil
         const gun = controls.getObject().getObjectByName("launcher");
@@ -81,12 +90,14 @@ function shootProjectile() {
         camera.getWorldDirection(dir);
 
         // Define a velocidade do projétil
-        projectile.userData.velocity = dir.multiplyScalar(projectileSpeed * 0.016); // Ajuste para delta time
+        projectile.userData.velocity = dir.multiplyScalar(projectileSpeed);
 
         // Adiciona à cena e armazena
         scene.add(projectile);
         projectiles.push(projectile);
     } else if (weapon.name === "chaingun") {
+        chaingunSound.currentTime = 0;
+        chaingunSound.play();
         animateChaingunSprite();
         // Raycast para detectar inimigo
         const dir = new THREE.Vector3();
@@ -158,10 +169,13 @@ export function updateProjectiles(delta) {
             projectile.position,
             velocity.clone().normalize(),
             0,
-            velocity.length()
+            velocity.length() * delta 
         );
 
         let collidables = [];
+        const predioObjs = scene.children.filter(obj => obj.name && obj.name.startsWith('predio_'));
+        collidables.push(...predioObjs);
+
         // 1. Adiciona filhos das áreas (como antes)
         areas.forEach(area => {
             area.traverse(obj => {
@@ -247,8 +261,7 @@ export function updateProjectiles(delta) {
             }
 
         // Se não colidiu, move normalmente
-        projectile.position.add(velocity);
-        }
+        projectile.position.addScaledVector(velocity, delta);
     }
 }
 

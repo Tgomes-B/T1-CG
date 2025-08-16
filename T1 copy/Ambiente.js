@@ -12,10 +12,12 @@ import {
     texPillarArea1Displacement,
     texPreda,
     texBottom,
-    texPillarArea1Normal
+    texPillarArea1Normal,
+    texArea4Ground
 } from './Loaders.js';
 import { criaTexturaArea2 } from './textureArea2.js';
 import { criaTexturaArea1 } from './textureArea1.js';
+import { adicionaPrediosArea4 } from './area4.js';
 /**
  * Cria áreas, rampas e chão do ambiente 3D.
  * @param {THREE.Scene} scene - A cena onde os objetos serão adicionados
@@ -72,8 +74,8 @@ export function criaAreasRampas(scene) {
     const areaMaterial = [
         new THREE.MeshLambertMaterial({ color: 'rgb(29, 219, 11)' }),
          new THREE.MeshLambertMaterial({ color: 0x3b82f6 }),
-        baseMaterial,
-        new THREE.MeshLambertMaterial({ color: 'rgb(100, 123, 255)' })
+        new THREE.MeshLambertMaterial({ color: 'rgb(255, 100, 100)' }),
+        new THREE.MeshLambertMaterial({ map: texArea4Ground }) 
     ];
 
     let molde, areas = [], posZ = -155, comp = 30 / 8, ramp, rotX = 1.5 * Math.PI;
@@ -188,7 +190,11 @@ export function criaAreasRampas(scene) {
             areaX = -130;
             areaY = 2;
             areaZ = 0;
-
+            areas[i] = molde; // Apenas atribui o molde diretamente para a área 4
+            areas[i].material = new THREE.MeshLambertMaterial({ map: texArea4Ground });
+            areas[i].castShadow = true;
+            areas[i].receiveShadow = true;   
+            areas[i].visible = true;
         }
 
         if (i !== 3 && i !== 2) { // Evita realizar o CSG na área 4
@@ -231,7 +237,6 @@ export function criaAreasRampas(scene) {
             posZ += 155;
             scene.add(areas[i]);
     }
-
     criaPilares(scene, areas[0]);
     
     return { areas, ramp, ground };
