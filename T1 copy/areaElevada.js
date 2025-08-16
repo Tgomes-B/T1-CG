@@ -144,6 +144,27 @@ function createBlocoChave(scene) {
     return bloco;
 }
 
+function createBoxColision(posX,posY,posZ, rotY){
+    const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(3, 5, 23),
+        new THREE.MeshBasicMaterial({ 
+            color: 0x00ff00,
+            visible: true,
+            wireframe: true
+        })
+    );
+    mesh.position.set(posX, posY, posZ);
+    mesh.rotation.y = rotY;
+    //mesh.userData.isCollidable = false;
+    mesh.name = "DesceElevador";
+    
+    // Adiciona a collision box ao userData para otimização
+    mesh.userData.collisionBox = new THREE.Box3().setFromObject(mesh);
+    
+    scene.add(mesh);
+    return mesh;
+}
+
 // Função para criar o elevador e porta
 function createElevador(scene) {
     const portaGeometry = new THREE.BoxGeometry(5, 10, 20);
@@ -160,8 +181,8 @@ function createElevador(scene) {
 
     portaMesh.castShadow = true;
     portaMesh.receiveShadow = true;
-    portaMesh.userData.isCollidable = true;
     portaMesh.userData.descendo = false;
+    portaMesh.userData.isCollidable = true;
     portaMesh.userData.collisionBox = new THREE.Box3().setFromObject(portaMesh);
 
     elevadorMesh.castShadow = true;
@@ -171,6 +192,11 @@ function createElevador(scene) {
 
     scene.add(elevadorMesh);
     scene.add(portaMesh);
+
+    createBoxColision(120, 2.5, 0, 0);
+    createBoxColision(138, 12.5, 0, 0);
+    createBoxColision(127, 12.5, 13, Math.PI / 2);
+    createBoxColision(127, 12.5, -13, Math.PI / 2);
 
     addCollisionHelper(portaMesh, scene);
     addCollisionHelper(elevadorMesh, scene);
@@ -246,14 +272,27 @@ export function movePorta(porta, frontRay){
     }
 }
 
-export function moveElevador(elevador, downRay, frontRay){
-    const elevadorSound = document.getElementById('elevadorSound');
 
-    const frontIntersects = frontRay.intersectObject(elevador, false);
-    if (frontIntersects.length > 0 && !elevador.userData.descendo && !elevador.userData.subindo) {
+export function moveElevador(elevador, downRay, colisionBoxElevador, controls) {
+            
+            const elevadorSound = document.getElementById('elevadorSound');
+    // Usa a collision box pré-calculada se disponível, senão calcula uma nova
+    const playerPosition = controls.getObject().position;
+    let collisionBox;
+    
+    if (colisionBoxElevador.userData && colisionBoxElevador.userData.collisionBox) {
+        collisionBox = colisionBoxElevador.userData.collisionBox;
+    } else {
+        collisionBox = new THREE.Box3().setFromObject(colisionBoxElevador);
+    }
+    
+    const proxElevador = collisionBox.distanceToPoint(playerPosition);
+
+    if (proxElevador < 0.5 && !elevador.userData.descendo && !elevador.userData.subindo) {
         if (elevador.userData.yInicial === undefined) {
             elevador.userData.yInicial = elevador.position.y;
         }
+        console.log("Descendo elevador");
         elevador.userData.descendo = true;
         elevador.userData.subindo = false;
         // Toca som ao começar a descer
@@ -278,7 +317,7 @@ export function moveElevador(elevador, downRay, frontRay){
     }
 
     if (elevador.userData.descendo) {
-        const yAlvo = elevador.userData.yInicial - 11;
+        const yAlvo = elevador.userData.yInicial - 10.1;
         if (elevador.position.y > yAlvo + 0.1) {
             elevador.position.y = THREE.MathUtils.lerp(elevador.position.y, yAlvo, 0.01);
             elevador.userData.collisionBox.setFromObject(elevador);

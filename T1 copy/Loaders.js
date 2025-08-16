@@ -92,3 +92,21 @@ export const texParedeArea4 = textureLoader.load('./images/Textures/area4/Wall4.
 texParedeArea4.wrapS = THREE.RepeatWrapping;
 texParedeArea4.wrapT = THREE.RepeatWrapping;
 texParedeArea4.repeat.set(1, 1);
+// --- Texturas Area 3 ---
+// --- Textura hangar ---
+export const texHangarArea3 = textureLoader.load('./images/Textures/Area3/telhaVelha.png');
+texHangarArea3.wrapS = THREE.RepeatWrapping;
+texHangarArea3.wrapT = THREE.RepeatWrapping;
+texHangarArea3.repeat.set(8,8);
+
+export const texHangarArea3Normal = textureLoader.load('./images/Textures/Area3/telhaNormalMap.png');
+texHangarArea3Normal.wrapS = THREE.RepeatWrapping;
+texHangarArea3Normal.wrapT = THREE.RepeatWrapping;
+texHangarArea3Normal.repeat.set(1, 1);
+
+export const texHangarArea3Displacement = textureLoader.load('./images/Textures/Area3/telhaHeight.png');
+texHangarArea3Displacement.wrapS = THREE.RepeatWrapping;
+texHangarArea3Displacement.wrapT = THREE.RepeatWrapping;
+texHangarArea3Displacement.repeat.set(8, 8);
+
+// carregar obj externo

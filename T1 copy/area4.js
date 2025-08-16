@@ -26,7 +26,7 @@ const ringMaterialRed = new THREE.MeshBasicMaterial({
  * @param {THREE.Object3D} area4
  *
  */
-export function adicionaPrediosArea4(scene, area4,onAllLoaded) {
+export function adicionaPrediosArea4(scene, area4,controls,onAllLoaded) {
     const loader = new GLTFLoader();
     const alturaBase = area4.position.y + 5; // 5 unidades acima do plano da área 4
     prediosData = [
@@ -108,10 +108,28 @@ export function adicionaPrediosArea4(scene, area4,onAllLoaded) {
             });
 
             scene.add(object);
-            
-
             loaded++;
+
             if (loaded === prediosData.length && typeof onAllLoaded === "function") {
+                if (window.camera && window.renderer) {
+                    const posInicial = window.camera.position.clone();
+                    const lookInicial = window.camera.getWorldDirection(new THREE.Vector3()).clone();
+            
+                    window.camera.position.set(area4.position.x, area4.position.y + 10, area4.position.z + 10);
+                    window.camera.lookAt(area4.position.x, area4.position.y + 5, area4.position.z);
+                    console.log('prewarm');
+            
+                    window.renderer.render(scene, window.camera);
+            
+                    window.camera.position.copy(posInicial);
+                    window.camera.lookAt(posInicial.x + lookInicial.x, posInicial.y + lookInicial.y, posInicial.z + lookInicial.z);
+                }
+            
+                // Reposiciona o jogador para a posição inicial
+                if (controls && controls.getObject) {
+                    controls.getObject().position.set(10, 7, 1); // posição inicial do seu jogo
+                }
+
                 onAllLoaded();
                 addPortais();
                 criaPortalVermelhoArea4(scene, area4);

@@ -15,11 +15,24 @@ import {
 import { criaTexturaArea2 } from './textureArea2.js';
 import { criaTexturaArea1 } from './textureArea1.js';
 import { adicionaPrediosArea4 } from './area4.js';
+import { constroiHangar } from './areaHangar.js';
+import { setupCollision } from './colisao.js';
+
+function setMaterial(texturePath, repeatX = 1, repeatY = 1) {
+    const texture = new THREE.TextureLoader().load(texturePath);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeatX, repeatY);
+    return new THREE.MeshStandardMaterial({ map: texture });
+}
 /**
  * Cria áreas, rampas e chão do ambiente 3D.
  * @param {THREE.Scene} scene - A cena onde os objetos serão adicionados
  * @returns {Object} Objeto contendo as áreas, rampa e chão criados
  */
+
+let loader = new THREE.TextureLoader();
+
 export function criaAreasRampas(scene) {
     const textureLoader = new THREE.TextureLoader();
     const groundTexture = textureLoader.load('../assets/textures/darkcement.jpg');
@@ -36,6 +49,7 @@ export function criaAreasRampas(scene) {
     const planeGeometry = new THREE.PlaneGeometry(500, 500);
     const planeMaterial = new THREE.MeshLambertMaterial({ map: groundTexture });
     const ground = new THREE.Mesh(planeGeometry, planeMaterial);
+
     ground.position.set(0, 0, 0);
     ground.rotation.x = -0.5 * Math.PI;
     ground.name = "ground";
@@ -52,10 +66,21 @@ export function criaAreasRampas(scene) {
 
     const areaGeometry = new THREE.BoxGeometry(120, 10, 120);
     const areaAzulGeometry = new THREE.BoxGeometry(190, 0.3, 310);
+
+    const cor = new THREE.MeshBasicMaterial ({color:'rgba(88, 88, 88, 1)'});
+    const baseMaterial = [
+        cor, //x+
+        cor, //x-   Texture + color
+        setMaterial('./images/Textures/Area3/cimento.png', 30, 30), //y+
+        cor, //y-  Just a color
+        cor, //x+
+        cor //x+
+    ];
+
     const areaMaterial = [
-        new THREE.MeshLambertMaterial({ color: 'rgb(29, 219, 11)' }),
-         new THREE.MeshLambertMaterial({ color: 0x3b82f6 }),
-        new THREE.MeshLambertMaterial({ color: 'rgb(255, 100, 100)' }),
+        new THREE.MeshLambertMaterial({ color: 'rgb(155, 249, 134)' }),
+        new THREE.MeshLambertMaterial({ color: 'rgb(210, 202, 55)' }),
+        baseMaterial,
         new THREE.MeshLambertMaterial({ map: texArea4Ground }) 
     ];
 
@@ -141,17 +166,19 @@ export function criaAreasRampas(scene) {
     
             criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 10, 120], true);
             criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 10, 120], true);
-            criaAreaColisao(areaX + 55, areaY, areaZ, [100, 10, 20], false);
-        } else if (i == 2) {
-            molde = new THREE.Mesh(areaGeometry, areaMaterial[i]);
-            molde.position.set(45, 0, 0);
+            criaAreaColisao(areaX + 55, areaY, areaZ, [100, 10, 20]);
+        }else if (i == 2) {
+            const TercAreaGeometry = new THREE.BoxGeometry(120, 0.05, 120);
+
+            const base = new THREE.Mesh(TercAreaGeometry, areaMaterial[i]);
+
+            base.position.set(45, 0, 0);
             areaX = 130;
-            areaY = 5;
+            areaY = 0.025;
             areaZ = posZ;
-    
-            criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 10, 120], true);
-            criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 10, 120], true);
-            criaAreaColisao(areaX + 60, areaY, areaZ, [90, 10, 20]);
+
+            criaAreaColisao(areaX + 45, areaY, areaZ, [120, 0.5, 120], true);
+            areas[i] = base;
         } else if (i == 3) {
             molde = new THREE.Mesh(areaAzulGeometry, areaMaterial[i]);
             molde.position.set(-45, 0, 0);
@@ -186,9 +213,10 @@ export function criaAreasRampas(scene) {
             // Área 2: topo com buraco e laterais
             criaTexturaArea2(scene, { x: 175, y: 0, z: posZ });
             areas[i].position.set(120, 5, posZ);
-        } else if (i == 2) {
-            areas[i].position.set(130, 5, posZ);
-            criaEscada(115, posZ, comp, 130, 10, -0.102 * Math.PI, 5);
+        }else if (i == 2) {
+            areas[i].position.set(175, 0.025, posZ);
+            areas[i].add(constroiHangar());
+            areas[i].visible = true;
         } else if (i == 3) {
             areas[i].position.set(-130, 0.5, 0);
             comp = -1 * comp;
@@ -198,12 +226,14 @@ export function criaAreasRampas(scene) {
             const area4CollisionBox = new THREE.Box3().setFromObject(areas[i]);
             areas[i].userData.collisionBox = area4CollisionBox;
         }
-    
-        areas[i].material = areaMaterial[i];
-        areas[i].castShadow = true;
-        areas[i].receiveShadow = true;
-        posZ += 155;
-        scene.add(areas[i]);
+        
+        
+            areas[i].material = areaMaterial[i];
+            areas[i].castShadow = true;
+            areas[i].receiveShadow = true;
+            posZ += 155;
+            scene.add(areas[i]);
+        
     }
     criaPilares(scene, areas[0]);
     
