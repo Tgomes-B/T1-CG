@@ -1,6 +1,6 @@
 import { adicionarInimigoCena } from './inimigo.js';
 import { loadEnemyOBJ } from './enemy.js';
-import { setupAreaChave, criaChave, recriarPilarComChave } from './areaChave.js';
+import { setupAreaChave, criaChave, recriarPilarComChave,criaBlocoChave } from './areaChave.js';
 import { moveElevador, setupArea2, movePorta,setupCacodemonElimination } from './areaElevada.js';
 import * as THREE from 'three';
 import Stats from '../build/jsm/libs/stats.module.js';
@@ -55,7 +55,6 @@ let isPaused = false;
 export let jogoFinalizado = false;
 let vaiDesce = false; 
 let isRunning = false;
-let canJump = true;
 let stats, renderer, scene, camera, controls, clock;
 let areaChaveData;
 let playerHasKey = false;
@@ -205,7 +204,6 @@ function setupEnvironment() {
     function tryHideLoading() {
         console.log('loadedEnemies:', loadedEnemies, 'areaChaveLoaded:', areaChaveLoaded, 'prediosLoaded:', prediosLoaded);
         if (loadedEnemies === enemyPositions.length && areaChaveLoaded && prediosLoaded) {
-            // Pre-warm dos prédios da área 4
             if (window.camera && window.renderer) {
                 const posInicial = window.camera.position.clone();
                 const lookInicial = window.camera.getWorldDirection(new THREE.Vector3()).clone();
@@ -247,9 +245,7 @@ function setupEnvironment() {
         });
     });
 
-    // Adiciona prédios da área 4 e faz pre-warm
     adicionaPrediosArea4(scene, areas[3], () => {
-        // PRE-WARM: força renderização olhando para os prédios
         if (window.camera && window.renderer) {
             const posInicial = window.camera.position.clone();
             const lookInicial = window.camera.getWorldDirection(new THREE.Vector3()).clone();
@@ -291,6 +287,26 @@ function setupEnvironment() {
 
     const posBoss = new THREE.Vector3(-180, 12, -180);
     adicionarBossGLB(scene, '../0_assetsT3/objects/pain/painElemental.glb', posBoss);
+
+    criaPilarChaveAzul(scene);
+}
+
+// Função para criar o pilar da chave azul
+function criaPilarChaveAzul(scene) {
+    // Cria o pilar
+    const pilarAzul = criaBlocoChave(3); // Use um número diferente do pilar vermelho
+    pilarAzul.name = 'pilarChaveAzul';
+
+    /*// Cria a chave azul
+    const chaveAzul = criaChave('blue');
+    chaveAzul.position.set(0, 4, 0); // Posição relativa ao topo do pilar
+    chaveAzul.userData.isCollectable = true;
+
+    // Adiciona a chave ao pilar
+    pilarAzul.add(chaveAzul);*/
+
+    // Adiciona o pilar à cena
+    scene.add(pilarAzul);
 }
 
 window.addEventListener('DOMContentLoaded', () => {

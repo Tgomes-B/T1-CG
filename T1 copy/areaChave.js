@@ -144,9 +144,12 @@ export function criaBlocoChave(Bluck){
     if (Bluck === 1) {
         bloco.name = 'bloco1';
         bloco.position.set(45, 0.5, 0);
-    } else {
+    } else if(Bluck === 2) {
         bloco.name = 'bloco2';
         bloco.position.set(175, 2, -155);
+    } else {
+        bloco.name = 'bloco3';
+        bloco.position.set(45, 0.5, 10);
     }
     bloco.castShadow = true;
     bloco.receiveShadow = true;
