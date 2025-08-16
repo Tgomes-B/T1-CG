@@ -53,8 +53,9 @@ function findCollidables(object, result = []) {
 }
 let isPaused = false;
 export let jogoFinalizado = false;
+let vaiDesce = false; 
 let isRunning = false;
-let canJump = false;
+let canJump = true;
 let stats, renderer, scene, camera, controls, clock;
 let areaChaveData;
 let playerHasKey = false;
@@ -292,6 +293,15 @@ function setupEnvironment() {
     adicionarBossGLB(scene, '../0_assetsT3/objects/pain/painElemental.glb', posBoss);
 }
 
+window.addEventListener('DOMContentLoaded', () => {
+    const music = document.getElementById('doomMusic');
+    if (music) {
+        music.volume = 0.3; // ajuste o volume conforme desejar
+        music.muted = false;
+        music.play();
+    }
+});
+
 function setupLightingAndCollision() {
     setupCollision(scene);
     scene.updateMatrixWorld(true);
@@ -447,8 +457,13 @@ function removeCurrentWeaponVisual() {
 function setupControls() {
     const blocker = document.getElementById('blocker');
     const instructions = document.getElementById('instructions');
+    const music = document.getElementById('doomMusic');
 
     instructions.addEventListener('click', () => {
+        if (music) {
+            music.volume = 0.3;
+            music.play();
+        }
         if (!jogoFinalizado) controls.lock();
     }, false);
 
@@ -461,6 +476,15 @@ function setupControls() {
         blocker.style.display = 'none';
         const crosshair = document.getElementById('crosshair');
         if (crosshair) crosshair.style.display = 'block';
+    });
+
+    window.addEventListener('keydown', (event) => {
+        if (event.code === 'KeyQ') {
+            const music = document.getElementById('doomMusic');
+            if (music) {
+                music.muted = !music.muted;
+            }
+        }
     });
 
     controls.addEventListener('unlock', () => {
@@ -640,6 +664,12 @@ export function moveAnimate(delta) {
                 chave.parent.remove(chave);
                 chave.userData.isCollectable = false;
                 playerHasKey = true;
+
+                const chaveSound = document.getElementById('chaveSound');
+                if (chaveSound) {
+                    chaveSound.currentTime = 0;
+                    chaveSound.play();
+                }
             }
         }
         if (chave && chave.userData && !chave.userData.isCollectable) {
@@ -662,7 +692,6 @@ export function moveAnimate(delta) {
     const elevadores = scene.children.filter(obj => obj.name === 'elevador');
     elevadores.forEach(elevador => { moveElevador(elevador, downRay, frontRay); });
 }
-let vaiDesce = false; // Torne global
 
 window.addEventListener('keydown', (event) => {
     if (event.code === 'KeyC') {

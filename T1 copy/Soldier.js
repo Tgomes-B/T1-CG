@@ -12,6 +12,9 @@ export function criaSoldier(position, scene) {
         actionSprite.position.y =  0.9; //position.y ||
         actionSprite.position.x = position.x - 50;
         actionSprite.scale.set(3, 3, 3);
+        actionSprite.name = "soldier";
+        actionSprite.userData.tipo = "soldier";
+        actionSprite.userData.isEnemy = true;
 
         // Frame inicial
         actionSprite.setFrame(0, 0);

@@ -35,6 +35,7 @@ export function adicionarInimigoCena(cena, posicoes = [{ x: 0, y: 0, z: 0 }], on
                 inimigo.userData.maxHp = 50;
                 inimigo.name = "cacodemon";
                 inimigo.userData.name = "cacodemon";
+                inimigo.userData.tipo = "cacodemon";
 
                 // Configurar HP e barra de vida
                 const healthBar = new HealthBar(inimigo.userData.maxHp, 1.5);

@@ -221,12 +221,18 @@ export function movePorta(porta, frontRay){
     const bloco = porta.parent.getObjectByName('bloco1');
     if (!bloco || !bloco.userData.chaveColocada) return;
 
+    const portaSound = document.getElementById('PortaSound');
+
     const intersects = frontRay.intersectObject(porta, false);
     if (intersects.length > 0 && !porta.userData.descendo) {
         if (porta.userData.yInicial === undefined) {
             porta.userData.yInicial = porta.position.y;
         }
         porta.userData.descendo = true;
+        if (portaSound) {
+            portaSound.currentTime = 0;
+            portaSound.play();
+        }
     }
     if (porta.userData.descendo) {
         const yAlvo = porta.userData.yInicial - 11;
@@ -241,6 +247,8 @@ export function movePorta(porta, frontRay){
 }
 
 export function moveElevador(elevador, downRay, frontRay){
+    const elevadorSound = document.getElementById('elevadorSound');
+
     const frontIntersects = frontRay.intersectObject(elevador, false);
     if (frontIntersects.length > 0 && !elevador.userData.descendo && !elevador.userData.subindo) {
         if (elevador.userData.yInicial === undefined) {
@@ -248,6 +256,11 @@ export function moveElevador(elevador, downRay, frontRay){
         }
         elevador.userData.descendo = true;
         elevador.userData.subindo = false;
+        // Toca som ao começar a descer
+        if (elevadorSound) {
+            elevadorSound.currentTime = 0;
+            elevadorSound.play();
+        }
     }
 
     const downIntersects = downRay.intersectObject(elevador, false);
@@ -257,6 +270,11 @@ export function moveElevador(elevador, downRay, frontRay){
         }
         elevador.userData.subindo = true;
         elevador.userData.descendo = false;
+        // Toca som ao começar a subir
+        if (elevadorSound) {
+            elevadorSound.currentTime = 0;
+            elevadorSound.play();
+        }
     }
 
     if (elevador.userData.descendo) {

@@ -19,6 +19,23 @@ let shootingInterval = null;
 let getCurrentWeapon = () => WEAPONS.launcher; // Defina isso para acessar o estado global
 let chaingunAnimInterval = null;
 
+
+function playEnemyHitSound(enemyRoot) {
+    let soundId = null;
+    if (enemyRoot.userData.tipo === 'soldier') soundId = 'hitSoldier';
+    else if (enemyRoot.userData.tipo === 'cacodemon') soundId = 'hitCacodemon';
+    else if (enemyRoot.userData.tipo === 'boss') soundId = 'hitBoss';
+    else if (enemyRoot.userData.tipo === 'lostsoul') soundId = 'hitLostSoul';
+
+    if (soundId) {
+        const snd = document.getElementById(soundId);
+        if (snd) {
+            snd.currentTime = 0;
+            snd.play();
+        }
+    }
+}
+
 /**
  * Configura o evento de disparo com o mouse.
  * Dispara projétil da ponta da arma (objeto "gun") na direção correta.
@@ -116,6 +133,7 @@ function shootProjectile() {
             }
             if (enemyRoot.userData.hp === undefined) enemyRoot.userData.hp = 50;
             enemyRoot.userData.hp -= 1;
+            playEnemyHitSound(enemyRoot);
             console.log(`Inimigo atingido! HP restante: ${enemyRoot.userData.hp}`);
             
             // Atualiza a healthbar
@@ -207,6 +225,7 @@ export function updateProjectiles(delta) {
                         enemyRoot.userData.maxHp = 50;
                     }
                     enemyRoot.userData.hp -= 10;
+                    playEnemyHitSound(enemyRoot);
                     if (enemyRoot.userData.hp < 0) enemyRoot.userData.hp = 0; 
                     console.log(`Inimigo atingido! HP restante: ${enemyRoot.userData.hp}`);
                     

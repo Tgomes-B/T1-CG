@@ -18,7 +18,8 @@ export function loadEnemyOBJ(path, position = { x: 0, y: 0, z: 0 }, onLoad) {
             (obj) => {
                 obj.position.set(position.x, position.y, position.z);
                 obj.scale.set(1, 1, 1);
-                obj.name = "enemy";
+                obj.name = "lostsoul";
+                obj.userData.tipo = "lostsoul";
                 obj.userData.isEnemy = true;
                 obj.userData.hp = 20;
                 obj.userData.maxHp = 50;
