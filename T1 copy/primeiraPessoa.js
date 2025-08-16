@@ -128,32 +128,6 @@ function init() {
     setupGameElements();
     setupEventListeners();
     updatePlayerHealthBar();
-
-    // Cria barra de HP do jogador se não existir
-    if (!document.getElementById('playerHealthBar')) {
-        const bar = document.createElement('div');
-        bar.id = 'playerHealthBar';
-        bar.style.position = 'fixed';
-        bar.style.top = '20px';
-        bar.style.left = '20px';
-        bar.style.width = '200px';
-        bar.style.height = '20px';
-        bar.style.backgroundColor = '#333';
-        bar.style.border = '2px solid #000';
-        bar.style.borderRadius = '5px';
-        bar.style.overflow = 'hidden';
-        bar.style.zIndex = '2000';
-        const inner = document.createElement('div');
-        inner.id = 'playerHealthBarInner';
-        inner.style.height = '100%';
-        inner.style.width = '100%';
-        inner.style.backgroundColor = 'green';
-        inner.style.transition = 'width 0.3s';
-        bar.appendChild(inner);
-        document.body.appendChild(bar);
-    }
-
-    updatePlayerHealthBar();
 }
 
 function setupInitialCameraPosition() {
@@ -537,7 +511,6 @@ function movementControls(key, value) {
 }
 
 export function moveAnimate(delta) {
-    //Lógica de perseguição
     scene.traverse(obj => {
         if (obj.userData && obj.userData.isEnemy && obj.userData.state) {
             // Identificação de tipo
@@ -736,11 +709,25 @@ export function moveAnimate(delta) {
                         obj.userData.collisionBox.setFromObject(obj);
                     }
                     
+                    // --- Skull causa dano ao atravessar o jogador durante dash ---
+                    if (isSkull && obj.userData.isDashing) {
+                        const distToPlayer = obj.position.distanceTo(playerObj.position);
+                        if (distToPlayer < 3) {
+                            if (!obj.userData._skullDamageCooldown || performance.now() - obj.userData._skullDamageCooldown > 1000) {
+                                playerTakeDamage(15); // Dano por contato
+                                obj.userData._skullDamageCooldown = performance.now();
+                            }
+                        }
+                    }
+                    // --- Fim Skull dano ---
+
                     // Pula o resto da lógica de perseguição para o Skull
                     return;
                 }
                 
                 // --- Lógica para outros inimigos (Cacodemon, Boss, etc) ---
+
+
                 let targetY = playerPos.y;
                 if (isCacodemon || isBoss) {
                     // Oscilação vertical (respiração)
@@ -849,6 +836,7 @@ export function moveAnimate(delta) {
                             }
                             obj.userData.lastLateralDir = obj.userData.cacoLateralDir;
                             
+
                             // Aumenta a duração do movimento lateral
                             if (obj.userData.cacoMoveVertical === 0) {
                                 obj.userData.cacoMoveDuration = triRandMin(1.2, 2.0, 1.2); // Aumenta a duração do movimento lateral
@@ -880,6 +868,7 @@ export function moveAnimate(delta) {
                             moveVec.copy(backDir);
                             obj.userData.lastMoveWasBackward = true; // Marca que o último movimento foi para trás
                             
+
                             // Aumenta o tempo de movimento para trás
                             if (obj.userData.cacoMoveTimer > 0.3 + Math.random() * 0.3) {  // Aumenta o tempo mínimo e máximo
                                 obj.userData.cacoMovePhase = 1;
@@ -983,6 +972,7 @@ export function moveAnimate(delta) {
                                 })
                             );
                             
+
                             // Posição inicial: frente do Cacodemon
                             const offset = new THREE.Vector3(0, 0, -1.5)
                                 .applyQuaternion(obj.quaternion);
@@ -1367,16 +1357,17 @@ export function moveAnimate(delta) {
 }
 
 function updatePlayerHealthBar() {
-    const innerBar = document.getElementById('playerHealthBarInner');
-    if (!innerBar) return;
+    // Atualiza apenas a barra HTML/CSS do player
+    const healthElement = document.getElementById("health");
+    if (!healthElement) return;
     const percent = playerHP / playerMaxHP;
-    innerBar.style.width = `${percent * 100}%`;
+    healthElement.style.width = `${percent * 100}%`;
     if (percent > 0.6) {
-        innerBar.style.backgroundColor = 'green';
+        healthElement.style.background = "limegreen";
     } else if (percent > 0.3) {
-        innerBar.style.backgroundColor = 'yellow';
+        healthElement.style.background = "yellow";
     } else {
-        innerBar.style.backgroundColor = 'red';
+        healthElement.style.background = "red";
     }
 }
 

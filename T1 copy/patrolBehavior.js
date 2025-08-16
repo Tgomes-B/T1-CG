@@ -82,11 +82,16 @@ function moveInDirection(obj, direction, delta, speed, scene) {
     if (!collides) {
         obj.position.add(moveVec);
     } else {
-        // Change direction on collision
+        // Virar 180 graus ao colidir (mantém patrulha, só inverte direção)
+        direction.multiplyScalar(-1);
+        // Atualizar rotação para nova direção
+        const yaw = Math.atan2(direction.x, direction.z);
+        obj.rotation.y = yaw;
+        // Atualiza direção de patrulha para o novo sentido
+        obj.userData.patrolDirection = direction.clone();
+        // Se for patrulha ativa, força novo target
         if (obj.userData.patrolTarget) {
-            obj.userData.patrolTarget = null; // Get new target in next update
-        } else {
-            direction.multiplyScalar(-1);
+            obj.userData.patrolTarget = null;
         }
     }
     
