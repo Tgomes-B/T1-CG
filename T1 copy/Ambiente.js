@@ -30,7 +30,7 @@ export function criaAreasRampas(scene) {
     const baseMaterial = [
         cor, //x+
         cor, //x-   Texture + color
-        setMaterial('./images/Textures/Area3/cimento.jpg', 20, 20), //y+
+        setMaterial('./images/Textures/Area3/cimento.png', 30, 30), //y+
         cor, //y-  Just a color
         cor, //x+
         cor //x+
@@ -172,7 +172,7 @@ export function criaAreasRampas(scene) {
             areas[i].position.set(120, 5, posZ);
         }else if (i == 2) {
             areas[i].position.set(175, 0.025, posZ);
-            areas[i].add(constroiHangar());
+            areas[i].add(constroiHangar(scene));
         }
         
         

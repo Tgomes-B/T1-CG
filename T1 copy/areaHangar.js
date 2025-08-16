@@ -9,7 +9,7 @@ import { CSG } from '../libs/other/CSGMesh.js'
 
 let loader = new THREE.TextureLoader();
 
-export function constroiHangar(){
+export function constroiHangar(scene){
     const hangarGeometry = new THREE.CylinderGeometry(50, 50, 100, 32, 1, true, 0, Math.PI);
 
     const hangarMaterial = [
@@ -40,12 +40,11 @@ export function constroiHangar(){
     portas(hangar, 12.5, -12.5);
 
     // Carrega o avião depois que o hangar estiver completamente construído
-    loadOBJFile({x: 15, y: 30, z: 0}, hangar, (aviao) => {
+    loadOBJFile({x: 0, y: 60, z: 0}, scene, (aviao) => {
         // Ajusta a posição do avião em relação ao hangar
-        hangar.add(aviao);
+        scene.add(aviao);
         console.log("Avião carregado:", aviao); // Para debug
     });
-
     return hangar;
 }
 
@@ -55,20 +54,24 @@ export function constroiHangar(){
 function rodape(posZ){
     const rodapeGeometry = new THREE.BoxGeometry(101, 10, 1);
     const rodapeMaterial = [
-        setMaterial('./images/Textures/Area3/muroHangar.jpg', 1, 1),
-        new THREE.MeshLambertMaterial({ color: 'rgba(254, 6, 188, 1)' }),
-        new THREE.MeshLambertMaterial({ color: 'rgba(254, 6, 188, 1)' }),
-        new THREE.MeshLambertMaterial({ color: 'rgba(254, 6, 188, 1)' }),
-        setMaterial('./images/Textures/Area3/testeMuro.png', 4, 1),// z+
-        setMaterial('./images/Textures/Area3/testeMuro.png', 4, 1) //z-
+        setMaterial('./images/Textures/Area3/muroLado.png', 1, 4),
+        setMaterial('./images/Textures/Area3/muroLado.png', 1, 4),
+        setMaterial('./images/Textures/Area3/muroLado.png', 1, 4),
+        setMaterial('./images/Textures/Area3/muroLado.png', 1, 4),
+        setMaterial('./images/Textures/Area3/Muro.png', 15, 4),// z+
+        setMaterial('./images/Textures/Area3/Muro.png', 15, 4) //z-
     ];
 
     const rodape = new THREE.Mesh(rodapeGeometry, rodapeMaterial);
     rodape.rotation.z = Math.PI / 2;
     rodape.position.set(5, -0.5, posZ); // o X e o Y estão invertidos
-    
     rodape.castShadow = true;
     rodape.receiveShadow = true;
+    rodape.userData.isCollidable = true;
+    
+    // Atualiza a matriz do mundo antes de criar a collision box
+    rodape.updateMatrixWorld(true);
+    rodape.userData.collisionBox = new THREE.Box3().setFromObject(rodape);
 
     return rodape;
 }
@@ -92,11 +95,19 @@ function paredeHangar(hangar){
     fundo.position.set(0, -49, 0);
     fundo.castShadow = true;
     fundo.receiveShadow = true;
+    fundo.userData.isCollidable = true;
+    fundo.userData.collisionBox = new THREE.Box3().setFromObject(fundo);
     fundo.name = 'parede';
 
     parede.position.set(0, 49, 0);
     parede.material = fundo.material;
+    parede.userData.isCollidable = true;
+    parede.userData.collisionBox = new THREE.Box3().setFromObject(parede);
+    parede.name = 'parede';
 
+
+    fundo.userData.collisionBox.setFromObject(fundo);
+    parede.userData.collisionBox.setFromObject(parede);
     hangar.add(fundo);
     hangar.add(parede);
 }
@@ -192,3 +203,6 @@ function setMaterial(file, repeatU = 1, repeatV = 1, color = 'rgb(255,255,255)')
    mat.map.repeat.set(repeatU,repeatV); 
    return mat;
 }
+
+
+
