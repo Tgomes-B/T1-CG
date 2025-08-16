@@ -11,9 +11,32 @@ import { setupShooting, updateProjectiles } from './tiro.js';
 import { setupCollision } from './colisao.js';
 import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
 import { adicionarBossGLB } from './boss.js';
-import { adicionaPrediosArea4, checaTeleportePortais,getPredioColiders, checaColisaoPredios, prediosData,getPredioColidersFromScene } from './area4.js';
-
+import { adicionaPrediosArea4, checaTeleportePortais,getPredioColiders, checaColisaoPredios, prediosData,getPredioColidersFromScene, criaParedesArea4, desceParedesArea4 } from './area4.js';
+import { criaSoldier } from './Soldier.js';
 export { isPaused };
+
+function updateHUD() {
+    const healthElement = document.getElementById("health");
+    healthElement.style.width = playerHealth + "%";
+    if (playerHealth > 60) {
+      healthElement.style.background = "limegreen";
+    } else if (playerHealth > 30) {
+      healthElement.style.background = "yellow";
+    } else {
+      healthElement.style.background = "red";
+    }
+    document.getElementById("ammo").textContent = "Ammo: " + playerAmmo;
+  
+    // Retrato estilo Doom
+    const face = document.getElementById("player-face");
+    if (playerHealth > 60) {
+      face.src = "images/faces/face100.png";
+    } else if (playerHealth > 30) {
+      face.src = "images/faces/face50.png";
+    } else {
+      face.src = "images/image.png";
+    }
+  }
 
 // Função auxiliar para encontrar objetos colidíveis
 function findCollidables(object, result = []) {
@@ -203,10 +226,11 @@ function setupEnvironment() {
         prediosLoaded = true;
         tryHideLoading();
     });
-
+    criaParedesArea4(scene, areas[3]);
     setupArea2(scene);
 
     const torresArea2 = [];
+    criaSoldier(areas[2].position.clone().add(new THREE.Vector3(0, 10, 0)), scene);
     scene.traverse(obj => {
         if (obj.name === "torre") torresArea2.push(obj);
     });
@@ -568,6 +592,13 @@ export function moveAnimate(delta) {
     const elevadores = scene.children.filter(obj => obj.name === 'elevador');
     elevadores.forEach(elevador => { moveElevador(elevador, downRay, frontRay); });
 }
+let vaiDesce = false; // Torne global
+
+window.addEventListener('keydown', (event) => {
+    if (event.code === 'KeyC') {
+        vaiDesce = true;
+    }
+});
 
 function render() {
     stats.update();
@@ -669,7 +700,13 @@ function render() {
                 scene.userData.chaveAmarela.position.y =
                     baseY + Math.sin(performance.now() * 0.002) * 1.2;
             }
-        }
+    }
+
+    
+    // desce a parede
+    if (vaiDesce) {
+        desceParedesArea4(scene, 0, 0.01);
+    }
         
 
     if (spotLightHelper) spotLightHelper.update();

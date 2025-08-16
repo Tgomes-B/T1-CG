@@ -189,4 +189,77 @@ export function checaColisaoPredios(playerObj, predioColiders) {
     );
     return predioColiders.some(box => box.intersectsBox(playerBox));
 }
+
+export function criaParedesArea4(scene, area4) {
+    const largura = 190;
+    const altura = 60;
+    const espessura = 4;
+    const corParede = 0x444444;
+    const material = new THREE.MeshLambertMaterial({ color: corParede, side: THREE.DoubleSide });
+
+    // Norte (Z+)
+    const paredeNorte = new THREE.Mesh(
+        new THREE.BoxGeometry(largura, altura, espessura),
+        material
+    );
+    paredeNorte.position.set(area4.position.x, area4.position.y + altura / 2, area4.position.z + 155 / 2 + 75.5);
+    paredeNorte.userData.isCollidable = true;
+    paredeNorte.userData.altura = altura;
+    scene.add(paredeNorte);
+
+    // Sul (Z-)
+    const paredeSul = new THREE.Mesh(
+        new THREE.BoxGeometry(largura, altura, espessura),
+        material
+    );
+    paredeSul.position.set(area4.position.x, area4.position.y + altura / 2, area4.position.z - 155 / 2 - 75.5);
+    paredeSul.userData.isCollidable = true;
+    paredeSul.userData.altura = altura;
+    scene.add(paredeSul);
+
+    // Leste (X+)
+    const paredeLeste = new THREE.Mesh(
+        new THREE.BoxGeometry(espessura, altura, 310),
+        material
+    );
+    paredeLeste.position.set(area4.position.x + largura / 2, area4.position.y + altura / 2, area4.position.z);
+    paredeLeste.userData.isCollidable = true;
+    paredeLeste.userData.altura = altura;
+    scene.add(paredeLeste);
+
+    // Oeste (X-)
+    const paredeOeste = new THREE.Mesh(
+        new THREE.BoxGeometry(espessura, altura, 310),
+        material
+    );
+    paredeOeste.position.set(area4.position.x - largura / 2, area4.position.y + altura / 2, area4.position.z);
+    paredeOeste.userData.isCollidable = true;
+    paredeOeste.userData.altura = altura;
+    scene.add(paredeOeste);
+}
+
+export function desceParedesArea4(scene, alturaFinal = 0, velocidade = 1) {
+    // Seleciona todas as paredes criadas pela função criaParedesArea4
+    const paredes = scene.children.filter(obj =>
+        obj.userData && obj.userData.isCollidable
+    );
+
+    // O destino é abaixo do chão (por exemplo, -altura/2 - 10)
+    function animate() {
+        let todasAbaixadas = true;
+        paredes.forEach(parede => {
+            const destinoY = alturaFinal - (parede.userData.altura / 2) - 10; // 10 unidades abaixo do chão
+            if (parede.position.y > destinoY) {
+
+                parede.position.y = Math.max(parede.position.y - velocidade, destinoY);
+                todasAbaixadas = false;
+            }
+        });
+        if (!todasAbaixadas) {
+            requestAnimationFrame(animate);
+        }
+    }
+    animate();
+}
+
 export { prediosData };
