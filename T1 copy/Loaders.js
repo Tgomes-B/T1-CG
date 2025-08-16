@@ -95,3 +95,5 @@ export const texHangarArea3Displacement = textureLoader.load('./images/Textures/
 texHangarArea3Displacement.wrapS = THREE.RepeatWrapping;
 texHangarArea3Displacement.wrapT = THREE.RepeatWrapping;
 texHangarArea3Displacement.repeat.set(8, 8);
+
+// carregar obj externo
