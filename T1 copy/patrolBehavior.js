@@ -72,12 +72,12 @@ function moveToTarget(obj, target, delta, speed, scene) {
 
 function moveInDirection(obj, direction, delta, speed, scene) {
     // Log de depuração
-    console.log('moveInDirection start', obj.userData.patrolState, 'has collisionBox:', !!obj.userData.collisionBox);
+    //console.log('moveInDirection start', obj.userData.patrolState, 'has collisionBox:', !!obj.userData.collisionBox);
     
     // Garante que a caixa de colisão existe
     if (!obj.userData.collisionBox) {
         obj.userData.collisionBox = new THREE.Box3().setFromObject(obj);
-        console.log('Created new collision box');
+        //console.log('Created new collision box');
     }
 
     // Inicializa o estado de patrulha se não estiver definido
@@ -104,7 +104,7 @@ function moveInDirection(obj, direction, delta, speed, scene) {
     
     if (obj.userData.patrolState === 'escaping') {
         // Log de depuração
-        console.log('ESCAPING - escapeSteps:', obj.userData.escapeSteps);
+       // console.log('ESCAPING - escapeSteps:', obj.userData.escapeSteps);
         
         // Sempre usa a direção de fuga para movimento
         if (obj.userData.escapeDirection) {
@@ -126,7 +126,7 @@ function moveInDirection(obj, direction, delta, speed, scene) {
             );
             
             // Log de depuração
-            console.log('Escape move:', escapeMove.length(), 'collision:', escapeCollision, 'lastCollided:', obj.userData.lastCollided?.name);
+           // console.log('Escape move:', escapeMove.length(), 'collision:', escapeCollision, 'lastCollided:', obj.userData.lastCollided?.name);
             
             // Move se não houver colisão na direção de fuga
             if (!escapeCollision) {
@@ -137,7 +137,7 @@ function moveInDirection(obj, direction, delta, speed, scene) {
                 // Rastreia a distância percorrida durante a fuga
                 if (!obj.userData.escapeStartPos) {
                     obj.userData.escapeStartPos = obj.position.clone();
-                    console.log('Fuga iniciada de:', obj.userData.escapeStartPos);
+                    //console.log('Fuga iniciada de:', obj.userData.escapeStartPos);
                 }
                 
                 // Calcula a distância percorrida desde o início da fuga
@@ -145,13 +145,13 @@ function moveInDirection(obj, direction, delta, speed, scene) {
                 
                 // Se estávamos presos em algo mas já nos movemos o suficiente, limpa lastCollided
                 if (obj.userData.lastCollided && distanceMoved > obj.userData.minEscapeDistance) {
-                    console.log('Limpou lastCollided após mover', distanceMoved.toFixed(2), 'unidades');
+                   // console.log('Limpou lastCollided após mover', distanceMoved.toFixed(2), 'unidades');
                     obj.userData.lastCollided = null;
                 }
             } else if (obj.userData.lastCollided) {
                 // Se ainda está colidindo com o mesmo objeto, aplica um pequeno empurrão
                 const pushOut = obj.userData.escapeDirection.clone().multiplyScalar(0.2);
-                console.log('Aplicando empurrão de:', pushOut.length());
+                //console.log('Aplicando empurrão de:', pushOut.length());
                 obj.position.add(pushOut);
             }
             
@@ -174,7 +174,7 @@ function moveInDirection(obj, direction, delta, speed, scene) {
 
         // Prefere terminar a fuga quando a distância desejada for atingida; caso contrário, usa escapeSteps
         if (reachedEscapeDistance || obj.userData.escapeSteps <= 0) {
-            console.log('Finishing escape. distanceMoved:', distanceMoved.toFixed(2), 'targetDist:', desiredEscapeDistance);
+            //console.log('Finishing escape. distanceMoved:', distanceMoved.toFixed(2), 'targetDist:', desiredEscapeDistance);
 
             // Limpa o estado temporário
             obj.userData.escapeStartPos = null;
@@ -199,7 +199,7 @@ function moveInDirection(obj, direction, delta, speed, scene) {
 
                 obj.userData.patrolTarget = newTarget;
                 obj.userData.lastPatrolChange = performance.now();
-                console.log('New patrol target chosen away from collider. Tries:', tries);
+                //console.log('New patrol target chosen away from collider. Tries:', tries);
             } else {
                 // Patrulha passiva: atualiza a direção de patrulha
                 let newAngle;
@@ -220,7 +220,7 @@ function moveInDirection(obj, direction, delta, speed, scene) {
                 
                 obj.userData.patrolDirection = newDirection;
                 obj.userData.lastDirectionChange = performance.now();
-                console.log('New patrol direction after escape:', newDirection.toArray());
+               // console.log('New patrol direction after escape:', newDirection.toArray());
             }
 
             // Reinicia o estado de fuga
@@ -251,7 +251,7 @@ function moveInDirection(obj, direction, delta, speed, scene) {
             // Verifica tempo de espera com último colidido (se existir)
             if (obj.userData.lastCollisionCooldown && now < obj.userData.lastCollisionCooldown) {
                 // Ainda em tempo de espera - ignora colisão
-                console.log('Colisão ignorada devido ao cooldown com lastCollided');
+                //console.log('Colisão ignorada devido ao cooldown com lastCollided');
             } else if (!obj.userData.lastCollisionTime || timeSinceLastCollision > 1000) {
                 // Encontra o objeto com que colidimos
                 const collided = validCollidables.find(o => 
@@ -261,7 +261,7 @@ function moveInDirection(obj, direction, delta, speed, scene) {
                 // Armazena o objeto com que colidimos
                 if (collided) {
                     obj.userData.lastCollided = collided;
-                    console.log('Colidiu com:', collided.name || 'desconhecido');
+                   // console.log('Colidiu com:', collided.name || 'desconhecido');
                 }
                 
                 // Calcula direção de fuga (180 graus da direção atual)

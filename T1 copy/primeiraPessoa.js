@@ -210,7 +210,7 @@ function setupEnvironment() {
     let prediosLoaded = false;
 
     function tryHideLoading() {
-        console.log('loadedEnemies:', loadedEnemies, 'areaChaveLoaded:', areaChaveLoaded, 'prediosLoaded:', prediosLoaded);
+       // console.log('loadedEnemies:', loadedEnemies, 'areaChaveLoaded:', areaChaveLoaded, 'prediosLoaded:', prediosLoaded);
         if (loadedEnemies === enemyPositions.length && areaChaveLoaded && prediosLoaded) {
             // Pre-warm dos prédios da área 4
             if (window.camera && window.renderer) {
@@ -515,7 +515,7 @@ export function moveAnimate(delta) {
         if (obj.userData && obj.userData.isEnemy && obj.userData.state) {
             // Identificação de tipo
             const isSkull = obj.name === "enemy" || obj.userData.name === "enemy" || obj.userData.enemyType === "skull";
-            const isBoss = obj.userData.enemyType === "boss" || obj.userData.tipo === "boss";
+            const isBoss = obj.userData.enemyType === "boss" || obj.userData.name === "boss";
             const isCacodemon = obj.name === "cacodemon" || obj.userData.enemyType === "cacodemon";
 
             // Calcula distância
@@ -524,10 +524,41 @@ export function moveAnimate(delta) {
             const playerPos = playerObj.position.clone();
             const dist = enemyPos.distanceTo(playerPos);
 
+            if (isCacodemon && dist < 12 && !obj.userData.nearSoundPlayed) {
+                obj.userData.nearSoundPlayed = true;
+                const audio = document.getElementById('CacoNearSound');
+                if (audio) {
+                    audio.currentTime = 0;
+                    audio.play();
+                }
+            }
+            if (isCacodemon && dist >= 12) {
+                obj.userData.nearSoundPlayed = false;
+            }
+
             // --- Máquina de estados expandida ---
             // 1. Transição para pursuing se detectar player
-            if ((obj.userData.state === "patrol" || obj.userData.state === "returning") && dist <= obj.userData.detectionRadius) {
+            if ((obj.userData.state === "patrol" || obj.userData.state === "returning" || obj.userData.state === "idle") && dist <= obj.userData.detectionRadius) {
+                
+                if (isCacodemon) {
+                    // TOCA SOM DE INÍCIO DE MOVIMENTO
+                    const audio = document.getElementById('CacoStartMoveSound');
+                    if (audio) {
+                        audio.currentTime = 0;
+                        audio.play();
+                    }
+                }
+                console.log("entoru");
+                if (isBoss) {
+                    // TOCA SOM DE INÍCIO DE MOVIMENTO DO PAIN ELEMENTAL
+                    const audio = document.getElementById('PainStartMoveSound');
+                    if (audio) {
+                        audio.currentTime = 0;
+                        audio.play();
+                    }
+                }
                 obj.userData.state = "pursuing";
+
                 if (isCacodemon || isBoss) {
                     obj.userData.cacoMovePhase = 0;
                     obj.userData.cacoMoveTimer = 0;
@@ -1370,7 +1401,8 @@ export function moveAnimate(delta) {
         if (portas.length >= 2) {
             movePortaoH(portas[0], portas[1], frontRay);
         } else if (portas.length > 0) {
-            console.warn('Apenas', portas.length, 'porta(s) encontrada(s) no hangar');
+           //
+           //  console.warn('Apenas', portas.length, 'porta(s) encontrada(s) no hangar');
         }
     } else {
     }

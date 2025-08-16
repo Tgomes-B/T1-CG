@@ -24,6 +24,18 @@ export function adicionarBossGLB(scene, caminhoGLB, posicao) {
         boss.userData.baseY = boss.position.y;
         boss.name = "boss";
         boss.userData.name = "boss"; 
+        boss.traverse(child => {
+            if (child.isMesh) {
+                child.userData.isEnemy = true;
+                child.userData.hp = boss.userData.hp;
+                child.userData.enemyRoot = boss;
+                child.userData.enemyType = "boss"; // <-- Adicione esta linha!
+                child.userData.tipo = "boss";      // <-- Adicione esta linha!
+                child.castShadow = true;
+                child.receiveShadow = true;
+                child.material.transparent = true;
+            }
+        });
 
         const axesHelper = new THREE.AxesHelper(20);
         boss.add(axesHelper);   
@@ -48,6 +60,8 @@ export function adicionarBossGLB(scene, caminhoGLB, posicao) {
                 child.userData.isEnemy = true;
                 child.userData.hp = boss.userData.hp;
                 child.userData.enemyRoot = boss;
+                child.userData.enemyType = "boss"; 
+                child.userData.tipo = "boss"; 
                 child.castShadow = true;
                 child.receiveShadow = true;
                 child.material.transparent = true;

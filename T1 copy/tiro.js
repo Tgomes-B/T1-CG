@@ -124,6 +124,14 @@ function shootProjectile() {
             }
             
             if (enemyRoot.userData.hp <= 0) {
+                if ((enemyRoot.name === "cacodemon" || enemyRoot.userData.enemyType === "cacodemon") && !enemyRoot.userData.deathSoundPlayed) {
+                    enemyRoot.userData.deathSoundPlayed = true;
+                    const audio = document.getElementById('CacoDeathSound');
+                    if (audio) {
+                        audio.currentTime = 0;
+                        audio.play();
+                    }
+                }
                 fadeOut(enemyRoot, 250, () => {
                     // Remove a healthbar se existir
                     if (enemyRoot.userData.healthBar) {
@@ -223,6 +231,14 @@ export function updateProjectiles(delta) {
                     }
                     
                     if (enemyRoot.userData.hp <= 0) {
+                        if ((enemyRoot.name === "cacodemon" || enemyRoot.userData.enemyType === "cacodemon") && !enemyRoot.userData.deathSoundPlayed) {
+                            enemyRoot.userData.deathSoundPlayed = true;
+                            const audio = document.getElementById('CacoDeathSound');
+                            if (audio) {
+                                audio.currentTime = 0;
+                                audio.play();
+                            }
+                        }
                         fadeOut(enemyRoot, 250, () => {
                             // Remove a healthbar se existir
                             if (enemyRoot.userData.healthBar) {
