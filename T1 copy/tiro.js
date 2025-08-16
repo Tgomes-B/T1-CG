@@ -185,7 +185,8 @@ export function updateProjectiles(delta) {
         if ((intersects.length > 0 || distance > 500) && !projectile.userData.fading) {
             projectile.userData.fading = true;
         
-            if (intersects.length > 0) {
+            if (intersects.length > 0 && !projectile.userData.damageDealt) {
+                projectile.userData.damageDealt = true; // Marca como dano aplicado
                 const hitObject = intersects[0].object;
         
                 // Aplica dano se o objeto for um inimigo
@@ -233,21 +234,21 @@ export function updateProjectiles(delta) {
                         });
                     }
                 }
+        
+                // Remove o projétil do array ANTES do fade para não atualizar mais
+                const idx = projectiles.indexOf(projectile);
+                if (idx !== -1) projectiles.splice(idx, 1);
+        
+                // Remove o projétil com fade-out
+                fadeOut(projectile, 250, () => {
+                    if (scene.children.includes(projectile)) scene.remove(projectile);
+                });
+                continue;
             }
-        
-            // Remove o projétil do array ANTES do fade para não atualizar mais
-            const idx = projectiles.indexOf(projectile);
-            if (idx !== -1) projectiles.splice(idx, 1);
-        
-            // Remove o projétil com fade-out
-            fadeOut(projectile, 250, () => {
-                if (scene.children.includes(projectile)) scene.remove(projectile);
-            });
-            continue;
-        }
 
         // Se não colidiu, move normalmente
         projectile.position.add(velocity);
+        }
     }
 }
 
@@ -257,7 +258,7 @@ export function updateProjectiles(delta) {
  * @param {number} duration - Duração do fade-out em milissegundos.
  * @param {function} onComplete - Função a ser chamada após o fade-out.
  */
-export function fadeOut(object, duration, onComplete) {
+function fadeOut(object, duration, onComplete) {
     // Aplica fade em todos os meshes filhos se for um grupo
     let faded = false;
     object.traverse(child => {
@@ -281,6 +282,7 @@ export function fadeOut(object, duration, onComplete) {
         }
     });
 }
+
 
 /**
  * Inicia a animação do sprite da chaingun, alternando os frames do spritesheet.
@@ -327,7 +329,6 @@ function animateLauncherSprite() {
     }
     nextFrame();
 }
-
 /**
  * Para a animação do sprite da chaingun e retorna ao frame inicial.
  */
@@ -340,3 +341,7 @@ function stopChaingunAnimation() {
         weapon.spriteTexture.needsUpdate = true;
     }
 }
+
+
+// Export fadeOut at the top level
+export { fadeOut };

@@ -66,6 +66,9 @@ const WEAPONS = {
 let currentWeapon = WEAPONS.launcher;
 const weaponNames = Object.keys(WEAPONS);
 
+export let playerHP = 100;
+const playerMaxHP = 100;
+
 function init() {
     stats = new Stats();
     renderer = initRenderer("rgb(70, 150, 240)");
@@ -95,6 +98,33 @@ function init() {
     setupLightingAndCollision();
     setupGameElements();
     setupEventListeners();
+    updatePlayerHealthBar();
+
+    // Cria barra de HP do jogador se não existir
+    if (!document.getElementById('playerHealthBar')) {
+        const bar = document.createElement('div');
+        bar.id = 'playerHealthBar';
+        bar.style.position = 'fixed';
+        bar.style.top = '20px';
+        bar.style.left = '20px';
+        bar.style.width = '200px';
+        bar.style.height = '20px';
+        bar.style.backgroundColor = '#333';
+        bar.style.border = '2px solid #000';
+        bar.style.borderRadius = '5px';
+        bar.style.overflow = 'hidden';
+        bar.style.zIndex = '2000';
+        const inner = document.createElement('div');
+        inner.id = 'playerHealthBarInner';
+        inner.style.height = '100%';
+        inner.style.width = '100%';
+        inner.style.backgroundColor = 'green';
+        inner.style.transition = 'width 0.3s';
+        bar.appendChild(inner);
+        document.body.appendChild(bar);
+    }
+
+    updatePlayerHealthBar();
 }
 
 function setupInitialCameraPosition() {
@@ -1072,8 +1102,11 @@ export function moveAnimate(delta) {
         0,
         alturaPlayer * 2
     );
+    // Corrige: inclui rampas e degraus como superfícies caminháveis
     const walkableSurfaces = scene.children.filter(obj => 
-        obj.userData?.isCollidable && obj.name !== 'player'
+        (obj.userData?.isCollidable && obj.name !== 'player') ||
+        (obj.name && obj.name.startsWith('ramp')) ||
+        obj.userData?.isDegrau
     );
     const surfaceIntersects = downRay.intersectObjects(walkableSurfaces, false);
 
@@ -1170,6 +1203,47 @@ export function moveAnimate(delta) {
     }
 }
 
+function updatePlayerHealthBar() {
+    const innerBar = document.getElementById('playerHealthBarInner');
+    if (!innerBar) return;
+    const percent = playerHP / playerMaxHP;
+    innerBar.style.width = `${percent * 100}%`;
+    if (percent > 0.6) {
+        innerBar.style.backgroundColor = 'green';
+    } else if (percent > 0.3) {
+        innerBar.style.backgroundColor = 'yellow';
+    } else {
+        innerBar.style.backgroundColor = 'red';
+    }
+}
+
+function playerTakeDamage(amount) {
+    playerHP = Math.max(0, playerHP - amount);
+    updatePlayerHealthBar();
+    if (playerHP <= 0) {
+        showDeathScreen();
+    }
+}
+
+function showDeathScreen() {
+    isPaused = true;
+    controls.unlock();
+    const blocker = document.getElementById('blocker');
+    blocker.style.display = 'block';
+    const instructions = document.getElementById('instructions');
+    instructions.innerHTML = `
+        <div style="text-align: center;">
+            <h1 style="color: red; font-size: 48px;">Você morreu!</h1>
+            <p style="color: white; font-size: 24px;">HP chegou a zero</p>
+            <button id="respawnButton" style="font-size: 20px; padding: 10px 20px;">Respawn</button>
+        </div>
+    `;
+    document.getElementById('respawnButton').onclick = () => {
+        // Recarrega a página para garantir estado inicial limpo
+        window.location.reload();
+    };
+}
+
 function render() {
     stats.update();
     const delta = clock.getDelta();
@@ -1196,38 +1270,27 @@ function render() {
                     window.enemyProjectiles.splice(i, 1);
                     continue;
                 }
-                
                 // Atualiza posição
                 proj.position.add(proj.userData.velocity);
-                
                 // Verifica colisão com o jogador
                 const player = controls.getObject();
                 const playerBox = new THREE.Box3().setFromCenterAndSize(
                     player.position.clone().add(new THREE.Vector3(0, 1, 0)),
                     new THREE.Vector3(1, 2, 1)
                 );
-                
                 const projBox = new THREE.Box3().setFromCenterAndSize(
                     proj.position,
                     new THREE.Vector3(1, 1, 1)
                 );
-                
                 if (playerBox.intersectsBox(projBox)) {
-                    // Aplica dano ao jogador
-                    if (typeof window.playerTakeDamage === 'function') {
-                        window.playerTakeDamage(proj.userData.damage || 10);
-                    }
-                    
-                    // Remove o efeito de fogo se existir
+                    playerTakeDamage(proj.userData.damage || 20);
                     if (proj.userData.fireEffect) {
                         proj.userData.fireEffect.dispose();
                     }
-                    // Remove o projétil
                     scene.remove(proj);
                     window.enemyProjectiles.splice(i, 1);
                     continue;
                 }
-                
                 // Calcula a distância percorrida pelo projétil
                 const distanceTraveled = proj.position.distanceTo(proj.userData.initialPosition);
                 
