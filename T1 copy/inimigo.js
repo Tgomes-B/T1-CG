@@ -18,7 +18,7 @@ export function adicionarInimigoCena(cena, posicoes = [{ x: 0, y: 0, z: 0 }], on
             assetPath,
             (gltf) => {
                 const inimigo = gltf.scene;
-                inimigo.position.set(posicao.x, 12, posicao.z); // y mais alto
+                inimigo.position.set(posicao.x, 15, posicao.z); // y mais alto para evitar afundar
                 inimigo.scale.set(0.007, 0.007, 0.007);
                 inimigo.rotateY(-Math.PI / 2);
                 inimigo.userData.isEnemy = true;
@@ -29,8 +29,8 @@ export function adicionarInimigoCena(cena, posicoes = [{ x: 0, y: 0, z: 0 }], on
                 inimigo.userData.state = "patrol";
                 inimigo.userData.originalPosition = inimigo.position.clone();
                 // Define patrolArea como toda a áreaElevada
-                const patrolBoxMin = new THREE.Vector3(30, 2, -60);
-                const patrolBoxMax = new THREE.Vector3(160, 18, 60);
+                const patrolBoxMin = new THREE.Vector3(115, 15, -60); // Y mínimo aumentado
+                const patrolBoxMax = new THREE.Vector3(235, 25, 60);  // Y máximo reduzido
                 inimigo.userData.patrolArea = {min: patrolBoxMin, max: patrolBoxMax};
                 inimigo.userData.detectionRadius = 60;
                 inimigo.userData.moveType = "float";

@@ -399,57 +399,29 @@ export function moveAnimate(delta) {
 
             // --- Lógica de patrulha ---
             if (obj.userData.state === "patrol") {
-                // Usa o novo sistema de patrulha para Skulls
-                if (isSkull) {
-                    updatePatrolBehavior(obj, delta, scene);
-                } 
-                // Mantém o comportamento antigo para Cacodemon e Boss
-                else if (isCacodemon || isBoss) {
-                    if (!obj.userData.patrolTarget || obj.position.distanceTo(obj.userData.patrolTarget) < 1.2) {
-                        // Sorteia novo ponto dentro da patrolArea
-                        const min = obj.userData.patrolArea.min;
-                        const max = obj.userData.patrolArea.max;
-                        obj.userData.patrolTarget = new THREE.Vector3(
-                            min.x + Math.random() * (max.x - min.x),
-                            min.y + Math.random() * (max.y - min.y),
-                            min.z + Math.random() * (max.z - min.z)
-                        );
-                    }
-                    // Move suavemente para patrolTarget
-                    const dir = obj.userData.patrolTarget.clone().sub(obj.position);
-                    dir.y = 0; // Mantém patrulha horizontal
-                    if (dir.length() > 0.1) dir.normalize();
-                    const move = dir.clone().multiplyScalar(3 * delta); // lento
-                    
-                    // Testa colisão
+                // Usa o sistema de patrulha para Skulls E Cacodemons
+                if (isSkull || isCacodemon) {
+                    // Passe as caixas de colisão se desejar resposta a obstáculos
                     const collidables = [];
                     findCollidables(scene, collidables);
                     const validCollidables = collidables.filter(o => o !== obj && o.userData.collisionBox && o.userData.isCollidable);
-                    const tempBox = obj.userData.collisionBox.clone();
-                    tempBox.translate(move);
-                    let collides = validCollidables.some(o => tempBox.intersectsBox(o.userData.collisionBox));
-                    if (!collides) {
-                        obj.position.add(move);
+                    updatePatrolBehavior(obj, delta, scene, validCollidables);
+                } 
+                // Mantém comportamento antigo apenas para Boss
+                else if (isBoss) {
+                    // Atualiza caixa de colisão
+                    if (obj.userData.collisionBox) {
+                        obj.userData.collisionBox.setFromObject(obj);
                     }
-                    
-                    // Rotação suave
-                    if (dir.lengthSq() > 0.001) {
-                        let yaw = Math.atan2(dir.x, dir.z);
-                        obj.rotation.y += (yaw - obj.rotation.y) * 0.1;
-                    }
+                    // Barra de hp
+                    obj.traverse(child => {
+                        if (child.userData && child.userData.isHealthBar && child instanceof THREE.Object3D) {
+                            child.position.x = 0;
+                            child.position.z = 0;
+                            child.position.y = obj.userData.baseY + (obj.userData.healthBarOffsetY || 7);
+                        }
+                    });
                 }
-                // Atualiza caixa de colisão
-                if (obj.userData.collisionBox) {
-                    obj.userData.collisionBox.setFromObject(obj);
-                }
-                // Barra de hp
-                obj.traverse(child => {
-                    if (child.userData && child.userData.isHealthBar && child instanceof THREE.Object3D) {
-                        child.position.x = 0;
-                        child.position.z = 0;
-                        child.position.y = obj.userData.baseY + (obj.userData.healthBarOffsetY || 7);
-                    }
-                });
                 return; // Não executa lógica de pursuit/combate
             }
 
@@ -633,6 +605,16 @@ export function moveAnimate(delta) {
                     }
                     // Move suavemente até o máximo permitido sem colisão
                     obj.position.y = lastSafeY;
+                }
+
+                // Verifica colisão com a área2 especificamente (vertical)
+                const area2Collision = scene.children.find(o => o.name === "area2_collision");
+                if (area2Collision?.userData?.collisionBox) {
+                    const projBoxY = new THREE.Box3().setFromObject(obj);
+                    if (projBoxY.intersectsBox(area2Collision.userData.collisionBox)) {
+                        // Corrige a posição se estiver invadindo a área
+                        obj.position.y = Math.max(obj.position.y, area2Collision.position.y + 5);
+                    }
                 }
 
                 // --- Padrão de movimento especial do Cacodemon ---
@@ -1090,13 +1072,8 @@ export function moveAnimate(delta) {
         0,
         alturaPlayer * 2
     );
-    const walkableSurfaces = scene.children.filter(obj =>
-        obj.name === 'ground' ||
-        obj.name === 'topo_colisao' ||
-        obj.name === 'elevador' ||
-        obj.name === 'bloco1' ||
-        obj.name === 'bloco2'||
-        (obj.name && obj.name.startsWith('ramp'))
+    const walkableSurfaces = scene.children.filter(obj => 
+        obj.userData?.isCollidable && obj.name !== 'player'
     );
     const surfaceIntersects = downRay.intersectObjects(walkableSurfaces, false);
 

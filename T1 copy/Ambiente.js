@@ -114,6 +114,8 @@ export function criaAreasRampas(scene) {
         scene.add(ramp);
     }
 
+    const SHOW_COLLISION_BOXES = true; // Ativa visualização
+
     function criaAreaColisao(areaX, areaY, areaZ, dimensoes, rotacionarY = false, material = null) {
         const mesh = new THREE.Mesh(
             new THREE.BoxGeometry(...dimensoes),
@@ -130,6 +132,13 @@ export function criaAreasRampas(scene) {
         mesh.name = 'topo_colisao';
         mesh.castShadow = true;
         mesh.receiveShadow = true;
+        // Adiciona Box3 de colisão
+        mesh.userData.collisionBox = new THREE.Box3().setFromObject(mesh);
+        // Visualização debug
+        if (SHOW_COLLISION_BOXES) {
+            const helper = new THREE.Box3Helper(mesh.userData.collisionBox, 0xffff00);
+            scene.add(helper);
+        }
         scene.add(mesh);
         return mesh;
     }
@@ -155,10 +164,14 @@ export function criaAreasRampas(scene) {
             areaX = 130;
             areaY = 5;
             areaZ = posZ;
-    
+
             criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 10, 120], true);
             criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 10, 120], true);
             criaAreaColisao(areaX + 55, areaY, areaZ, [100, 10, 20], false);
+
+            // Adiciona colisão principal da área2 para detecção vertical
+            const area2Collision = criaAreaColisao(175, 5, posZ, [120, 10, 120], false);
+            area2Collision.name = "area2_collision";
         }else if (i == 2) {
             const TercAreaGeometry = new THREE.BoxGeometry(120, 0.05, 120);
             const base = new THREE.Mesh(TercAreaGeometry, areaMaterial[i]);
