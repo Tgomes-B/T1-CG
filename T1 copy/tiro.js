@@ -5,6 +5,10 @@ import { getPredioColidersFromScene } from './area4.js';
 let camera, scene, controls;
 const projectileSpeed = 100;
 const projectiles = [];
+const chaingunSound = new Audio('../0_assetsT3/sounds/chaingunFiring.wav');
+chaingunSound.volume = 0.2;
+const launcherSound = new Audio('../0_assetsT3/sounds/rocketFiring.wav');
+launcherSound.volume = 0.3;
 let areas = [];
 const ballGeometry = new THREE.SphereGeometry(0.1, 16, 16);
 
@@ -57,6 +61,8 @@ function shootProjectile() {
     lastShotTime = currentTime;
 
     if (weapon.name === "launcher") {
+        launcherSound.currentTime = 0;
+        launcherSound.play();
         animateLauncherSprite();
         // Cria o projétil
         const gun = controls.getObject().getObjectByName("launcher");
@@ -88,6 +94,8 @@ function shootProjectile() {
         scene.add(projectile);
         projectiles.push(projectile);
     } else if (weapon.name === "chaingun") {
+        chaingunSound.currentTime = 0;
+        chaingunSound.play();
         animateChaingunSprite();
         // Raycast para detectar inimigo
         const dir = new THREE.Vector3();
