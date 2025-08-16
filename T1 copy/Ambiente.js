@@ -246,7 +246,7 @@ export function criaAreasRampas(scene) {
 const SHOW_COLLISION_BOXES = false;
 
 export function criaPilares(scene, area1) {
-    const pilarGeometry = new THREE.CylinderGeometry(4, 4, 30, 64);
+    const pilarGeometry = new THREE.CylinderGeometry(3, 3, 30, 64);
 
     const lateralMaterial = new THREE.MeshStandardMaterial({
         map: texPillarArea1,
@@ -263,7 +263,7 @@ export function criaPilares(scene, area1) {
 
     const pilarMaterials = [lateralMaterial, capMaterial, capMaterial];
     
-    let Xcont = -9;
+    let Xcont = -10;
     let Zcont = -35;
     let contBack = -33;
     
@@ -301,51 +301,51 @@ export function criaPilares(scene, area1) {
         return pilar;
     }
     
-    // Primeira fileira de pilares (frente e trás)
-    while (Xcont <= 114) {
-        // Pilares da frente
-        const frontPillar = createPillar(
+    // Primeira fileira de pilares (esquerda e direita)
+    while (Xcont <= 115) {
+        // Pilares da esquerda
+        const leftPillar = createPillar(
             areaPosition.x + Xcont, 
             18.75,
-            areaPosition.z - 55
+            areaPosition.z - 54
         );
-        pillarsGroup.add(frontPillar);
+        pillarsGroup.add(leftPillar);
         
-        // Pilares de trás
-        const backPillar = createPillar(
+        // Pilares da direita
+        const rightPillar = createPillar(
             areaPosition.x + Xcont, 
             18.75,
-            areaPosition.z + 55
+            areaPosition.z + 54
         );
-        pillarsGroup.add(backPillar);
+        pillarsGroup.add(rightPillar);
         
         Xcont += 22;
     }
     
-    // Pilares do lado esquerdo
+    // Pilares da frente
     while (Zcont <= 35) {
-        const leftPillar = createPillar(
+        const frontPillar = createPillar(
             areaPosition.x - 10,
             18.75,
             areaPosition.z + Zcont
         );
-        pillarsGroup.add(leftPillar);
+        pillarsGroup.add(frontPillar);
         
-        if (Zcont === -15) {
-            Zcont += 30;
+        if (Zcont === -16) {
+            Zcont += 32;
         } else {
-            Zcont += 20;
+            Zcont += 19;
         }
     }
     
     // Pilares do lado direito
     while (contBack <= 33) {
-        const rightPillar = createPillar(
-            areaPosition.x + 100,
+        const backPillar = createPillar(
+            areaPosition.x + 98,
             18.75, 
             areaPosition.z + contBack
         );
-        pillarsGroup.add(rightPillar);
+        pillarsGroup.add(backPillar);
         contBack += 22;
     }
     
@@ -389,7 +389,7 @@ export function criaPilares(scene, area1) {
         disco.castShadow = true;
         disco.receiveShadow = true;
         pilar.add(disco);
-
+        pilar.userData.collisionBox.setFromObject(pilar);
         pilarMeshes.push(pilar);
     });
 
