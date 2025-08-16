@@ -715,6 +715,13 @@ export function moveAnimate(delta) {
                         if (distToPlayer < 3) {
                             if (!obj.userData._skullDamageCooldown || performance.now() - obj.userData._skullDamageCooldown > 1000) {
                                 playerTakeDamage(15); // Dano por contato
+
+                                const audio = document.getElementById('LostSoulAttackSound');
+                                if (audio) {
+                                    audio.currentTime = 0;
+                                    audio.play();
+                                }
+
                                 obj.userData._skullDamageCooldown = performance.now();
                             }
                         }
@@ -972,6 +979,19 @@ export function moveAnimate(delta) {
                                 })
                             );
                             
+                            if (isBoss) {
+                                const audio = document.getElementById('BossAttackSound');
+                                if (audio) {
+                                    audio.currentTime = 0;
+                                    audio.play();
+                                }
+                            } else if (isCacodemon) {
+                                const audio = document.getElementById('CacoAttackSound');
+                                if (audio) {
+                                    audio.currentTime = 0;
+                                    audio.play();
+                                }
+                            }
 
                             // Posição inicial: frente do Cacodemon
                             const offset = new THREE.Vector3(0, 0, -1.5)
@@ -1374,6 +1394,14 @@ function updatePlayerHealthBar() {
 function playerTakeDamage(amount) {
     playerHP = Math.max(0, playerHP - amount);
     updatePlayerHealthBar();
+
+    // TOCA SOM DE DANO
+    const audio = document.getElementById('PlayerDamageSound');
+    if (audio) {
+        audio.currentTime = 0;
+        audio.play();
+    }
+
     if (playerHP <= 0) {
         showDeathScreen();
     }
