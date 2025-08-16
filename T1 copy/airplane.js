@@ -1,23 +1,19 @@
 import * as THREE from 'three';
-import {OBJLoader} from '../build/jsm/loaders/OBJLoader.js';
-import { MTLLoader } from '../build/jsm/loaders/MTLLoader.js';
+import { GLTFLoader } from '../build/jsm/loaders/GLTFLoader.js';
 
 // Função para ajustar posição, rotação e escala do avião
-export function loadOBJFile(position, scene, onLoad) {
+export function loadOBJFile(position, hangar, onLoad) {
     const modelPath = './images/Textures/aviao/';
     const textureLoader = new THREE.TextureLoader();
-
-    // Carrega a textura BMP diretamente
-    const bmpTexture = textureLoader.load(modelPath + 'BodyTexture.bmp');
     
-    // Carrega apenas o OBJ sem MTL
-    const objLoader = new OBJLoader();
-    objLoader.setPath(modelPath);
-    objLoader.load(
-        'P-51Mustang.obj',
-        (obj) => {
+    // Carrega o arquivo GLB
+    const gltfLoader = new GLTFLoader();
+    gltfLoader.load(
+        modelPath + 'plane.glb',
+        (gltf) => {
+            const obj = gltf.scene;
             obj.position.set(position.x, position.y, position.z);
-            obj.scale.set(200, 200, 200);
+            obj.scale.set(2, 2, 2);
             obj.name = 'plane';
             obj.visible = true;
 
@@ -25,23 +21,17 @@ export function loadOBJFile(position, scene, onLoad) {
                 if (child.isMesh) {
                     child.castShadow = true;
                     child.receiveShadow = true;
-                    // Cria um material novo com a textura BMP
-                    child.material = new THREE.MeshPhongMaterial({
-                        map: bmpTexture,
-                        side: THREE.DoubleSide
-                    });
                 }
             });
-            scene.add(obj);
+            hangar.add(obj);
             obj.updateMatrixWorld(true);
-            console.log("Avião carregado com textura BMP:", obj);
             if (onLoad) onLoad(obj);
         },
         (progress) => {
-            console.log('Progresso OBJ:', (progress.loaded / progress.total * 100) + '%');
+            console.log('Progresso GLB:', (progress.loaded / progress.total * 100) + '%');
         },
         (error) => {
-            console.error('Erro ao carregar modelo OBJ:', error);
+            console.error('Erro ao carregar modelo GLB:', error);
         }
     );
 }

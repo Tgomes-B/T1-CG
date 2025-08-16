@@ -40,9 +40,10 @@ export function constroiHangar(scene){
     portas(hangar, 12.5, -12.5);
 
     // Carrega o avião depois que o hangar estiver completamente construído
-    loadOBJFile({x: 0, y: 60, z: 0}, scene, (aviao) => {
-        // Ajusta a posição do avião em relação ao hangar
-        scene.add(aviao);
+    loadOBJFile({x: 0, y: 2, z: 0}, hangar, (aviao) => {
+        //aviao.rotation.x = -Math.PI / 2;
+        aviao.rotation.z = - Math.PI / 2;
+        aviao.rotation.x = - Math.PI / 2; // Ajusta a rotação do avião
         console.log("Avião carregado:", aviao); // Para debug
     });
     return hangar;
