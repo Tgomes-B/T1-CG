@@ -86,3 +86,4 @@ texArea4Ground.repeat.set(15, 15);
 
 export const texPortalBlue = textureLoader.load('./images/Textures/area4/portal_ring_blue.png');
 export const texPortalOrange = textureLoader.load('./images/Textures/area4/portal_ring_orange.png');
+export const texPortalRed = textureLoader.load('./images/Textures/area4/portal_ring_red.png')

@@ -1,5 +1,5 @@
 import { GLTFLoader } from '../build/jsm/loaders/GLTFLoader.js';
-import { texPortalBlue, texPortalOrange } from './Loaders.js';
+import { texPortalBlue, texPortalOrange,texPortalRed } from './Loaders.js';
 import * as THREE from 'three';
 
 let prediosData = [];
@@ -13,6 +13,11 @@ const ringMaterialOrange = new THREE.MeshBasicMaterial({
     transparent: true,
     side: THREE.DoubleSide
 });
+const ringMaterialRed = new THREE.MeshBasicMaterial({
+    map: texPortalRed ,
+    transparent: true,
+    side: THREE.DoubleSide
+})
 
 /**
  * Carrega 8 prédios (Predio1.glb e predio3.glb) em posições variadas, simulando cidade/quarteirões.
@@ -109,6 +114,7 @@ export function adicionaPrediosArea4(scene, area4,onAllLoaded) {
             if (loaded === prediosData.length && typeof onAllLoaded === "function") {
                 onAllLoaded();
                 addPortais();
+                criaPortalVermelhoArea4(scene, area4);
             }
         });
     });
@@ -260,6 +266,30 @@ export function desceParedesArea4(scene, alturaFinal = 0, velocidade = 1) {
         }
     }
     animate();
+}
+export function criaPortalVermelhoArea4(scene, area4, pos = { x: 0, y: 5, z: 0 }) {
+    // Geometria do anel
+    const ringGeometry = new THREE.PlaneGeometry(4, 6);
+
+    const ringMeshRed = new THREE.Mesh(ringGeometry, ringMaterialRed);
+    ringMeshRed.position.set(area4.position.x + pos.x, area4.position.y + pos.y, area4.position.z + pos.z);
+    ringMeshRed.scale.set(1, 2.2, 1);
+    ringMeshRed.rotation.y = 0;
+    ringMeshRed.name = 'portalRed';
+    scene.add(ringMeshRed);
+
+    // Centro translúcido
+    const centerMaterialRed = new THREE.MeshBasicMaterial({
+        color: 0xff2222,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.5
+    });
+    const centerGeometry = new THREE.CircleGeometry(1.8, 64);
+    const centerMeshRed = new THREE.Mesh(centerGeometry, centerMaterialRed);
+    centerMeshRed.position.set(area4.position.x + pos.x, area4.position.y + pos.y, area4.position.z + pos.z - 0.05);
+    centerMeshRed.scale.set(1, 2.7, 1);
+    scene.add(centerMeshRed);
 }
 
 export { prediosData };
