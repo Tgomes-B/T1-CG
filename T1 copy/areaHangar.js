@@ -130,6 +130,12 @@ export function movePortaoH(porta1, porta2, frontRay){
     if (intersects.length > 0 || intersects2.length > 0) {
         porta1.userData.abrindo = true;
         porta2.userData.abrindo = true;
+        
+        const portaSound = document.getElementById('PortaSound');
+        if (portaSound) {
+            portaSound.currentTime = 0;
+            portaSound.play();
+        }
     }
     // se a porta 1 está abrindo, a porta 2 acompanha pro lado oposto
     if (porta1.userData.abrindo) {
