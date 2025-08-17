@@ -64,6 +64,7 @@ let isRunning = false;
 let stats, renderer, scene, camera, controls, clock;
 let areaChaveData;
 let playerHasKeyRed = false;
+let godMode = false;
 let playerHasKeyYellow = false;
 let playerHasKeyBlue = false;
 let spotLightHelper, areas;
@@ -371,6 +372,12 @@ function setupEventListeners() {
                 });
             }
         }
+        window.addEventListener('keydown', (event) => {
+            if (event.code === 'KeyG') {
+                godMode = !godMode;
+                showGodModeMessage(godMode);
+            }
+        });
         if (jogoFinalizado) {
             event.preventDefault();
             return;
@@ -1589,6 +1596,7 @@ function updatePlayerHealthBar() {
 }
 
 function playerTakeDamage(amount) {
+    if (godMode) return;
     playerHP = Math.max(0, playerHP - amount);
     updatePlayerHealthBar();
 
@@ -1602,6 +1610,29 @@ function playerTakeDamage(amount) {
     if (playerHP <= 0) {
         showDeathScreen();
     }
+}
+function showGodModeMessage(active) {
+    let msg = document.getElementById('godModeMsg');
+    if (!msg) {
+        msg = document.createElement('div');
+        msg.id = 'godModeMsg';
+        Object.assign(msg.style, {
+            position: 'fixed',
+            top: '10%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: 'rgba(255,215,0,0.85)',
+            color: '#222',
+            fontSize: '2em',
+            padding: '20px 40px',
+            borderRadius: '15px',
+            zIndex: '9999'
+        });
+        document.body.appendChild(msg);
+    }
+    msg.innerText = active ? 'GOD MODE ATIVADO' : 'GOD MODE DESATIVADO';
+    msg.style.display = 'block';
+    setTimeout(() => { msg.style.display = 'none'; }, 2000);
 }
 
 function showDeathScreen() {
