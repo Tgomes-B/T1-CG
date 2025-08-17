@@ -18,7 +18,7 @@ export function adicionarInimigoCena(cena, posicoes = [{ x: 0, y: 0, z: 0 }], on
             assetPath,
             (gltf) => {
                 const inimigo = gltf.scene;
-                inimigo.position.set(posicao.x, posicao.y, posicao.z);
+                inimigo.position.set(posicao.x, 15, posicao.z); // y mais alto para evitar afundar
                 inimigo.scale.set(0.007, 0.007, 0.007);
                 inimigo.rotateY(-Math.PI / 2);
                 inimigo.userData.isEnemy = true;
@@ -26,13 +26,21 @@ export function adicionarInimigoCena(cena, posicoes = [{ x: 0, y: 0, z: 0 }], on
                 inimigo.userData.enemyType = "glb";
                 inimigo.traverse(child => { if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; } });
 
-                inimigo.userData.state = "idle";
+                inimigo.userData.state = "patrol";
+                inimigo.userData.originalPosition = inimigo.position.clone();
+                // Define patrolArea como toda a áreaElevada
+                const patrolBoxMin = new THREE.Vector3(115, 15, -60); // Y mínimo aumentado
+                const patrolBoxMax = new THREE.Vector3(235, 25, 60);  // Y máximo reduzido
+                inimigo.userData.patrolArea = {min: patrolBoxMin, max: patrolBoxMax};
                 inimigo.userData.detectionRadius = 60;
                 inimigo.userData.moveType = "float";
                 inimigo.userData.moveDirection = 1;
                 inimigo.userData.baseY = inimigo.position.y;
                 inimigo.userData.hp = 50;
                 inimigo.userData.maxHp = 50;
+                inimigo.userData.isCollidable = true;
+                inimigo.userData.enemyType = "cacodemon";
+                inimigo.userData.fading = false;
                 inimigo.name = "cacodemon";
                 inimigo.userData.name = "cacodemon";
                 inimigo.userData.tipo = "cacodemon";
@@ -44,15 +52,17 @@ export function adicionarInimigoCena(cena, posicoes = [{ x: 0, y: 0, z: 0 }], on
                 inimigo.updateMatrixWorld(true);
                 const bbox = new THREE.Box3().setFromObject(inimigo);
                 const heightOffset = bbox.max.y + inimigo.position.y + 700;
-
-                
                 healthBarObj.position.y = heightOffset;
-                healthBarObj.position.set(0, heightOffset, 0);
-                
                 inimigo.add(healthBarObj);
                 inimigo.userData.healthBar = healthBar;
                 
-                inimigo.userData.collisionBox = bbox.clone();
+                // Collision box igual Skull, mas ajustada para o Cacodemon
+                const boxSize = 6; // maior que Skull, mas menor que Boss
+                const boxHeight = 8;
+                const boxCenter = inimigo.position.clone();
+                const min = boxCenter.clone().add(new THREE.Vector3(-boxSize/2, -boxHeight/2, -boxSize/2));
+                const max = boxCenter.clone().add(new THREE.Vector3(boxSize/2, boxHeight/2, boxSize/2));
+                inimigo.userData.collisionBox = new THREE.Box3(min, max);
 
                 //BoxHelpera
                 //const boxHelper = new THREE.BoxHelper(inimigo, 0xffff00); 

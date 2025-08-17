@@ -142,11 +142,25 @@ function shootProjectile() {
             }
             
             if (enemyRoot.userData.hp <= 0) {
+                if ((enemyRoot.name === "cacodemon" || enemyRoot.userData.enemyType === "cacodemon") && !enemyRoot.userData.deathSoundPlayed) {
+                    enemyRoot.userData.deathSoundPlayed = true;
+                    const audio = document.getElementById('CacoDeathSound');
+                    if (audio) {
+                        audio.currentTime = 0;
+                        audio.play();
+                    }
+                }
                 fadeOut(enemyRoot, 250, () => {
                     // Remove a healthbar se existir
                     if (enemyRoot.userData.healthBar) {
                         enemyRoot.userData.healthBar.remove();
                         enemyRoot.userData.healthBar = null;
+                    }
+                    
+                    // Remove o efeito de fogo se existir
+                    if (enemyRoot.userData.fireEffect) {
+                        enemyRoot.userData.fireEffect.dispose();
+                        enemyRoot.userData.fireEffect = null;
                     }
                     
                     if (enemyRoot.userData.eliminate) {
@@ -208,10 +222,11 @@ export function updateProjectiles(delta) {
         const distance = projectile.position.distanceTo(projectile.userData.startPos);
 
         // Condição para fade-out (colisão ou distância máxima)
-        if ((intersects.length > 0 || distance > 750) && !projectile.userData.fading) {
+        if ((intersects.length > 0 || distance > 500) && !projectile.userData.fading) {
             projectile.userData.fading = true;
         
-            if (intersects.length > 0) {
+            if (intersects.length > 0 && !projectile.userData.damageDealt) {
+                projectile.userData.damageDealt = true; // Marca como dano aplicado
                 const hitObject = intersects[0].object;
         
                 // Aplica dano se o objeto for um inimigo
@@ -235,11 +250,25 @@ export function updateProjectiles(delta) {
                     }
                     
                     if (enemyRoot.userData.hp <= 0) {
+                        if ((enemyRoot.name === "cacodemon" || enemyRoot.userData.enemyType === "cacodemon") && !enemyRoot.userData.deathSoundPlayed) {
+                            enemyRoot.userData.deathSoundPlayed = true;
+                            const audio = document.getElementById('CacoDeathSound');
+                            if (audio) {
+                                audio.currentTime = 0;
+                                audio.play();
+                            }
+                        }
                         fadeOut(enemyRoot, 250, () => {
                             // Remove a healthbar se existir
                             if (enemyRoot.userData.healthBar) {
                                 enemyRoot.userData.healthBar.remove();
                                 enemyRoot.userData.healthBar = null;
+                            }
+                            
+                            // Remove o efeito de fogo se existir
+                            if (enemyRoot.userData.fireEffect) {
+                                enemyRoot.userData.fireEffect.dispose();
+                                enemyRoot.userData.fireEffect = null;
                             }
                             
                             if (enemyRoot.userData.eliminate) {
@@ -254,20 +283,28 @@ export function updateProjectiles(delta) {
                         });
                     }
                 }
-            }
         
-            // Remove o projétil do array ANTES do fade para não atualizar mais
+                // Remove o projétil do array ANTES do fade para não atualizar mais
+                const idx = projectiles.indexOf(projectile);
+                if (idx !== -1) projectiles.splice(idx, 1);
+        
+                // Remove o projétil com fade-out
+                fadeOut(projectile, 250, () => {
+                    if (scene.children.includes(projectile)) scene.remove(projectile);
+                });
+                continue;
+            }
+
+            // Se não colidiu, mas atingiu distância máxima, remova o projétil
             const idx = projectiles.indexOf(projectile);
             if (idx !== -1) projectiles.splice(idx, 1);
-        
-            // Remove o projétil com fade-out
             fadeOut(projectile, 250, () => {
                 if (scene.children.includes(projectile)) scene.remove(projectile);
             });
             continue;
         }
 
-        // Se não colidiu, move normalmente
+        // Se não colidiu nem atingiu distância máxima, move normalmente
         projectile.position.addScaledVector(velocity, delta);
     }
 }
@@ -278,7 +315,7 @@ export function updateProjectiles(delta) {
  * @param {number} duration - Duração do fade-out em milissegundos.
  * @param {function} onComplete - Função a ser chamada após o fade-out.
  */
-export function fadeOut(object, duration, onComplete) {
+function fadeOut(object, duration, onComplete) {
     // Aplica fade em todos os meshes filhos se for um grupo
     let faded = false;
     object.traverse(child => {
@@ -302,6 +339,7 @@ export function fadeOut(object, duration, onComplete) {
         }
     });
 }
+
 
 /**
  * Inicia a animação do sprite da chaingun, alternando os frames do spritesheet.
@@ -348,7 +386,6 @@ function animateLauncherSprite() {
     }
     nextFrame();
 }
-
 /**
  * Para a animação do sprite da chaingun e retorna ao frame inicial.
  */
@@ -361,3 +398,7 @@ function stopChaingunAnimation() {
         weapon.spriteTexture.needsUpdate = true;
     }
 }
+
+
+// Export fadeOut at the top level
+export { fadeOut };
