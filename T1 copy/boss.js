@@ -110,6 +110,8 @@ export function adicionarBossGLB(scene, caminhoGLB, posicao, onLoaded) {
         // Aplica a posição e escala
         boss.position.copy(spawnPosition);
         boss.scale.set(0.38, 0.38, 0.38);
+        // Rotaciona o modelo 180 graus no eixo Y para corrigir a orientação
+        boss.rotation.y = Math.PI;
         
         // Define a área de patrulha baseada na área 4 (mesmo padrão dos Cacodemons)
         const areaSize = 190; // Tamanho da área 4

@@ -3,13 +3,13 @@ import * as THREE from 'three';
 export function updatePatrolBehavior(obj, delta, scene) {
     if (!obj.userData.isEnemy || obj.userData.state !== "patrol") return;
 
-    // Priority for escape state - use escapeDirection if in escaping state
+    // Prioridade para o estado de fuga - usa escapeDirection se estiver no estado de fuga
     if (obj.userData.patrolState === 'escaping') {
         if (obj.userData.escapeDirection) {
-            // Use a higher speed for escape movement
+            // Usa uma velocidade maior para o movimento de fuga
             moveInDirection(obj, obj.userData.escapeDirection, delta, 4, scene);
         }
-        return; // Skip normal patrol logic while escaping
+        return; // Pula a lógica de patrulha normal enquanto está fugindo
     }
 
     const patrolArea = obj.userData.patrolArea;
@@ -17,7 +17,7 @@ export function updatePatrolBehavior(obj, delta, scene) {
     const isInArea1 = isInsideArea1(obj.position, patrolArea);
 
     if (isInArea1) {
-        // Active patrol inside area 1
+        // Patrulha ativa dentro da área 1
         if (!obj.userData.patrolTarget || 
             obj.position.distanceTo(obj.userData.patrolTarget) < 5 ||
             currentTime - obj.userData.lastPatrolChange > 10000) {
@@ -28,7 +28,7 @@ export function updatePatrolBehavior(obj, delta, scene) {
         
         moveToTarget(obj, obj.userData.patrolTarget, delta, 3, scene);
     } else {
-        // Passive patrol outside area 1
+        // Patrulha passiva fora da área 1
         if (!obj.userData.lastDirectionChange || 
             currentTime - obj.userData.lastDirectionChange > 5000) {
             
@@ -104,7 +104,7 @@ function moveInDirection(obj, direction, delta, speed, scene) {
     
     if (obj.userData.patrolState === 'escaping') {
         // Log de depuração
-       // console.log('ESCAPING - escapeSteps:', obj.userData.escapeSteps);
+       
         
         // Sempre usa a direção de fuga para movimento
         if (obj.userData.escapeDirection) {
@@ -163,7 +163,13 @@ function moveInDirection(obj, direction, delta, speed, scene) {
         
         // Atualiza a rotação para olhar na direção do movimento
         if (direction.lengthSq() > 0.001) {
-            obj.rotation.y = Math.atan2(direction.x, direction.z);
+            if (obj.userData.tipo === 'boss' || obj.userData.enemyType === 'boss') {
+                // Inverte a direção para o Boss olhar na direção correta
+                const invertedDirection = direction.clone().negate();
+                obj.rotation.y = Math.atan2(invertedDirection.x, invertedDirection.z);
+            } else {
+                obj.rotation.y = Math.atan2(direction.x, direction.z);
+            }
         }
         
         // --- Novo término de fuga: baseado em distância mínima ou tempo limite ---
@@ -251,7 +257,7 @@ function moveInDirection(obj, direction, delta, speed, scene) {
             // Verifica tempo de espera com último colidido (se existir)
             if (obj.userData.lastCollisionCooldown && now < obj.userData.lastCollisionCooldown) {
                 // Ainda em tempo de espera - ignora colisão
-                //console.log('Colisão ignorada devido ao cooldown com lastCollided');
+                
             } else if (!obj.userData.lastCollisionTime || timeSinceLastCollision > 1000) {
                 // Encontra o objeto com que colidimos
                 const collided = validCollidables.find(o => 
@@ -261,7 +267,7 @@ function moveInDirection(obj, direction, delta, speed, scene) {
                 // Armazena o objeto com que colidimos
                 if (collided) {
                     obj.userData.lastCollided = collided;
-                   // console.log('Colidiu com:', collided.name || 'desconhecido');
+                   
                 }
                 
                 // Calcula direção de fuga (180 graus da direção atual)
@@ -275,7 +281,13 @@ function moveInDirection(obj, direction, delta, speed, scene) {
                 obj.userData.escapeStartPos = null;
                 
                 // Atualiza rotação imediatamente
-                obj.rotation.y = Math.atan2(escapeDirection.x, escapeDirection.z);
+                if (obj.userData.tipo === 'boss' || obj.userData.enemyType === 'boss') {
+                    // Inverte a direção para o Boss olhar na direção correta
+                    const invertedEscape = escapeDirection.clone().negate();
+                    obj.rotation.y = Math.atan2(invertedEscape.x, invertedEscape.z);
+                } else {
+                    obj.rotation.y = Math.atan2(escapeDirection.x, escapeDirection.z);
+                }
                 
                 // Inicia sequência de fuga
                 obj.userData.patrolState = 'escaping';

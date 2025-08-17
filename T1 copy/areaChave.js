@@ -128,7 +128,7 @@ export function colisionChave(){
         new THREE.BoxGeometry(2, 20, 2),
         new THREE.MeshBasicMaterial({ 
             color: 0x00ff00,
-            visible: true,
+            visible: false,
             wireframe: true
         })
     );
