@@ -40,11 +40,6 @@ export function criaChave(cor) {
     keyMesh.userData.isCollectable = true;
     keyMesh.receiveShadow = true;
 
-    //key.userData.isCollidable = true;
-    
-    // Configura colisão para a chave
-    //setupCollision(keyMesh);
-
     return keyMesh;
 }
 
@@ -125,6 +120,19 @@ export function setupAreaChave(scene, area, enemies) {
         getChaveAnimada: () => chaveAnimada,
         getBaseY: () => baseY
     };
+} 
+export function colisionChave(){
+    const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(2, 20, 2),
+        new THREE.MeshBasicMaterial({ 
+            color: 0x00ff00,
+            visible: false,
+            wireframe: true
+        })
+    );
+    mesh.userData.collisionBox = new THREE.Box3().setFromObject(mesh);
+    mesh.userData.isCollectionArea = true;
+    return mesh;
 }
 
 export function criaBlocoChave(Bluck){

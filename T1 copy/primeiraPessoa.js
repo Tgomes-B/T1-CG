@@ -27,7 +27,8 @@ function findCollidables(object, result = []) {
 
 let stats, renderer, scene, camera, controls, clock;
 let areaChaveData;
-let playerHasKey = false;
+let playerHasKeyRed = false;
+let playerHasKeyYellow = false;
 let spotLightHelper, areas;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
@@ -439,7 +440,7 @@ export function moveAnimate(delta) {
             ) {
                 chave.parent.remove(chave);
                 chave.userData.isCollectable = false;
-                playerHasKey = true;
+                playerHasKeyRed = true;
             }
         }
         if (chave && chave.userData && !chave.userData.isCollectable) {
@@ -449,14 +450,14 @@ export function moveAnimate(delta) {
     }
 
     const blocoElevado = scene.getObjectByName('bloco1');
-    if (playerHasKey && blocoElevado) {
+    if (playerHasKeyRed && blocoElevado) {
         const distancia = controls.getObject().position.distanceTo(blocoElevado.position);
         if (distancia < 3 && !blocoElevado.userData.chaveColocada) {
             const chave = criaChave('red');
             chave.position.set(45, 5, 0);
             scene.add(chave);
             blocoElevado.userData.chaveColocada = true;
-            playerHasKey = false;
+            playerHasKeyRed = false;
         }
     }
     //move o elevador
@@ -464,22 +465,40 @@ export function moveAnimate(delta) {
     const sensor = scene.children.filter(obj => obj.name === 'DesceElevador');
     sensor.forEach(sensor => { moveElevador(elevador, downRay, sensor, controls); });
 
-    // portao area 3
-    const hangar = scene.getObjectByName('hangar');
-    if (hangar) {
-        const portas = [];
-        hangar.traverse((child) => {
-            if (child.name === 'porta') {
-                portas.push(child);
+    // Coleta da chave amarela
+    if (scene.userData.chaveAmarela && scene.userData.chaveAmarela.userData.isCollectable) {
+        const torre = scene.userData.torreEspecial;
+        const chaveA = scene.userData.chaveAmarela;
+        if (torre) {
+            const coleta = scene.getObjectByName('coleta');
+            if (coleta && coleta.userData.collisionBox) {
+                // Atualiza a collision box da área de coleta
+                coleta.userData.collisionBox.setFromObject(coleta);
+                
+                // Verifica se o player está dentro da área de coleta
+                if (playerBox.intersectsBox(coleta.userData.collisionBox)) {
+                    chaveA.parent.remove(chaveA);
+                    chaveA.userData.isCollectable = false;
+                    playerHasKeyYellow = true;
+                }
+            }
+        }
+    }
+
+    // Portão do hangar - só abre se o player tiver a chave amarela
+    if (playerHasKeyYellow) {
+        const portasHangar = [];
+        scene.traverse((child) => {
+            if (child.name === 'portaHangar') {
+                portasHangar.push(child);
             }
         });
         
-        if (portas.length >= 2) {
-            movePortaoH(portas[0], portas[1], frontRay);
-        } else if (portas.length > 0) {
-            console.warn('Apenas', portas.length, 'porta(s) encontrada(s) no hangar');
+        if (portasHangar.length >= 2) {
+            movePortaoH(portasHangar[0], portasHangar[1], frontRay);
+        } else if (portasHangar.length > 0) {
+            console.warn('Apenas', portasHangar.length, 'porta(s) do hangar encontrada(s) na scene');
         }
-    } else {
     }
 }
 

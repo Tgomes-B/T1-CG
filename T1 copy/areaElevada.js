@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { criaBlocoChave, criaChave } from './areaChave.js';
+import { colisionChave, criaBlocoChave, criaChave } from './areaChave.js';
 import { moveAnimate } from './primeiraPessoa.js';
 
 const SHOW_COLLISION_BOXES = false;
@@ -61,7 +61,7 @@ function createTowers(scene) {
             scene.add(torre);
             addCollisionHelper(torre, scene);
             torres.push(torre);
-
+            
             // Torre especial com chave
             if (i === 6) {
                 let chave = criaChave('yellow');
@@ -72,20 +72,18 @@ function createTowers(scene) {
                         child.receiveShadow = true;
                     }
                 });
-                torre.add(chave); 
-                torre.userData.collisionBox.setFromObject(torre); 
-            
-                // Para ver só a chave, deixe a torre visível e torne o material transparente:
-                // torre.material.transparent = true;
-                //torre.material.opacity = 0.1; // ou 0 para totalmente invisível
-            
-                // Se torre.visible = false, a chave também ficará invisível!
-                // torre.visible = false; // <-- remova ou comente esta linha
-            
-                scene.userData.torreEspecial = torre;
-                scene.userData.chaveAmarela = chave;
-            }
+                chave.userData.isCollectable = true;
+                torre.add(chave);
+                torre.userData.collisionBox.setFromObject(torre);
 
+                const mesh = colisionChave();
+                mesh.position.set(torre.position.x, torre.position.y - 10, torre.position.z);
+                mesh.name = "coleta";
+                scene.add(mesh);
+
+            scene.userData.torreEspecial = torre;
+            scene.userData.chaveAmarela = chave;
+            }
             i++;
         }
     }
@@ -111,7 +109,7 @@ function createBoxColision(posX,posY,posZ, rotY){
         new THREE.BoxGeometry(3, 5, 23),
         new THREE.MeshBasicMaterial({ 
             color: 0x00ff00,
-            visible: true,
+            visible: false,
             wireframe: true
         })
     );
