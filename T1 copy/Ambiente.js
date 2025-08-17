@@ -293,11 +293,11 @@ export function criaPilares(scene, area1) {
         pilar.userData.collisionBox = new THREE.Box3(min, max);
     
         // (Opcional) Visualização
-        if (SHOW_COLLISION_BOXES) {
-            const boxHelper = new THREE.Box3Helper(pilar.userData.collisionBox, 0xffff00);
-            scene.add(boxHelper);
-            pilar.userData.boxHelper = boxHelper;
-        }
+        //if (SHOW_COLLISION_BOXES) {
+        //    const boxHelper = new THREE.Box3Helper(pilar.userData.collisionBox, 0xffff00);
+        //    scene.add(boxHelper);
+        //    pilar.userData.boxHelper = boxHelper;
+        //}
     
         return pilar;
     }

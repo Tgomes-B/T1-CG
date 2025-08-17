@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { isPaused } from './primeiraPessoa.js';
 import { getPredioColidersFromScene } from './area4.js';
-import { jogoFinalizado } from './primeiraPessoa.js';
+import { jogoFinalizado,inimigosArea4 } from './primeiraPessoa.js';
 
 let camera, scene, controls;
 const projectileSpeed = 100;
@@ -150,6 +150,8 @@ function shootProjectile() {
                         audio.currentTime = 0;
                         audio.play();
                     }
+                    const idx = inimigosArea4.indexOf(enemyRoot);
+                    if (idx !== -1) inimigosArea4.splice(idx, 1);
                 }
                 fadeOut(enemyRoot, 250, () => {
                     // Remove a healthbar se existir
@@ -174,6 +176,8 @@ function shootProjectile() {
                     }
                     console.log("Inimigo eliminado!");
                 });
+                scene.remove(enemyRoot);
+                inimigosArea4 = inimigosArea4.filter(obj => obj !== enemyRoot);
             }
         }
         return; // Não cria projétil!
@@ -282,6 +286,9 @@ export function updateProjectiles(delta) {
                             }
                             console.log("Inimigo eliminado!");
                         });
+                        scene.remove(enemyRoot);
+                        const idx = inimigosArea4.indexOf(enemyRoot);
+                        if (idx !== -1) inimigosArea4.splice(idx, 1);
                     }
                 }
         
