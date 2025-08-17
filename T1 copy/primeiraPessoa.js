@@ -1536,6 +1536,38 @@ export function moveAnimate(delta) {
                 chaveA.parent.remove(chaveA);
                 chaveA.userData.isCollectable = false;
                 playerHasKeyBlue = true;
+            
+            const chaveSound = document.getElementById('chaveSound');
+            if (chaveSound) {
+                chaveSound.currentTime = 0;
+                chaveSound.play();
+            }
+            }
+        }
+    }
+    if (playerHasKeyBlue) {
+        // Encontra o pedestal azul
+        const pedestalAzul = scene.getObjectByName('pilarChaveAzul');
+        if (pedestalAzul && !pedestalAzul.userData.chaveColocada) {
+            // Cria ou atualiza a collision box do pedestal
+            if (!pedestalAzul.userData.collisionBox) {
+                pedestalAzul.userData.collisionBox = new THREE.Box3();
+            }
+            pedestalAzul.userData.collisionBox.setFromObject(pedestalAzul);
+    
+            // Verifica se o player está encostando no pedestal
+            // Dentro do bloco de entrega da chave azul no pedestal:
+            if (playerBox.intersectsBox(pedestalAzul.userData.collisionBox)) {
+                // Coloca a chave azul no topo do pedestal
+                const chaveAzul = criaChave('blue');
+                chaveAzul.position.set(0, 4, 0);
+                chaveAzul.userData.isCollectable = false;
+                pedestalAzul.add(chaveAzul);
+                pedestalAzul.userData.chaveColocada = true;
+                playerHasKeyBlue = false;
+            
+                // Ativa animação das paredes da área 4
+                vaiDesce = true;
             }
         }
     }
@@ -1593,9 +1625,47 @@ function showDeathScreen() {
 
 window.addEventListener('keydown', (event) => {
     if (event.code === 'KeyC') {
-        vaiDesce = true;
+        playerHasKeyRed = true;
+        playerHasKeyYellow = true;
+        playerHasKeyBlue = true;
+
+        // Mostra mensagem na interface
+        showChavesMessage();
+
+        // Remove a mensagem após 3 segundos
+        setTimeout(() => {
+            hideChavesMessage();
+        }, 3000);
     }
 });
+
+function showChavesMessage() {
+    let msg = document.getElementById('chavesMsg');
+    if (!msg) {
+        msg = document.createElement('div');
+        msg.id = 'chavesMsg';
+        Object.assign(msg.style, {
+            position: 'fixed',
+            top: '20%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: 'rgba(0,0,0,0.8)',
+            color: '#fff',
+            fontSize: '2em',
+            padding: '30px 60px',
+            borderRadius: '20px',
+            zIndex: '9999'
+        });
+        document.body.appendChild(msg);
+    }
+    msg.innerText = 'Você recebeu todas as chaves!';
+    msg.style.display = 'block';
+}
+
+function hideChavesMessage() {
+    const msg = document.getElementById('chavesMsg');
+    if (msg) msg.style.display = 'none';
+}
 
 function render() {
     stats.update();
