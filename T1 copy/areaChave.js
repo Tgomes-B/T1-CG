@@ -36,8 +36,9 @@ export function criaChave(cor) {
 
     keyMesh = CSG.toMesh(keyCSG, new THREE.Matrix4());
     keyMesh.material = keyMaterial;
-    keyMesh.castShadow = true;
+    
     keyMesh.userData.isCollectable = true;
+    keyMesh.castShadow = true;
     keyMesh.receiveShadow = true;
 
     return keyMesh;
@@ -126,7 +127,7 @@ export function colisionChave(){
         new THREE.BoxGeometry(2, 20, 2),
         new THREE.MeshBasicMaterial({ 
             color: 0x00ff00,
-            visible: false,
+            visible: true,
             wireframe: true
         })
     );
