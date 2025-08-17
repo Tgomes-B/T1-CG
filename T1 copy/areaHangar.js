@@ -6,10 +6,11 @@ import {
 }from './Loaders.js';
 import {loadOBJFile}from './airplane.js'
 import { CSG } from '../libs/other/CSGMesh.js'  
+import{criaChave}from './areaChave.js'
 
 let loader = new THREE.TextureLoader();
 
-export function constroiHangar(){
+export function constroiHangar(scene){
     const hangarGeometry = new THREE.CylinderGeometry(50, 50, 100, 32, 1, true, 0, Math.PI);
     const lateralMaterial = new THREE.MeshStandardMaterial({
         map: texHangarArea3,
@@ -31,7 +32,11 @@ export function constroiHangar(){
     hangar.add(rodape(49.9));
     hangar.add(rodape(-49.9));
     paredeHangar(hangar);
-    portas(hangar, 12.5, -12.5);
+    portas(scene, hangar, 12.5, -12.5); // Passa scene e hangar como parâmetros
+    let chaveAzul = criaChave('blue');
+    chaveAzul.position.set(2, 60, 0);
+    
+    hangar.add(chaveAzul);
 
     // Carrega o avião depois que o hangar estiver completamente construído
     loadOBJFile({x: 7, y: 0, z: 0}, hangar, (aviao) => {
@@ -150,7 +155,9 @@ export function movePortaoH(porta1, porta2, frontRay){
             porta1.userData.abrindo = false;
             porta2.userData.abrindo = false;
         }
-        // Atualiza as collision boxes
+        // Atualiza as collision boxes após o movimento
+        porta1.updateMatrixWorld(true);
+        porta2.updateMatrixWorld(true);
         if (porta1.userData.collisionBox) {
             porta1.userData.collisionBox.setFromObject(porta1);
         }
@@ -160,11 +167,10 @@ export function movePortaoH(porta1, porta2, frontRay){
     }
 }
 
-function portas(hangar, pos1, pos2){
+function portas(scene, hangar, pos1, pos2){
     const portaGeometry = new THREE.BoxGeometry(30, 1, 25);
     let cor = new THREE.MeshLambertMaterial({ color: 'rgba(255, 255, 255, 1)' });
     const portaMaterial = [
-        
         setMaterial('./images/Textures/Area3/portaoLado.jpg', 1, 1),
         setMaterial('./images/Textures/Area3/portaoLado.jpg', 1, 1),
         setMaterial('./images/Textures/Area3/portao.jpg', 1, 1),
@@ -176,24 +182,35 @@ function portas(hangar, pos1, pos2){
     const porta1 = new THREE.Mesh(portaGeometry, portaMaterial);
     const porta2 = new THREE.Mesh(portaGeometry, portaMaterial);
     
-    porta1.position.set(15, 50, pos1);
-    porta2.position.set(15, 50, pos2);
+    // Calcula posições globais baseadas na posição do hangar
+    const hangarPos = hangar.position;
+    porta1.position.set(175 - 50, 15, 155 + pos1);
+    porta2.position.set(175 - 50, 15, 155 + pos2);
+    
+    // Aplica a mesma rotação do hangar às portas
+    porta1.rotation.z = hangar.rotation.z;
+    porta2.rotation.z = hangar.rotation.z;
 
     porta1.castShadow = true;
     porta1.receiveShadow = true;
     porta1.userData.isCollidable = true;
-    porta1.userData.collisionBox = new THREE.Box3().setFromObject(porta1);
-    porta1.name = 'porta';
-
+    porta1.name = 'portaHangar';
 
     porta2.castShadow = true;
     porta2.receiveShadow = true;
     porta2.userData.isCollidable = true;
-    porta2.userData.collisionBox = new THREE.Box3().setFromObject(porta2);
-    porta2.name = 'porta';
+    porta2.name = 'portaHangar';
 
-    hangar.add(porta1);
-    hangar.add(porta2);
+    // Atualiza matrizes antes de criar collision boxes
+    porta1.updateMatrixWorld(true);
+    porta2.updateMatrixWorld(true);
+    
+    porta1.userData.collisionBox = new THREE.Box3().setFromObject(porta1);
+    porta2.userData.collisionBox = new THREE.Box3().setFromObject(porta2);
+
+    // Adiciona as portas diretamente à scene
+    scene.add(porta1);
+    scene.add(porta2);
 }
 
 function setMaterial(file, repeatU = 1, repeatV = 1, color = 'rgb(255,255,255)'){
