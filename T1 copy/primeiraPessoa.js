@@ -311,17 +311,8 @@ function setupEnvironment() {
 // Função para criar o pilar da chave azul
 function criaPilarChaveAzul(scene) {
     // Cria o pilar
-    const pilarAzul = criaBlocoChave(3); // Use um número diferente do pilar vermelho
+    const pilarAzul = criaBlocoChave(3);
     pilarAzul.name = 'pilarChaveAzul';
-
-    /*// Cria a chave azul
-    const chaveAzul = criaChave('blue');
-    chaveAzul.position.set(0, 4, 0); // Posição relativa ao topo do pilar
-    chaveAzul.userData.isCollectable = true;
-
-    // Adiciona a chave ao pilar
-    pilarAzul.add(chaveAzul);*/
-
     // Adiciona o pilar à cena
     scene.add(pilarAzul);
 }

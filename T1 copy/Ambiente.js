@@ -224,6 +224,7 @@ export function criaAreasRampas(scene) {
             areas[i].visible = true;
         } else if (i == 3) {
             areas[i].position.set(-130, 0.5, 0);
+            areas[i].name = "area4";
             comp = -1 * comp;
             posZ = 0;
             areas[i].visible = true;

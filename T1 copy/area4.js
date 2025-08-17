@@ -94,6 +94,7 @@ export function adicionaPrediosArea4(scene, area4,controls,onAllLoaded) {
             object.position.y = predio.pos.y;
             object.position.z += predio.pos.z;
             object.name = 'predio_' + loaded; 
+            object.userData.isCollidable = true;
             object.scale.set(predio.scale, predio.scale, predio.scale);
 
             if (idx === prediosData.length - 1) {
