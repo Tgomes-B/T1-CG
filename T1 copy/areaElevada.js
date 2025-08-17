@@ -116,7 +116,7 @@ function createTowers(scene) {
 
                 const mesh = colisionChave();
                 mesh.position.set(torre.position.x, torre.position.y - 10, torre.position.z);
-                mesh.name = "coleta";
+                mesh.name = "coletaAmarela";
                 scene.add(mesh);
 
             scene.userData.torreEspecial = torre;

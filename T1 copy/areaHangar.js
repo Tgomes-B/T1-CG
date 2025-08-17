@@ -6,7 +6,7 @@ import {
 }from './Loaders.js';
 import {loadOBJFile}from './airplane.js'
 import { CSG } from '../libs/other/CSGMesh.js'  
-import{criaChave}from './areaChave.js'
+import{colisionChave, criaChave}from './areaChave.js'
 
 let loader = new THREE.TextureLoader();
 
@@ -33,11 +33,18 @@ export function constroiHangar(scene){
     hangar.add(rodape(-49.9));
     paredeHangar(hangar);
     portas(scene, hangar, 12.5, -12.5); // Passa scene e hangar como parâmetros
+
     let chaveAzul = criaChave('blue');
     chaveAzul.position.set(2, 60, 0);
+
+    const mesh = colisionChave();
+    mesh.position.set(115, 0, 155);
+    mesh.name = "coletaAzul";
     
     hangar.add(chaveAzul);
-
+    scene.add(mesh);
+    
+    scene.userData.chaveAzul = chaveAzul;
     // Carrega o avião depois que o hangar estiver completamente construído
     loadOBJFile({x: 7, y: 0, z: 0}, hangar, (aviao) => {
         //aviao.rotation.x = -Math.PI / 2;

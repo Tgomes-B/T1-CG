@@ -65,6 +65,7 @@ let stats, renderer, scene, camera, controls, clock;
 let areaChaveData;
 let playerHasKeyRed = false;
 let playerHasKeyYellow = false;
+let playerHasKeyBlue = false;
 let spotLightHelper, areas;
 let moveForward = false, moveBackward = false, moveLeft = false, 
     moveRight = false, moveUp = false, moveDown = false;
@@ -1484,7 +1485,7 @@ export function moveAnimate(delta) {
         const torre = scene.userData.torreEspecial;
         const chaveA = scene.userData.chaveAmarela;
         if (torre) {
-            const coleta = scene.getObjectByName('coleta');
+            const coleta = scene.getObjectByName('coletaAmarela');
             if (coleta && coleta.userData.collisionBox) {
                 // Atualiza a collision box da área de coleta
                 coleta.userData.collisionBox.setFromObject(coleta);
@@ -1516,8 +1517,26 @@ export function moveAnimate(delta) {
         
         if (portasHangar.length >= 2) {
             movePortaoH(portasHangar[0], portasHangar[1], frontRay);
+            playerHasKeyYellow = false;
         } else if (portasHangar.length > 0) {
             console.warn('Apenas', portasHangar.length, 'porta(s) do hangar encontrada(s) na scene');
+        }
+    }
+
+    // coleta a chave azul
+    if (scene.userData.chaveAzul && scene.userData.chaveAzul.userData.isCollectable) {
+        const chaveA = scene.userData.chaveAzul;
+        const coleta = scene.getObjectByName('coletaAzul');
+        if (coleta && coleta.userData.collisionBox) {
+            // Atualiza a collision box da área de coleta
+            coleta.userData.collisionBox.setFromObject(coleta);
+            
+            // Verifica se o player está dentro da área de coleta
+            if (playerBox.intersectsBox(coleta.userData.collisionBox)) {
+                chaveA.parent.remove(chaveA);
+                chaveA.userData.isCollectable = false;
+                playerHasKeyBlue = true;
+            }
         }
     }
 }
