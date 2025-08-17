@@ -497,7 +497,6 @@ export function moveAnimate(delta) {
         
         if (portasHangar.length >= 2) {
             movePortaoH(portasHangar[0], portasHangar[1], frontRay);
-            playerHasKeyYellow = false;
         } else if (portasHangar.length > 0) {
             console.warn('Apenas', portasHangar.length, 'porta(s) do hangar encontrada(s) na scene');
         }
