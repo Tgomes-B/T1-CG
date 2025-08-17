@@ -58,11 +58,17 @@ export function constroiHangar(scene){
     
     scene.userData.chaveAzul = chaveAzul;
     
-    // Adiciona 3 soldados maiores dentro do hangar
+    // Adiciona 7 soldados no total dentro do hangar
     const soldierPositions = [
-        new THREE.Vector3(190, 5, 140),  // Esquerda (10 unidades à frente)
-        new THREE.Vector3(190, 5, 150),  // Centro (10 unidades à frente)
-        new THREE.Vector3(190, 5, 160)   // Direita (10 unidades à frente)
+        // Primeira linha (mais próxima da entrada)
+        new THREE.Vector3(190, 5, 140),  // Esquerda
+        new THREE.Vector3(190, 5, 150),  // Centro
+        new THREE.Vector3(190, 5, 160),  // Direita
+        // Segunda linha (mais ao fundo do hangar)
+        new THREE.Vector3(220, 5, 130),  // Esquerda
+        new THREE.Vector3(220, 5, 145),  // Centro-esquerda
+        new THREE.Vector3(220, 5, 160),  // Centro-direita
+        new THREE.Vector3(220, 5, 175)   // Direita
     ];
 
     soldierPositions.forEach((pos, index) => {
