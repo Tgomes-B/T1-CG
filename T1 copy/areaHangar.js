@@ -29,9 +29,9 @@ export function constroiHangar(scene){
     hangar.receiveShadow = true;
     hangar.name = 'hangar';
 
-    hangar.add(rodape(49.9));
-    hangar.add(rodape(-49.9));
-    paredeHangar(hangar);
+    scene.add(rodape(49.9));
+    scene.add(rodape(-49.9));
+    paredeHangar(scene);
     portas(scene, hangar, 12.5, -12.5); // Passa scene e hangar como parâmetros
 
     let chaveAzul = criaChave('blue');
@@ -55,8 +55,6 @@ export function constroiHangar(scene){
 }
 
 
-
-
 function rodape(posZ){
     const rodapeGeometry = new THREE.BoxGeometry(101, 10, 1);
     const rodapeMaterial = [
@@ -69,8 +67,7 @@ function rodape(posZ){
     ];
 
     const rodape = new THREE.Mesh(rodapeGeometry, rodapeMaterial);
-    rodape.rotation.z = Math.PI / 2;
-    rodape.position.set(5, -0.5, posZ); // o X e o Y estão invertidos
+    rodape.position.set(175, 5, 155+posZ); 
     rodape.castShadow = true;
     rodape.receiveShadow = true;
 
@@ -79,11 +76,10 @@ function rodape(posZ){
     // Atualiza a matriz do mundo antes de criar a collision box
     rodape.updateMatrixWorld(true);
     rodape.userData.collisionBox = new THREE.Box3().setFromObject(rodape);
-
     return rodape;
 }
 
-function paredeHangar(hangar){
+function paredeHangar(scene){
     let boxCSG = CSG.fromMesh(new THREE.Mesh(new THREE.BoxGeometry(55, 30, 30)));
     const paredeGeometry = new THREE.CylinderGeometry(50.25, 50.25, 0.5, 32, 1, false, 0, Math.PI);
     const paredeMaterial = new THREE.MeshStandardMaterial({
@@ -93,30 +89,32 @@ function paredeHangar(hangar){
     });
     
     const fundo = new THREE.Mesh(paredeGeometry, paredeMaterial);
-    fundo.position.set(0, 0, 0);
+    
 
     let portaCSG = CSG.fromMesh(fundo);
     portaCSG = portaCSG.subtract(boxCSG); // Subtrai um cubo para criar a porta
     let parede = CSG.toMesh(portaCSG, new THREE.Matrix4());
 
-    fundo.position.set(0, -49, 0);
+    fundo.position.set(175+50, 0, 155);
     fundo.castShadow = true;
     fundo.receiveShadow = true;
     fundo.userData.isCollidable = true;
     fundo.userData.collisionBox = new THREE.Box3().setFromObject(fundo);
     fundo.name = 'parede';
 
-    parede.position.set(0, 49, 0);
+    parede.position.set(125, 0, 155);
     parede.material = fundo.material;
     parede.userData.isCollidable = true;
     parede.userData.collisionBox = new THREE.Box3().setFromObject(parede);
     parede.name = 'parede';
 
-
+    fundo.rotation.z = Math.PI / 2; // Rotaciona para ficar horizontal
+    parede.rotation.z = Math.PI / 2; // Rotaciona para ficar horizontal
+    
     fundo.userData.collisionBox.setFromObject(fundo);
     parede.userData.collisionBox.setFromObject(parede);
-    hangar.add(fundo);
-    hangar.add(parede);
+    scene.add(fundo);
+    scene.add(parede);
 }
 
 export function movePortaoH(porta1, porta2, frontRay){
