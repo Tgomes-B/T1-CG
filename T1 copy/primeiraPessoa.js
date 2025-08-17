@@ -14,6 +14,7 @@ import { updatePatrolBehavior } from './patrolBehavior.js';
 import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
 import { adicionarBossGLB } from './boss.js';
 import { FireEffect } from './Effects.js';
+import { adicionarCacodemonsArea4 } from './inimigo.js';
 
 import { adicionaPrediosArea4, checaTeleportePortais,getPredioColiders, checaColisaoPredios, prediosData,getPredioColidersFromScene, criaParedesArea4, desceParedesArea4 } from './area4.js';
 import { criaSoldier } from './Soldier.js';
@@ -296,8 +297,13 @@ function setupEnvironment() {
         }, 0);
     });
 
-    const posBoss = new THREE.Vector3(-180, 12, -180);
-    adicionarBossGLB(scene, '../0_assetsT3/objects/pain/painElemental.glb', posBoss);
+    // Adiciona o Boss no centro da área 4
+    adicionarBossGLB(scene, '../0_assetsT3/objects/pain/painElemental.glb', null, () => {
+        console.log('Boss carregado na área 4');
+    });
+    
+    // Adiciona 4 Cacodemons na área 4
+    adicionarCacodemonsArea4(scene, areas[3]);
 }
 
 function setupLightingAndCollision() {
