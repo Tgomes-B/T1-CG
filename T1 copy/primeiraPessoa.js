@@ -15,8 +15,7 @@ import { CSS2DRenderer } from '../build/jsm/renderers/CSS2DRenderer.js';
 import { adicionarBossGLB } from './boss.js';
 import { FireEffect } from './Effects.js';
 import { adicionarCacodemonsArea4 } from './inimigo.js';
-
-import { adicionaPrediosArea4, checaTeleportePortais,getPredioColiders, checaColisaoPredios, prediosData,getPredioColidersFromScene, criaParedesArea4, desceParedesArea4 } from './area4.js';
+import { adicionaPrediosArea4, checaTeleportePortais,getPredioColiders, checaColisaoPredios, prediosData,getPredioColidersFromScene, criaParedesArea4, desceParedesArea4,todosInimigosArea4Eliminados  } from './area4.js';
 import { criaSoldier } from './Soldier.js';
 import { checaPortalVermelho } from './area4.js';
 export { isPaused };
@@ -57,6 +56,7 @@ function findCollidables(object, result = []) {
     return result;
 }
 let isPaused = false;
+export let inimigosArea4 = [];
 let prediosLoaded = false;
 export let jogoFinalizado = false;
 let vaiDesce = false; 
@@ -305,10 +305,26 @@ function setupEnvironment() {
     // Adiciona o Boss no centro da área 4
     adicionarBossGLB(scene, '../0_assetsT3/objects/pain/painElemental.glb', null, () => {
         console.log('Boss carregado na área 4');
+        boss.name = "area4";
+        inimigosArea4.push(boss);
     });
     
     // Adiciona 4 Cacodemons na área 4
-    adicionarCacodemonsArea4(scene, areas[3]);
+    adicionarCacodemonsArea4(scene, areas[3], (cacodemons) => {
+        if (Array.isArray(cacodemons)) {
+            cacodemons.forEach(cacodemon => {
+                cacodemon.name = "area4";
+                inimigosArea4.push(cacodemon);
+            });
+        } else {
+            console.error("Cacodemon não foi criado corretamente!");
+        }
+    });
+}
+
+function aindaTemInimigosArea4() {
+    // Só conta os inimigos que ainda estão na cena e têm name === "area4"
+    return inimigosArea4.some(obj => obj.parent && obj.name === "area4");
 }
 
 // Função para criar o pilar da chave azul
@@ -1052,10 +1068,32 @@ const isArea4Enemy = obj.userData.patrolArea &&
                             if (obj.userData.cacoMoveVertical === 0) {
                                 // Lateral puro
                                 {
-    let desloc = moveSpeed * amp;
-    if (Math.abs(desloc) < 0.15) desloc = 0.15 * Math.sign(desloc);
-    obj.position.add(perp.multiplyScalar(desloc));
+        let desloc = moveSpeed * amp;
+        if (Math.abs(desloc) < 0.15) desloc = 0.15 * Math.sign(desloc);
+        obj.position.add(perp.multiplyScalar(desloc));
+// --- Lógica do portal vermelho e finalização do jogo ---
+if (todosInimigosArea4Eliminados(scene)) {
+    // Faz o portal aparecer (fade-in)
+    const portalRed = scene.getObjectByName('portalRed');
+    if (portalRed) {
+        fadeInOpacity(portalRed, 1, 1500); // Transição para opacidade 1 em 1.5s
+        // Também faz para o centro do portal
+        portalRed.parent.children.forEach(child => {
+            if (child.name === 'portalRed' || (child.material && child.material.color && child.material.color.equals(new THREE.Color(0xff2222)))) {
+                fadeInOpacity(child, 1, 1500);
+            }
+        });
+    }
+
+    // Checa se o player entrou no portal para finalizar o jogo
+    if (!jogoFinalizado && checaPortalVermelho(controls.getObject(), scene)) {
+        jogoFinalizado = true;
+        mostraMensagemFinal();
+        controls.unlock();
+    }
 }
+
+                                }
                                 moveVec.copy(perp);
                             } else if (obj.userData.cacoMoveVertical === 1) {
                                 // Lateral-diagonal para cima
@@ -1917,17 +1955,9 @@ if (areaChaveData && areaChaveData.animandoBloco && areaChaveData.blocoAnimado &
                     baseY + Math.sin(performance.now() * 0.002) * 1.2;
             }
     }
-
-    
     // desce a parede
     if (vaiDesce) {
         desceParedesArea4(scene, 0, 0.01);
-    }
-
-    if (!jogoFinalizado && checaPortalVermelho(controls.getObject(), scene)) {
-        jogoFinalizado = true;
-        mostraMensagemFinal();
-        controls.unlock();
     }
         
     if (spotLightHelper) spotLightHelper.update();

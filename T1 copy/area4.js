@@ -327,23 +327,52 @@ export function criaPortalVermelhoArea4(scene, area4, pos = { x: 0, y: 5, z: 0 }
     centerMeshRed.scale.set(1, 2.7, 1);
     centerMeshRed.rotation.y = Math.PI / 2;
     centerMeshRed.material.opacity = 0;
+    centerMeshRed.name = 'portalRedCenter';
     scene.add(centerMeshRed);
 }
 
 export function checaPortalVermelho(playerObj, scene) {
-    // Encontra o portal vermelho na cena
+    if (!todosInimigosArea4Eliminados(scene)) return false;
     const portalRed = scene.getObjectByName('portalRed');
-    if (!portalRed) return false;
+    const portalRedCenter = scene.getObjectByName('portalRedCenter');
+    if (!portalRed && !portalRedCenter) return false;
 
-    // Cria bounding box do jogador e do portal
+    // Aumenta o tamanho da caixa do player para facilitar a colisão
     const playerBox = new THREE.Box3().setFromCenterAndSize(
         playerObj.position.clone(),
-        new THREE.Vector3(0.3, 2, 0.3)
+        new THREE.Vector3(1, 2, 1)
     );
-    const portalBox = new THREE.Box3().setFromObject(portalRed);
 
-    // Retorna true se colidiu
-    return portalBox.intersectsBox(playerBox);
+    let collided = false;
+    if (portalRed) {
+        const portalBox = new THREE.Box3().setFromObject(portalRed);
+        if (portalBox.intersectsBox(playerBox)) collided = true;
+    }
+    if (portalRedCenter) {
+        const portalCenterBox = new THREE.Box3().setFromObject(portalRedCenter);
+        if (portalCenterBox.intersectsBox(playerBox)) collided = true;
+    }
+    // Debug
+    if (collided) console.log('Colisão com portal vermelho detectada!');
+    return collided;
+}
+
+export function todosInimigosArea4Eliminados(scene) {
+    let vivos = 0;
+    scene.traverse(obj => {
+        if (
+            obj.userData &&
+            obj.userData.isEnemy &&
+            (
+                obj.userData.enemyType === "cacodemon" ||
+                obj.userData.enemyType === "boss"
+            ) &&
+            obj.parent // ainda está na cena
+        ) {
+            vivos++;
+        }
+    });
+    return vivos === 0;
 }
 
 export { prediosData };
