@@ -308,7 +308,8 @@ export function criaPortalVermelhoArea4(scene, area4, pos = { x: 0, y: 5, z: 0 }
     const ringMeshRed = new THREE.Mesh(ringGeometry, ringMaterialRed);
     ringMeshRed.position.set(area4.position.x + pos.x, area4.position.y + pos.y, area4.position.z + pos.z);
     ringMeshRed.scale.set(1, 2.2, 1);
-    ringMeshRed.rotation.y = Math.PI/2;
+    ringMeshRed.rotation.y = Math.PI / 2;
+    ringMeshRed.material.opacity = 0;
     ringMeshRed.name = 'portalRed';
     scene.add(ringMeshRed);
 
@@ -323,7 +324,8 @@ export function criaPortalVermelhoArea4(scene, area4, pos = { x: 0, y: 5, z: 0 }
     const centerMeshRed = new THREE.Mesh(centerGeometry, centerMaterialRed);
     centerMeshRed.position.set(area4.position.x + pos.x, area4.position.y + pos.y, area4.position.z + pos.z - 0.05);
     centerMeshRed.scale.set(1, 2.7, 1);
-    centerMeshRed.rotation.y = Math.PI/2;
+    centerMeshRed.rotation.y = Math.PI / 2;
+    centerMeshRed.material.opacity = 0;
     scene.add(centerMeshRed);
 }
 

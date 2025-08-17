@@ -350,6 +350,18 @@ function createCamera() {
 
 function setupEventListeners() {
     window.addEventListener('keydown', (event) => {
+        if (event.code === 'KeyF') {
+            const portalRed = scene.getObjectByName('portalRed');
+            if (portalRed) {
+                fadeInOpacity(portalRed, 1, 1500); // Transição para opacidade 1 em 1.5s
+                // Também faz para o centro do portal
+                portalRed.parent.children.forEach(child => {
+                    if (child.name === 'portalRed' || (child.material && child.material.color && child.material.color.equals(new THREE.Color(0xff2222)))) {
+                        fadeInOpacity(child, 1, 1500);
+                    }
+                });
+            }
+        }
         if (jogoFinalizado) {
             event.preventDefault();
             return;
@@ -544,6 +556,34 @@ function movementControls(key, value) {
             isRunning = value;
             break;
     }
+}
+
+/**
+ * Faz transição de opacidade para deixar o objeto visível.
+ * @param {THREE.Object3D} obj - Objeto transparente
+ * @param {number} targetOpacity - Opacidade final (ex: 1)
+ * @param {number} duration - Duração em ms (ex: 1000)
+ */
+export function fadeInOpacity(obj, targetOpacity = 1, duration = 1000) {
+    if (!obj) return;
+    obj.traverse(child => {
+        if (child.material && 'opacity' in child.material) {
+            child.material.transparent = true;
+            const start = child.material.opacity;
+            const startTime = performance.now();
+            function animate() {
+                const now = performance.now();
+                const t = Math.min((now - startTime) / duration, 1);
+                child.material.opacity = start + (targetOpacity - start) * t;
+                if (t < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    child.material.opacity = targetOpacity;
+                }
+            }
+            animate();
+        }
+    });
 }
 
 export function moveAnimate(delta) {
