@@ -178,7 +178,7 @@ export function adicionarBossGLB(scene, caminhoGLB, posicao, onLoaded) {
         const healthBarObj = healthBar.getObject();
         boss.updateMatrixWorld(true);
         const bbox = new THREE.Box3().setFromObject(boss);
-        const heightOffset = bbox.max.y - bbox.min.y + 2;
+        const heightOffset = (bbox.max.y - bbox.min.y) * 2 + 5; // Raised healthbar even higher
         healthBarObj.position.y = heightOffset;
         boss.add(healthBarObj);
         boss.userData.healthBar = healthBar;

@@ -299,6 +299,8 @@ function setupEnvironment() {
         }, 0);
     });
 
+    criaPilarChaveAzul(scene);
+    
     // Adiciona o Boss no centro da área 4
     adicionarBossGLB(scene, '../0_assetsT3/objects/pain/painElemental.glb', null, () => {
         console.log('Boss carregado na área 4');

@@ -578,12 +578,20 @@ export function setupLighting(scene) {
     }
 
     function buildLightingInterface(directionalLight, fillLight, helper, ambientLight, scene) {
+        // Set default lighting values
+        directionalLight.intensity = 0.1;
+        fillLight.intensity = 0.3;
+        ambientLight.intensity = 1.3;
+        
         const lightControls = {
-            intensidadePrincipal: directionalLight.intensity,
-            intensidadePreenchimento: fillLight.intensity,
-            intensidadeAmbiente: ambientLight.intensity,
-            mostrarHelpers: true
+            intensidadePrincipal: 0.1,
+            intensidadePreenchimento: 0.3,
+            intensidadeAmbiente: 1.3,
+            mostrarHelpers: false
         };
+        
+        // Hide all helpers by default
+        if (helper) helper.visible = false;
 
         const gui = new GUI({ width: 300 });
         const pasta = gui.addFolder('Controle de Iluminação');
