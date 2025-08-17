@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { CSG } from '../libs/other/CSGMesh.js';
 import GUI from '../libs/util/dat.gui.module.js';
+import { constroiHangar } from './areaHangar.js';
+import { setupCollision } from './colisao.js';
+
 import {
     texArea2Top,
     texDisc,
@@ -15,16 +18,6 @@ import {
 import { criaTexturaArea2 } from './textureArea2.js';
 import { criaTexturaArea1 } from './textureArea1.js';
 import { adicionaPrediosArea4 } from './area4.js';
-import { constroiHangar } from './areaHangar.js';
-import { setupCollision } from './colisao.js';
-
-function setMaterial(texturePath, repeatX = 1, repeatY = 1) {
-    const texture = new THREE.TextureLoader().load(texturePath);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(repeatX, repeatY);
-    return new THREE.MeshStandardMaterial({ map: texture });
-}
 /**
  * Cria áreas, rampas e chão do ambiente 3D.
  * @param {THREE.Scene} scene - A cena onde os objetos serão adicionados
@@ -54,6 +47,7 @@ export function criaAreasRampas(scene) {
     ground.rotation.x = -0.5 * Math.PI;
     ground.name = "ground";
     ground.receiveShadow = true;
+    ground.userData = { isCollidable: true };
     scene.add(ground);
     
     texArea2Top.wrapS = THREE.RepeatWrapping;
@@ -71,16 +65,16 @@ export function criaAreasRampas(scene) {
     const baseMaterial = [
         cor, //x+
         cor, //x-   Texture + color
-        setMaterial('./images/Textures/Area3/cimento.png', 30, 30), //y+
+        setMaterial('./images/Textures/area3/cimento.png', 20, 20), //y+
         cor, //y-  Just a color
         cor, //x+
         cor //x+
     ];
 
     const areaMaterial = [
-        new THREE.MeshLambertMaterial({ color: 'rgb(155, 249, 134)' }),
-        new THREE.MeshLambertMaterial({ color: 'rgb(210, 202, 55)' }),
-        baseMaterial,
+        new THREE.MeshLambertMaterial({ color: 'rgb(29, 219, 11)' }),
+         new THREE.MeshLambertMaterial({ color: 0x3b82f6 }),
+       baseMaterial,
         new THREE.MeshLambertMaterial({ map: texArea4Ground }) 
     ];
 
@@ -122,6 +116,8 @@ export function criaAreasRampas(scene) {
         scene.add(ramp);
     }
 
+    const SHOW_COLLISION_BOXES = true; // Ativa visualização
+
     function criaAreaColisao(areaX, areaY, areaZ, dimensoes, rotacionarY = false, material = null) {
         const mesh = new THREE.Mesh(
             new THREE.BoxGeometry(...dimensoes),
@@ -138,6 +134,13 @@ export function criaAreasRampas(scene) {
         mesh.name = 'topo_colisao';
         mesh.castShadow = true;
         mesh.receiveShadow = true;
+        // Adiciona Box3 de colisão
+        mesh.userData.collisionBox = new THREE.Box3().setFromObject(mesh);
+        // Visualização debug
+        if (SHOW_COLLISION_BOXES) {
+            const helper = new THREE.Box3Helper(mesh.userData.collisionBox, 0xffff00);
+            scene.add(helper);
+        }
         scene.add(mesh);
         return mesh;
     }
@@ -163,15 +166,17 @@ export function criaAreasRampas(scene) {
             areaX = 130;
             areaY = 5;
             areaZ = posZ;
-    
+
             criaAreaColisao(areaX + 45, areaY, areaZ + 35, [50, 10, 120], true);
             criaAreaColisao(areaX + 45, areaY, areaZ - 35, [50, 10, 120], true);
-            criaAreaColisao(areaX + 55, areaY, areaZ, [100, 10, 20]);
+            criaAreaColisao(areaX + 55, areaY, areaZ, [100, 10, 20], false);
+
+            // Adiciona colisão principal da área2 para detecção vertical
+            const area2Collision = criaAreaColisao(175, 5, posZ, [120, 10, 120], false);
+            area2Collision.name = "area2_collision";
         }else if (i == 2) {
             const TercAreaGeometry = new THREE.BoxGeometry(120, 0.05, 120);
-
             const base = new THREE.Mesh(TercAreaGeometry, areaMaterial[i]);
-
             base.position.set(45, 0, 0);
             areaX = 130;
             areaY = 0.025;
@@ -191,14 +196,14 @@ export function criaAreasRampas(scene) {
             areas[i].receiveShadow = true;   
             areas[i].visible = true;
         }
-    
-        if (i !== 3) { // Evita realizar o CSG na área 4
+
+        if (i !== 3 && i !== 2) { // Evita realizar o CSG na área 4
             updateObject(molde);
             let auxCSG = CSG.fromMesh(molde);
             let objectCSG = auxCSG.subtract(boxCSG);
             areas[i] = CSG.toMesh(objectCSG, new THREE.Matrix4());
             areas[i].visible = false;
-        } else {
+        } else if(i===3){
             areas[i] = molde; // Apenas atribui o molde diretamente para a área 4
             areas[i].visible = true; // Torna a área 4 visível
         }
@@ -226,14 +231,11 @@ export function criaAreasRampas(scene) {
             const area4CollisionBox = new THREE.Box3().setFromObject(areas[i]);
             areas[i].userData.collisionBox = area4CollisionBox;
         }
-        
-        
             areas[i].material = areaMaterial[i];
             areas[i].castShadow = true;
             areas[i].receiveShadow = true;
             posZ += 155;
             scene.add(areas[i]);
-        
     }
     criaPilares(scene, areas[0]);
     
@@ -244,7 +246,7 @@ export function criaAreasRampas(scene) {
 const SHOW_COLLISION_BOXES = false;
 
 export function criaPilares(scene, area1) {
-    const pilarGeometry = new THREE.CylinderGeometry(4, 4, 30, 64);
+    const pilarGeometry = new THREE.CylinderGeometry(3, 3, 30, 64);
 
     const lateralMaterial = new THREE.MeshStandardMaterial({
         map: texPillarArea1,
@@ -261,7 +263,7 @@ export function criaPilares(scene, area1) {
 
     const pilarMaterials = [lateralMaterial, capMaterial, capMaterial];
     
-    let Xcont = -9;
+    let Xcont = -10;
     let Zcont = -35;
     let contBack = -33;
     
@@ -299,51 +301,51 @@ export function criaPilares(scene, area1) {
         return pilar;
     }
     
-    // Primeira fileira de pilares (frente e trás)
-    while (Xcont <= 114) {
-        // Pilares da frente
-        const frontPillar = createPillar(
+    // Primeira fileira de pilares (esquerda e direita)
+    while (Xcont <= 115) {
+        // Pilares da esquerda
+        const leftPillar = createPillar(
             areaPosition.x + Xcont, 
             18.75,
-            areaPosition.z - 55
+            areaPosition.z - 54
         );
-        pillarsGroup.add(frontPillar);
+        pillarsGroup.add(leftPillar);
         
-        // Pilares de trás
-        const backPillar = createPillar(
+        // Pilares da direita
+        const rightPillar = createPillar(
             areaPosition.x + Xcont, 
             18.75,
-            areaPosition.z + 55
+            areaPosition.z + 54
         );
-        pillarsGroup.add(backPillar);
+        pillarsGroup.add(rightPillar);
         
         Xcont += 22;
     }
     
-    // Pilares do lado esquerdo
+    // Pilares da frente
     while (Zcont <= 35) {
-        const leftPillar = createPillar(
+        const frontPillar = createPillar(
             areaPosition.x - 10,
             18.75,
             areaPosition.z + Zcont
         );
-        pillarsGroup.add(leftPillar);
+        pillarsGroup.add(frontPillar);
         
-        if (Zcont === -15) {
-            Zcont += 30;
+        if (Zcont === -16) {
+            Zcont += 32;
         } else {
-            Zcont += 20;
+            Zcont += 19;
         }
     }
     
     // Pilares do lado direito
     while (contBack <= 33) {
-        const rightPillar = createPillar(
-            areaPosition.x + 100,
+        const backPillar = createPillar(
+            areaPosition.x + 98,
             18.75, 
             areaPosition.z + contBack
         );
-        pillarsGroup.add(rightPillar);
+        pillarsGroup.add(backPillar);
         contBack += 22;
     }
     
@@ -387,7 +389,7 @@ export function criaPilares(scene, area1) {
         disco.castShadow = true;
         disco.receiveShadow = true;
         pilar.add(disco);
-
+        pilar.userData.collisionBox.setFromObject(pilar);
         pilarMeshes.push(pilar);
     });
 
@@ -479,7 +481,7 @@ export function criaParedes(scene) {
     // ...código anterior...
 
     function createWall(width, height, depth, position, name) {
-        const geometry = new THREE.BoxGeometry(width, height, depth, 1, 1, 1);
+        const geometry = new THREE.BoxGeometry(width, height, depth, 128, 128, 128);
     
         // Crie uma nova textura para o topo/base desta parede
         const topTexture = new THREE.TextureLoader().load('../assets/textures/displacement/rockWall.jpg');
@@ -518,6 +520,15 @@ export function criaParedes(scene) {
     }
 }
 
+function setMaterial(file, repeatU = 1, repeatV = 1, color = 'rgb(255,255,255)'){
+   let mat = new THREE.MeshBasicMaterial({ map: loader.load(file), color:color});
+      mat.map.colorSpace = THREE.SRGBColorSpace;
+   mat.map.wrapS = mat.map.wrapT = THREE.RepeatWrapping;
+   mat.map.minFilter = mat.map.magFilter = THREE.LinearFilter;
+   mat.map.repeat.set(repeatU,repeatV); 
+   return mat;
+}
+
 export function setupLighting(scene) {
     // 1. Luz ambiente (mantida)
     const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
@@ -549,8 +560,8 @@ export function setupLighting(scene) {
         
         // Configurações de sombra
         light.castShadow = true;
-        light.shadow.mapSize.width = 4096;
-        light.shadow.mapSize.height = 4096;
+        light.shadow.mapSize.width = 2048;
+        light.shadow.mapSize.height = 2048;
         light.shadow.camera.near = 0.5;
         light.shadow.camera.far = 500;
         light.shadow.camera.left = -250;

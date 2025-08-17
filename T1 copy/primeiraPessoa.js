@@ -589,6 +589,7 @@ export function fadeInOpacity(obj, targetOpacity = 1, duration = 1000) {
 export function moveAnimate(delta) {
     if (jogoFinalizado) return;
     const playerObj = controls.getObject();
+    const hangar = scene.getObjectByName('hangar');
     const alturaPlayer = 2;
     const forward = controls.getDirection(new THREE.Vector3()).setY(0).normalize();
     const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
@@ -614,8 +615,8 @@ export function moveAnimate(delta) {
     let playerBox = new THREE.Box3().setFromCenterAndSize(
         playerObj.position.clone(),
         new THREE.Vector3(0.3, alturaPlayer, 0.3)
-    );
-
+    );  
+    
     checaTeleportePortais(
         controls.getObject(),
         scene.getObjectByName('portalBlue'),
@@ -756,8 +757,6 @@ export function moveAnimate(delta) {
     const sensor = scene.children.filter(obj => obj.name === 'DesceElevador');
     sensor.forEach(sensor => { moveElevador(elevador, downRay, sensor, controls); });
 
-    // portao area 3
-    const hangar = scene.getObjectByName('hangar');
     if (hangar) {
         const portas = [];
         hangar.traverse((child) => {
