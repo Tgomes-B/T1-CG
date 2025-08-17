@@ -26,7 +26,7 @@ export function loadEnemyOBJ(path, position = { x: 0, y: 0, z: 0 }, onLoad) {
                 obj.userData.maxHp = 50;
                 obj.userData.enemyType = "skull";
                 obj.userData.fading = false;
-                obj.userData.isCollidable = false;
+                obj.userData.isCollidable = true;
                 obj.userData.state = "patrol";
                 obj.userData.originalPosition = obj.position.clone();
                 

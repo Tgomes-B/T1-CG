@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { SpriteMixer } from '../libs/sprites/SpriteMixer.js';
+import { HealthBar } from './healthbar.js';
 
 export function criaSoldier(position, scene) {
     const loader = new THREE.TextureLoader();
@@ -11,10 +12,26 @@ export function criaSoldier(position, scene) {
         actionSprite.position.copy(position);
         actionSprite.position.y =  0.9; //position.y ||
         actionSprite.position.x = position.x - 50;
-        actionSprite.scale.set(3, 3, 3);
+        // Ajusta escala e posicionamento
+        actionSprite.scale.set(8, 8, 8);
+        actionSprite.position.y = 1.5;
+        actionSprite.renderOrder = 999; // Prioridade máxima
+        
+        // Configura propriedades do inimigo
         actionSprite.name = "soldier";
         actionSprite.userData.tipo = "soldier";
         actionSprite.userData.isEnemy = true;
+        actionSprite.userData.hp = 30;
+        actionSprite.userData.maxHp = 30;
+        
+        // Adiciona barra de vida
+        const healthBar = new HealthBar(actionSprite.userData.maxHp, 0.8);
+        const healthBarObj = healthBar.getObject();
+        healthBarObj.position.y = 1.2; // Posição mais baixa acima do soldado
+        healthBarObj.name = 'healthBar';
+        healthBarObj.userData.isHealthBar = true;
+        actionSprite.add(healthBarObj);
+        actionSprite.userData.healthBar = healthBar;
 
         // Frame inicial
         actionSprite.setFrame(0, 0);

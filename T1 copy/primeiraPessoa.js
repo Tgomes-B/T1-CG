@@ -281,7 +281,8 @@ function setupEnvironment() {
     setupArea2(scene);
 
     const torresArea2 = [];
-    criaSoldier(areas[2].position.clone().add(new THREE.Vector3(0, 10, 0)), scene);
+    // Posiciona o soldado perto dos outros 3 no hangar
+    criaSoldier(new THREE.Vector3(190, 5, 130), scene);
     scene.traverse(obj => {
         if (obj.name === "torre") torresArea2.push(obj);
     });
@@ -688,6 +689,12 @@ export function moveAnimate(delta) {
                     // Barra de hp
                     obj.traverse(child => {
                         if (child.userData && child.userData.isHealthBar && child instanceof THREE.Object3D) {
+const isArea4Enemy = obj.userData.patrolArea && 
+                                obj.userData.patrolArea.min && 
+                                obj.userData.patrolArea.max && 
+                                obj.userData.patrolArea.min.x < 0 && 
+                                obj.userData.patrolArea.max.x > 0;
+                            child.visible = isArea4Enemy ? (window.vaidesce || false) : false;
                             child.position.x = 0;
                             child.position.z = 0;
                             child.position.y = obj.userData.baseY + (obj.userData.healthBarOffsetY || 7);
@@ -725,6 +732,14 @@ export function moveAnimate(delta) {
                 // Barra de hp
                 obj.traverse(child => {
                     if (child.userData && child.userData.isHealthBar && child instanceof THREE.Object3D) {
+                        const isArea4Enemy = obj.userData.patrolArea && 
+                            obj.userData.patrolArea.min && 
+                            obj.userData.patrolArea.max && 
+                            obj.userData.patrolArea.min.x < 0 && 
+                            obj.userData.patrolArea.max.x > 0;
+                        
+                        child.visible = isArea4Enemy ? (window.vaidesce || false) : false;
+                        
                         child.position.x = 0;
                         child.position.z = 0;
                         child.position.y = obj.userData.baseY + (obj.userData.healthBarOffsetY || 7);
@@ -741,6 +756,14 @@ export function moveAnimate(delta) {
             // Detecção e mudança de estado
             if (obj.userData.state === "idle" && dist <= obj.userData.detectionRadius) {
                 obj.userData.state = "pursuing";
+                
+                // Spawna Skulls
+                if (isBoss && typeof obj.userData.hasSpawnedSkulls === 'undefined') {
+                    obj.userData.hasSpawnedSkulls = true;
+                    import('./boss.js').then(module => {
+                        module.spawnSkullsForBoss(obj, playerPos, scene);
+                    });
+                }
                 if (isCacodemon || isBoss) {
                     obj.userData.cacoMovePhase = 0;
                     obj.userData.cacoMoveTimer = 0;
@@ -985,6 +1008,7 @@ export function moveAnimate(delta) {
                     obj.userData.cacoMoveTimer += delta;
                     // Fases: 0-virar para lado/trás, 1-mover lateral/trás, 2-parar para atirar, 3-girar para player
                     let moveVec = new THREE.Vector3();
+
                     if (obj.userData.cacoMovePhase === 0) {
                         if (obj.userData.cacoMoveType === 2) {
                             // Vai para trás, olhar para trás do vetor player
@@ -1053,7 +1077,7 @@ export function moveAnimate(delta) {
                                 moveVec.copy(vert);
                             }
                         } else if (obj.userData.cacoMoveType === 3) {
-                            let toPlayer = playerPos.clone().setY(0).sub(obj.position.clone().setY(0)).normalize();
+                            let toPlayer = playerPos.clone().setY(obj.position.y).sub(obj.position).setY(0).normalize();
                             obj.position.add(toPlayer.multiplyScalar(moveSpeed * (amp * 0.5)));
                             moveVec.copy(toPlayer);
                         }
@@ -1085,7 +1109,11 @@ export function moveAnimate(delta) {
                         }
                         
                         // Atira um projétil quando estiver alinhado com o jogador e o último movimento não foi para trás
-                        if (!obj.userData.hasFiredInThisPhase && Math.abs(yaw - obj.rotation.y) < 0.1 && !obj.userData.lastMoveWasBackward) {
+                        const shouldShoot = !isBoss && !obj.userData.hasFiredInThisPhase && 
+                                         Math.abs(yaw - obj.rotation.y) < 0.1 && 
+                                         !obj.userData.lastMoveWasBackward;
+                        
+                        if (shouldShoot) {
                             obj.userData.hasFiredInThisPhase = true;
                             
 
@@ -1304,9 +1332,18 @@ export function moveAnimate(delta) {
                 if (obj.userData.collisionBox) {
                     obj.userData.collisionBox.setFromObject(obj);
                 }
-                // Barra de hp segue o inimigo
+                // Barra de hp
                 obj.traverse(child => {
                     if (child.userData && child.userData.isHealthBar && child instanceof THREE.Object3D) {
+// Healthbar mostrar apenas quando descer muralha
+                        const isArea4Enemy = obj.userData.patrolArea && 
+                            obj.userData.patrolArea.min && 
+                            obj.userData.patrolArea.max && 
+                            obj.userData.patrolArea.min.x < 0 && 
+                            obj.userData.patrolArea.max.x > 0;
+                        
+                        child.visible = isArea4Enemy ? (window.vaidesce || false) : false;
+                        
                         child.position.x = 0;
                         child.position.z = 0;
                         child.position.y = obj.userData.baseY + (obj.userData.healthBarOffsetY || 7);
@@ -1521,7 +1558,6 @@ export function moveAnimate(delta) {
         
         if (portasHangar.length >= 2) {
             movePortaoH(portasHangar[0], portasHangar[1], frontRay);
-            playerHasKeyYellow = false;
         } else if (portasHangar.length > 0) {
             console.warn('Apenas', portasHangar.length, 'porta(s) do hangar encontrada(s) na scene');
         }

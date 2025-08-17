@@ -7,11 +7,15 @@ import {
 import {loadOBJFile}from './airplane.js'
 import { CSG } from '../libs/other/CSGMesh.js'  
 import{colisionChave, criaChave}from './areaChave.js'
+import { criaSoldier } from './Soldier.js';
+import { HealthBar } from './healthbar.js';
 
 let loader = new THREE.TextureLoader();
 
 export function constroiHangar(scene){
+    // Geometria do hangar
     const hangarGeometry = new THREE.CylinderGeometry(50, 50, 100, 32, 1, true, 0, Math.PI);
+    // Material da lateral do hangar
     const lateralMaterial = new THREE.MeshStandardMaterial({
         map: texHangarArea3,
         displacementMap: texHangarArea3Displacement,
@@ -45,11 +49,135 @@ export function constroiHangar(scene){
     scene.add(mesh);
     
     scene.userData.chaveAzul = chaveAzul;
+    
+    // Adiciona 3 soldados maiores dentro do hangar
+    const soldierPositions = [
+        new THREE.Vector3(190, 5, 140),  // Esquerda (10 unidades à frente)
+        new THREE.Vector3(190, 5, 150),  // Centro (10 unidades à frente)
+        new THREE.Vector3(190, 5, 160)   // Direita (10 unidades à frente)
+    ];
+
+    soldierPositions.forEach((pos, index) => {
+        const soldier = criaSoldier(pos, scene);
+        if (soldier && soldier.sprite) {
+            // Aumenta o tamanho dos soldados (tamanho original é 3, então 3 * 40 = 120)
+            soldier.sprite.scale.set(120, 120, 120);
+            
+            // Define as propriedades do inimigo
+            const enemy = soldier.sprite;
+            enemy.userData.hp = 50;
+            enemy.userData.maxHp = 50;
+            enemy.userData.isEnemy = true;
+            enemy.userData.enemyType = "soldier";
+            enemy.userData.fading = false;
+            enemy.userData.name = `soldier_${index}`;
+            
+            // Define a caixa de colisão para detecção de colisão
+            enemy.userData.collisionBox = new THREE.Box3().setFromObject(enemy);
+            
+            // Trata danos
+            enemy.userData.takeDamage = function(amount) {
+                if (this.userData.hp <= 0) return; // Já está morto
+                
+                // Reduz o dano para fazer a barra de vida diminuir mais suavemente
+                const smoothAmount = Math.max(1, Math.ceil(amount / 3));
+                this.userData.hp = Math.max(0, this.userData.hp - smoothAmount);
+                
+                if (this.userData.healthBar) {
+                    // Atualiza suavemente a barra de vida
+                    const currentHp = this.userData.healthBar.getCurrentHp();
+                    const targetHp = this.userData.hp;
+                    const diff = currentHp - targetHp;
+                    
+                    if (diff > 0) {
+                        // Diminui gradualmente a barra de vida
+                        const step = Math.max(1, Math.ceil(diff / 3));
+                        const animateHealthBar = () => {
+                            if (currentHp <= targetHp) return;
+                            this.userData.healthBar.update(currentHp - step);
+                            if (currentHp - step > targetHp) {
+                                requestAnimationFrame(animateHealthBar);
+                            }
+                        };
+                        requestAnimationFrame(animateHealthBar);
+                    } else {
+                        this.userData.healthBar.update(targetHp);
+                    }
+                }
+                
+                // Feedback visual em caso de colisão
+                this.material.color.setHex(0xff0000);
+                setTimeout(() => {
+                    if (this.material) this.material.color.setHex(0xffffff);
+                }, 100);
+                
+                // Toca som de colisão
+                const hitSound = document.getElementById('SoldierHitSound');
+                if (hitSound) {
+                    hitSound.currentTime = 0;
+                    hitSound.volume = 0.5;
+                    hitSound.play();
+                }
+                
+                // Verifica se está morto
+                if (this.userData.hp <= 0) {
+                    this.userData.die();
+                }
+            };
+            
+            // Trata morte
+            enemy.userData.die = function() {
+                if (this.userData.isDying) return;
+                this.userData.isDying = true;
+                
+                // Toca som de morte
+                const deathSound = document.getElementById('SoldierDeathSound');
+                if (deathSound) {
+                    deathSound.currentTime = 0;
+                    deathSound.volume = 0.7;
+                    deathSound.play();
+                }
+                
+                // Inicia a animação de fade out
+                this.userData.fadeOut = 1.0;
+                
+                // Remove a barra de vida
+                if (this.userData.healthBar) {
+                    this.userData.healthBar.remove();
+                }
+                
+                // Inicia a animação de morte
+                if (soldier.actions && soldier.actions.Die) {
+                    soldier.actions.Die.play();
+                }
+                
+                // Remove do cenário após a animação
+                setTimeout(() => {
+                    if (this.parent) {
+                        this.parent.remove(this);
+                    }
+                    
+                    // Remove do array de inimigos se existir
+                    if (scene.userData.enemies) {
+                        const index = scene.userData.enemies.indexOf(this);
+                        if (index > -1) {
+                            scene.userData.enemies.splice(index, 1);
+                        }
+                    }
+                }, 2000); // Combine com a duração da animação de morte
+            };
+            
+            // Adiciona ao array de inimigos se existir
+            if (scene.userData.enemies) {
+                scene.userData.enemies.push(enemy);
+            }
+        }
+    });
+
     // Carrega o avião depois que o hangar estiver completamente construído
     loadOBJFile({x: 7, y: 0, z: 0}, hangar, (aviao) => {
-        //aviao.rotation.x = -Math.PI / 2;
-        aviao.rotation.z = - Math.PI / 2;
-        aviao.rotation.x =  Math.PI / 2; // Ajusta a rotação do avião
+        aviao.rotation.z = -Math.PI / 2;
+        aviao.rotation.x = Math.PI / 2; // Ajusta a rotação do avião
     });
     return hangar;
 }

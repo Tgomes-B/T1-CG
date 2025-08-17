@@ -116,7 +116,7 @@ export function criaAreasRampas(scene) {
         scene.add(ramp);
     }
 
-    const SHOW_COLLISION_BOXES = true; // Ativa visualização
+    const SHOW_COLLISION_BOXES = false; // Ativa visualização
 
     function criaAreaColisao(areaX, areaY, areaZ, dimensoes, rotacionarY = false, material = null) {
         const mesh = new THREE.Mesh(
@@ -546,14 +546,14 @@ export function setupLighting(scene) {
     scene.add(directionalLight);
     scene.add(fillLight);
 
-    // Helper (opcional)
-    const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 5);
-    scene.add(directionalLightHelper);
+    // Helper desativado para remover o indicador de direção da luz
+    // const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 5);
+    // scene.add(directionalLightHelper);
 
     // Atualização da GUI
-    buildLightingInterface(directionalLight, fillLight, directionalLightHelper, ambientLight, scene);
+    buildLightingInterface(directionalLight, fillLight, null, ambientLight, scene);
 
-    return directionalLightHelper;
+    return null;
 
     function createDirectionalLight() {
         const light = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -590,27 +590,6 @@ export function setupLighting(scene) {
             mostrarHelpers: false
         };
         
-        // Hide all helpers by default
-        if (helper) helper.visible = false;
 
-        const gui = new GUI({ width: 300 });
-        const pasta = gui.addFolder('Controle de Iluminação');
-        pasta.open();
-        
-        pasta.add(lightControls, 'intensidadePrincipal', 0, 2, 0.1)
-            .name('Intensidade Principal')
-            .onChange(val => directionalLight.intensity = val);
-            
-        pasta.add(lightControls, 'intensidadePreenchimento', 0, 2, 0.1)
-            .name('Intensidade Preenchimento')
-            .onChange(val => fillLight.intensity = val);
-            
-        pasta.add(lightControls, 'intensidadeAmbiente', 0, 2, 0.1)
-            .name('Intensidade Ambiente')
-            .onChange(val => ambientLight.intensity = val);
-            
-        pasta.add(lightControls, 'mostrarHelpers')
-            .name('Mostrar Helpers')
-            .onChange(val => helper.visible = val);
     }
 }
