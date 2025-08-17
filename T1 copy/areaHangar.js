@@ -47,9 +47,6 @@ export function constroiHangar(scene){
     return hangar;
 }
 
-
-
-
 function rodape(posZ){
     const rodapeGeometry = new THREE.BoxGeometry(101, 10, 1);
     const rodapeMaterial = [

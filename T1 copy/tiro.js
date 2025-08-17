@@ -120,6 +120,7 @@ function shootProjectile() {
         const dir = new THREE.Vector3();
         camera.getWorldDirection(dir);
         const raycaster = new THREE.Raycaster(camera.getWorldPosition(new THREE.Vector3()), dir, 0, 200);
+        raycaster.camera = camera;
         let enemies = [];
         scene.traverse(obj => {
             if (obj.userData?.isEnemy) enemies.push(obj);

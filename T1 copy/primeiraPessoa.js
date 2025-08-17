@@ -1494,6 +1494,12 @@ export function moveAnimate(delta) {
                     chaveA.parent.remove(chaveA);
                     chaveA.userData.isCollectable = false;
                     playerHasKeyYellow = true;
+                    // Adicione aqui para tocar o som de coleta:
+                    const chaveSound = document.getElementById('chaveSound');
+                    if (chaveSound) {
+                        chaveSound.currentTime = 0;
+                        chaveSound.play();
+                    }
                 }
             }
         }

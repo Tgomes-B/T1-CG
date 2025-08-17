@@ -220,7 +220,7 @@ export function criaAreasRampas(scene) {
             areas[i].position.set(120, 5, posZ);
         }else if (i == 2) {
             areas[i].position.set(175, 0.025, posZ);
-            areas[i].add(constroiHangar());
+            areas[i].add(constroiHangar(scene));
             areas[i].visible = true;
         } else if (i == 3) {
             areas[i].position.set(-130, 0.5, 0);
