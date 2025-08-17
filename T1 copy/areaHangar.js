@@ -41,6 +41,14 @@ export function constroiHangar(scene){
     let chaveAzul = criaChave('blue');
     chaveAzul.position.set(2, 60, 0);
 
+    // Torna invisível e não coletável
+    chaveAzul.traverse(obj => {
+        if (obj.isMesh) {   
+            obj.visible = false;
+        }
+    });
+    chaveAzul.userData.isCollectable = false;
+
     const mesh = colisionChave();
     mesh.position.set(115, 0, 155);
     mesh.name = "coletaAzul";

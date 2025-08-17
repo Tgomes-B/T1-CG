@@ -615,6 +615,20 @@ export function fadeInOpacity(obj, targetOpacity = 1, duration = 1000) {
         }
     });
 }
+function todosSoldadosHangarEliminados(scene) {
+    let vivos = 0;
+    scene.traverse(obj => {
+        if (
+            obj.userData &&
+            obj.userData.isEnemy &&
+            obj.userData.enemyType === "soldier" &&
+            obj.parent // ainda está na cena
+        ) {
+            vivos++;
+        }
+    });
+    return vivos === 0;
+}
 
 export function moveAnimate(delta) {
     scene.traverse(obj => {
@@ -640,6 +654,13 @@ export function moveAnimate(delta) {
             }
             if (isCacodemon && dist >= 12) {
                 obj.userData.nearSoundPlayed = false;
+            }
+            if (todosSoldadosHangarEliminados(scene)) {
+                const chaveAzul = scene.userData.chaveAzul;
+                if (chaveAzul && chaveAzul.material.opacity < 1) {
+                    fadeInOpacity(chaveAzul, 1, 1500);
+                    chaveAzul.userData.isCollectable = true;
+                }
             }
 
             // --- Máquina de estados expandida ---
